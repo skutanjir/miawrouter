@@ -86,3 +86,5 @@ graphify-out/*
 .PR/
 .next-analyze/*
 .slim/deepwork/
+.omo
+.opencode
