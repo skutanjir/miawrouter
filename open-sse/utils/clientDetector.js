@@ -9,6 +9,8 @@ const NATIVE_PAIRS = {
   "gemini-cli": ["gemini-cli"],
   "antigravity": ["antigravity"],
   "codex": ["codex"],
+  "opencode": ["opencode", "opencode-zen", "opencode-go"],
+  "miawcode": ["opencode", "opencode-zen", "opencode-go"],
 };
 
 /**
@@ -45,6 +47,16 @@ export function detectClientTool(headers = {}, body = {}) {
 
   // DeepSeek TUI
   if (ua.includes("deepseek-tui")) return "deepseek-tui";
+
+  // MiawCode / MiawAgent CLI & Desktop
+  if (ua.includes("miawcode") || ua.includes("miawagent") || xApp === "miawcode" || xApp === "miawagent" || headers["x-miaw-client"]) {
+    return "miawcode";
+  }
+
+  // OpenCode CLI / Desktop
+  if (ua.includes("opencode") || xApp === "opencode" || headers["x-opencode-client"]) {
+    return "opencode";
+  }
 
   return null;
 }

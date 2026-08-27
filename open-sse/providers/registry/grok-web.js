@@ -34,6 +34,8 @@ export default {
     { id: "grok-4.1-expert", name: "Grok 4.1 Expert" },
     { id: "grok-4.1-thinking", name: "Grok 4.1 Thinking" },
     { id: "grok-4.2", name: "Grok 4.2 (4.20 Beta)" },
+    { id: "grok-4.5", name: "Grok 4.5" },
+    { id: "grok-4.6", name: "Grok 4.6" },
   ],
   passthroughModels: true,
 };

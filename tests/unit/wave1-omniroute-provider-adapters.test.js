@@ -24,7 +24,7 @@ const EXPECTED = {
   deepinfra: {
     alias: "deepinfra",
     baseUrl: "https://api.deepinfra.com/v1/openai/chat/completions",
-    firstModel: "anthropic/claude-4-opus",
+    firstModel: "moonshotai/Kimi-K3",
   },
   inception: {
     alias: "inception",
@@ -44,7 +44,7 @@ const EXPECTED = {
   friendliai: {
     alias: "friendli",
     baseUrl: "https://api.friendli.ai/serverless/v1/chat/completions",
-    firstModel: "meta-llama-3.1-70b-instruct",
+    firstModel: "zai-org/GLM-5.2",
   },
 };
 

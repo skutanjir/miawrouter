@@ -200,6 +200,44 @@ export default {
   "contextLength": 1050000,
   "targetFormat": "openai-responses"
 }, {
+  "id": "gpt-5.3-codex",
+  "name": "GPT-5.3 Codex",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000
+}, {
+  "id": "gpt-5.3-codex-spark",
+  "name": "GPT-5.3 Codex Spark",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "contextLength": 128000
+}, {
+  "id": "gpt-5.2-codex",
+  "name": "GPT-5.2 Codex",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000
+}, {
+  "id": "gpt-5.1-codex-max",
+  "name": "GPT-5.1 Codex Max",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsXHighEffort": true
+}, {
+  "id": "gpt-5.1-codex-mini",
+  "name": "GPT-5.1 Codex Mini",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true
+}, {
   "id": "gpt-4o-2024-11-20",
   "name": "GPT-4o (Nov 2024)",
   "contextLength": 128000

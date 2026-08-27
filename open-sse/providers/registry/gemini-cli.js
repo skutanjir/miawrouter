@@ -31,6 +31,9 @@ export default {
     clientSecret: "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",
   },
   models: [
+    { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash" },
+    { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash" },
+    { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash" },
     { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro Preview" },
     { id: "gemini-3-pro-preview", name: "Gemini 3 Pro Preview" },
     { id: "gemini-3-flash-preview", name: "Gemini 3 Flash Preview" },

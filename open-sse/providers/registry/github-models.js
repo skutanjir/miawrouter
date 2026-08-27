@@ -11,6 +11,8 @@ export default {
     color: "#238636",
     textIcon: "GH",
     website: "https://github.com/marketplace/models",
+    deprecated: true,
+    deprecationNotice: "GitHub Models was retired Jul 30, 2026.",
   },
   transport: {
     baseUrl: "https://models.github.ai/inference/chat/completions",

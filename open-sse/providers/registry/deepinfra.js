@@ -1,4 +1,6 @@
 const modelIds = [
+  "moonshotai/Kimi-K3",
+  "Qwen/Qwen3.8-2.4T-A95B",
   "anthropic/claude-4-opus",
   "anthropic/claude-4-sonnet",
   "openai/gpt-oss-120b",
@@ -14,6 +16,7 @@ const modelIds = [
   "deepseek-ai/DeepSeek-V4-Pro",
   "deepseek-ai/DeepSeek-V4-Flash",
   "zai-org/GLM-5.1",
+  "zai-org/GLM-5.2",
   "moonshotai/Kimi-K2.6",
   "MiniMaxAI/MiniMax-M2.5",
   "Qwen/Qwen3.6-35B-A3B",

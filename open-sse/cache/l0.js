@@ -82,12 +82,17 @@ export function begin(body) {
   const prefix = prefixMessages(body);
   if (!prefix) return null;
 
-  const original = structuredClone(body); // true pre-compression clone
+  // True pre-compression snapshot kept as a JSON STRING, not a cloned object
+  // graph: same fidelity, but a plain string retains far less memory than a
+  // structuredClone of a large context and is only parsed if restoration into
+  // an incompatible shape is ever needed (rare). Bodies are HTTP-JSON-derived,
+  // so they are always serializable.
+  const originalJSON = JSON.stringify(body);
   const system = Array.isArray(body.system) || typeof body.system === "string" ? body.system : null;
   const tools = Array.isArray(body.tools) ? body.tools : null;
 
   return {
-    original,
+    originalJSON,
     prefixLen: prefix.length,
     snapshot: {
       system: system !== null ? structuredClone(system) : null,
@@ -146,7 +151,11 @@ export function finish(body, state, { cacheKey = "", provider = "", model = "", 
   } else {
     // Saver replaced the body into an incompatible shape — fall back to a
     // clone of the true pre-compression body, never the live mutated object.
-    result = structuredClone(state.original);
+    try {
+      result = JSON.parse(state.originalJSON);
+    } catch {
+      result = body;
+    }
     info.restored = true;
   }
 
@@ -233,13 +242,19 @@ function insertBreakpoints(body, cap) {
   // 2. Last non-thinking block of the last prefix message.
   if (Array.isArray(body.messages) && body.messages.length > 1) {
     const last = body.messages[body.messages.length - 2];
-    if (last && Array.isArray(last.content) && last.content.length > 0) {
-      for (let j = last.content.length - 1; j >= 0; j--) {
-        const b = last.content[j];
-        if (!b || typeof b !== "object") continue;
-        if (b.type === CLAUDE_BLOCK.THINKING || b.type === CLAUDE_BLOCK.REDACTED_THINKING) continue;
-        if (!b.cache_control) b.cache_control = { ...CACHE_CONTROL_EPHEMERAL };
-        break;
+    if (last) {
+      if (typeof last.content === "string" && last.content.length > 0) {
+        last.content = [
+          { type: CLAUDE_BLOCK.TEXT || "text", text: last.content, cache_control: { ...CACHE_CONTROL_EPHEMERAL } }
+        ];
+      } else if (Array.isArray(last.content) && last.content.length > 0) {
+        for (let j = last.content.length - 1; j >= 0; j--) {
+          const b = last.content[j];
+          if (!b || typeof b !== "object") continue;
+          if (b.type === CLAUDE_BLOCK.THINKING || b.type === CLAUDE_BLOCK.REDACTED_THINKING) continue;
+          if (!b.cache_control) b.cache_control = { ...CACHE_CONTROL_EPHEMERAL };
+          break;
+        }
       }
     }
   }

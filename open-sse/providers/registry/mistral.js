@@ -13,6 +13,7 @@ export default {
     },
   },
   category: "apikey",
+  hasFree: true,
   transport: {
     baseUrl: "https://api.mistral.ai/v1/chat/completions",
     validateUrl: "https://api.mistral.ai/v1/models",
@@ -20,29 +21,21 @@ export default {
       dropClientMetadata: true,
     },
   },
-  models: [{
-  id: "mistral-large-latest",
-  name: "Mistral Large 3"
-}, {
-  id: "codestral-latest",
-  name: "Codestral"
-}, {
-  id: "mistral-medium-latest",
-  name: "Mistral Medium 3"
-}, {
-  id: "mistral-embed",
-  name: "Mistral Embed",
-  kind: "embedding"
-}, {
-  "id": "mistral-medium-3-5",
-  "name": "Mistral Medium 3.5"
-}, {
-  "id": "mistral-small-latest",
-  "name": "Mistral Small 4"
-}, {
-  "id": "devstral-latest",
-  "name": "Devstral 2"
-}],
+  models: [
+    { id: "mistral-large-latest", name: "Mistral Large 3" },
+    { id: "mistral-medium-latest", name: "Mistral Medium 3.5" },
+    { id: "mistral-small-latest", name: "Mistral Small 4" },
+    { id: "magistral-medium-latest", name: "Magistral Medium 1.2", supportsReasoning: true },
+    { id: "codestral-latest", name: "Codestral (Latest)" },
+    { id: "codestral-2501", name: "Codestral 25.01" },
+    { id: "devstral-latest", name: "Devstral 2" },
+    { id: "ministral-14b-latest", name: "Ministral 3 14B" },
+    { id: "ministral-8b-latest", name: "Ministral 3 8B", isFreeTier: true },
+    { id: "ministral-3b-latest", name: "Ministral 3 3B", isFreeTier: true },
+    { id: "mistral-embed", name: "Mistral Embed", kind: "embedding" },
+    { id: "codestral-embed", name: "Codestral Embed", kind: "embedding" },
+  ],
+  passthroughModels: true,
   serviceKinds: ["llm","imageToText","embedding"],
   embeddingConfig: { baseUrl: "https://api.mistral.ai/v1/embeddings", authType: "apikey", authHeader: "bearer" },
 };

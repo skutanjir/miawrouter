@@ -5,14 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
-import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
+import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, FreebuffAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { translate } from "@/i18n/runtime";
-import { fetchSuggestedModels } from "@/shared/utils/providerModelsFetcher";
+
 import { getProviderCustomModelRows } from "@/shared/utils/providerCustomModels";
 import ModelRow from "./ModelRow";
 import PassthroughModelsSection from "./PassthroughModelsSection";
@@ -22,6 +22,7 @@ import AddApiKeyModal from "./AddApiKeyModal";
 import EditCompatibleNodeModal from "./EditCompatibleNodeModal";
 import AddCustomModelModal from "./AddCustomModelModal";
 import BulkImportCodexModal from "./BulkImportCodexModal";
+import UpstreamModelsSection from "./UpstreamModelsSection";
 
 const ONE_BY_ONE_DELAY_MS = 1000;
 
@@ -66,7 +67,7 @@ export default function ProviderDetailPage() {
   const [providerStickyLimit, setProviderStickyLimit] = useState("");
   const [thinkingMode, setThinkingMode] = useState("auto");
   const [autoPing, setAutoPing] = useState({ enabled: false, connections: {} });
-  const [suggestedModels, setSuggestedModels] = useState([]);
+
   const [liveModels, setLiveModels] = useState([]);
   const [kiloFreeModels, setKiloFreeModels] = useState([]);
   const [disabledModelIds, setDisabledModelIds] = useState([]);
@@ -486,12 +487,7 @@ export default function ProviderDetailPage() {
     return () => { cancelled = true; };
   }, [providerId, connections]);
 
-  // Fetch suggested models from provider's public API (if configured)
-  useEffect(() => {
-    const fetcher = (OAUTH_PROVIDERS[providerId] || APIKEY_PROVIDERS[providerId] || FREE_PROVIDERS[providerId] || FREE_TIER_PROVIDERS[providerId])?.modelsFetcher;
-    if (!fetcher) return;
-    fetchSuggestedModels(fetcher).then(setSuggestedModels);
-  }, [providerId]);
+
 
   const handleSetAlias = async (modelId, alias, providerAliasOverride = providerAlias) => {
     const fullModel = `${providerAliasOverride}/${modelId}`;
@@ -1185,38 +1181,16 @@ export default function ProviderDetailPage() {
           </button>
         )}
 
-        {/* Suggested models from provider API — show only models not yet added */}
-        {suggestedModels.length > 0 && (() => {
-          const addedFullModels = new Set([
-            ...Object.values(modelAliases),
-            ...customModelRows.map((model) => model.fullModel),
-          ]);
-          const hardcodedIds = new Set(models.map((m) => m.id));
-          const notAdded = suggestedModels.filter(
-            (m) => !addedFullModels.has(`${providerStorageAlias}/${m.id}`) && !hardcodedIds.has(m.id)
-          );
-          if (notAdded.length === 0) return null;
-          return (
-            <div className="w-full mt-2">
-              <p className="text-xs text-text-muted mb-2">Suggested free models (≥200k context):</p>
-              <div className="flex flex-wrap gap-2">
-                {notAdded.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={async () => {
-                      await handleAddCustomModel(m.id, "llm", providerStorageAlias);
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-black/10 dark:border-white/10 text-xs text-text-muted hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
-                    title={`${m.name} · ${(m.contextLength / 1000).toFixed(0)}k ctx`}
-                  >
-                    <span className="material-symbols-outlined text-[13px]">add</span>
-                    {m.id.split("/").pop()}
-                  </button>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+        {/* Upstream models from provider's public API */}
+        <UpstreamModelsSection
+          providerId={providerId}
+          providerStorageAlias={providerStorageAlias}
+          customModels={customModels}
+          modelAliases={modelAliases}
+          hardcodedModelIds={new Set(models.map((m) => m.id))}
+          onAddModel={(modelId) => handleAddCustomModel(modelId, "llm", providerStorageAlias)}
+          onRefreshCustomModels={fetchCustomModels}
+        />
 
         {/* Disabled models — restorable */}
         {disabledDisplayModels.length > 0 && (
@@ -1695,6 +1669,12 @@ export default function ProviderDetailPage() {
         />
       ) : providerId === "cursor" ? (
         <CursorAuthModal
+          isOpen={showOAuthModal}
+          onSuccess={handleOAuthSuccess}
+          onClose={() => setShowOAuthModal(false)}
+        />
+      ) : providerId === "freebuff" ? (
+        <FreebuffAuthModal
           isOpen={showOAuthModal}
           onSuccess={handleOAuthSuccess}
           onClose={() => setShowOAuthModal(false)}

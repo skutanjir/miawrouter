@@ -19,6 +19,9 @@ const DEFAULT_FLAGS = {
   bodyLogging: true,
   headroom: true,
   pxpipe: true,
+  // AI auto-memory persists prompt-derived text locally; treated like body
+  // logging and forced off in every non-normal mode.
+  aiMemory: true,
   blockProviders: [],
 };
 
@@ -32,6 +35,7 @@ export const MODE_TABLE = {
     bodyLogging: false,
     headroom: false,
     pxpipe: false,
+    aiMemory: false,
   },
   "private-no-cache": {
     cacheL1: false,
@@ -40,6 +44,7 @@ export const MODE_TABLE = {
     bodyLogging: false,
     headroom: false,
     pxpipe: false,
+    aiMemory: false,
     blockProviders: [],
   },
   strict: {
@@ -49,6 +54,7 @@ export const MODE_TABLE = {
     bodyLogging: false,
     headroom: false,
     pxpipe: false,
+    aiMemory: false,
     blockProviders: [],
   },
   "local-only": {
@@ -58,6 +64,7 @@ export const MODE_TABLE = {
     bodyLogging: false,
     headroom: false,
     pxpipe: false,
+    aiMemory: false,
     blockProviders: [],
   },
 };
@@ -105,6 +112,7 @@ export function computeEffectivePrivacyFlags(settings) {
     headroomEnabled: !!privacy.headroom && settings?.headroomEnabled === true,
     pxpipeEnabled: !!privacy.pxpipe && settings?.pxpipeEnabled === true,
     bodyLoggingEnabled: !!privacy.bodyLogging,
+    aiMemoryEnabled: !!privacy.aiMemory && settings?.aiMemoryEnabled !== false,
   };
 }
 

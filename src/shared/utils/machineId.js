@@ -1,4 +1,6 @@
-import { machineIdSync } from 'node-machine-id';
+// CJS package: named ESM imports fail at runtime (exports live on .default).
+import nodeMachineId from 'node-machine-id';
+const { machineIdSync } = nodeMachineId;
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';

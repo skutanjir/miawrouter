@@ -26,46 +26,27 @@ export default {
     tokenUrl: "https://auth.x.ai/oauth2/token",
     refreshUrl: "https://auth.x.ai/oauth2/token",
   },
-  models: [{
-  id: "grok-4",
-  name: "Grok 4"
-}, {
-  id: "grok-4-fast-reasoning",
-  name: "Grok 4 Fast Reasoning"
-}, {
-  id: "grok-code-fast-1",
-  name: "Grok Code Fast"
-}, {
-  id: "grok-3",
-  name: "Grok 3"
-}, {
-  id: "grok-2-image-1212",
-  name: "Grok 2 Image",
-  params: ["n", "response_format"],
-  kind: "image"
-}, {
-  id: "grok-imagine-video",
-  name: "Grok Imagine Video",
-  params: ["duration", "aspect_ratio", "resolution"],
-  kind: "video"
-}, {
-  "id": "grok-4.3",
-  "name": "Grok 4.3"
-}, {
-  "id": "grok-build-0.1",
-  "name": "Grok Build 0.1",
-  "contextLength": 256000
-}, {
-  "id": "grok-4.20-multi-agent-0309",
-  "name": "Grok 4.20 Multi Agent",
-  "targetFormat": "openai-responses"
-}, {
-  "id": "grok-4.20-0309-reasoning",
-  "name": "Grok 4.20 Reasoning"
-}, {
-  "id": "grok-4.20-0309-non-reasoning",
-  "name": "Grok 4.20"
-}],
+  models: [
+    { id: "grok-4.5", name: "Grok 4.5" },
+  { id: "grok-4.6", name: "Grok 4.6" },
+  { id: "grok-4.3", name: "Grok 4.3" },
+  { id: "grok-4.20-0309-reasoning", name: "Grok 4.20 Reasoning", contextLength: 1000000 },
+  { id: "grok-4.20-0309-non-reasoning", name: "Grok 4.20", contextLength: 1000000 },
+  { id: "grok-4.20-multi-agent-0309", name: "Grok 4.20 Multi-Agent", contextLength: 1000000 },
+  { id: "grok-4", name: "Grok 4" },
+  { id: "grok-4-fast-reasoning", name: "Grok 4 Fast Reasoning" },
+  { id: "grok-code-fast-1", name: "Grok Code Fast" },
+  { id: "grok-3", name: "Grok 3" },
+  { id: "grok-2-1212", name: "Grok 2" },
+  { id: "grok-2-vision-1212", name: "Grok 2 Vision" },
+  { id: "grok-beta", name: "Grok Beta" },
+  { id: "grok-vision-beta", name: "Grok Vision Beta" },
+  { id: "grok-build-0.1", name: "Grok Build 0.1", contextLength: 256000 },
+  { id: "grok-2-image-1212", name: "Grok 2 Image", params: ["n", "response_format"], kind: "image" },
+  { id: "grok-imagine-video", name: "Grok Imagine Video", params: ["duration", "aspect_ratio", "resolution"], kind: "video" },
+],
+  hasFree: true,
+  passthroughModels: true,
   serviceKinds: ["llm","imageToText","webSearch","image","video"],
   imageConfig: { baseUrl: "https://api.x.ai/v1/images/generations", bodyFields: ["model","prompt","n","response_format"] },
   // Async video jobs (POST returns { request_id }, GET polls until done/failed).

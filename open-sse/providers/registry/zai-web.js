@@ -22,9 +22,15 @@ export default {
     format: "openai",
     authType: "cookie",
   },
+  hasFree: true,
+  passthroughModels: true,
   models: [
-    { id: "glm-4.6", name: "GLM-4.6" },
-    { id: "glm-4.5", name: "GLM-4.5" },
-    { id: "glm-4.5v", name: "GLM-4.5V" },
+    { id: "glm-5.3", name: "GLM-5.3", isFreeTier: true },
+    { id: "glm-5.2", name: "GLM-5.2", isFreeTier: true },
+    { id: "glm-5", name: "GLM-5", isFreeTier: true },
+    { id: "glm-4.7", name: "GLM-4.7", isFreeTier: true },
+    { id: "glm-4.6", name: "GLM-4.6", isFreeTier: true },
+    { id: "glm-4.5", name: "GLM-4.5", isFreeTier: true },
+    { id: "glm-4.5v", name: "GLM-4.5V", isFreeTier: true },
   ],
 };

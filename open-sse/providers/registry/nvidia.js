@@ -21,32 +21,28 @@ export default {
     baseUrl: "https://integrate.api.nvidia.com/v1/chat/completions",
     validateUrl: "https://integrate.api.nvidia.com/v1/models",
   },
-  models: [{
-  id: "minimaxai/minimax-m2.7",
-  name: "MiniMax M2.7"
-}, {
-  id: "minimaxai/minimax-m3",
-  name: "MiniMax M3"
-}, {
-  id: "z-ai/glm-5.2",
-  name: "GLM 5.2"
-}, {
-  id: "deepseek-ai/deepseek-v4-pro",
-  name: "DeepSeek V4 Pro"
-}, {
-  id: "deepseek-ai/deepseek-v4-flash",
-  name: "DeepSeek V4 Flash"
-}, {
-  id: "moonshotai/kimi-k2.6",
-  name: "Kimi K2.6"
-}, {
-  id: "nvidia/nemotron-3-ultra-550b-a55b",
-  name: "Nemotron 3 Ultra"
-}, {
-  id: "nvidia/nv-embedqa-e5-v5",
-  name: "NV EmbedQA E5 v5",
-  kind: "embedding"
-}, {
+  models: [
+    { id: "z-ai/glm-5.3", name: "GLM 5.3", supportsReasoning: true },
+    { id: "z-ai/glm-5.3-turbo", name: "GLM 5.3 Turbo", supportsReasoning: true },
+    { id: "z-ai/glm-5.2", name: "GLM 5.2" },
+    { id: "deepseek-ai/deepseek-r1", name: "DeepSeek R1", supportsReasoning: true },
+    { id: "deepseek-ai/deepseek-v3", name: "DeepSeek V3" },
+    { id: "deepseek-ai/deepseek-v4-pro", name: "DeepSeek V4 Pro" },
+    { id: "deepseek-ai/deepseek-v4-flash", name: "DeepSeek V4 Flash" },
+    { id: "meta/llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct" },
+    { id: "nvidia/llama-3.1-nemotron-70b-instruct", name: "Llama 3.1 Nemotron 70B Instruct" },
+    { id: "qwen/qwen2.5-coder-32b-instruct", name: "Qwen 2.5 Coder 32B Instruct" },
+    { id: "moonshotai/kimi-k3", name: "Kimi K3" },
+    { id: "moonshotai/kimi-k2.7", name: "Kimi K2.7" },
+    { id: "moonshotai/kimi-k2.6", name: "Kimi K2.6" },
+    { id: "minimaxai/minimax-m3", name: "MiniMax M3" },
+    { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 3 Ultra" },
+    { id: "nvidia/nemotron-3.5-lightning-30b-a3b", name: "Nemotron 3.5 Lightning 30B A3B", supportsReasoning: true },
+    {
+      id: "nvidia/nv-embedqa-e5-v5",
+      name: "NV EmbedQA E5 v5",
+      kind: "embedding",
+    }, {
   id: "nvidia/parakeet-ctc-1.1b-asr",
   name: "Parakeet CTC 1.1B",
   params: ["language"],
@@ -98,9 +94,6 @@ export default {
   "id": "abacusai/dracarys-llama-3.1-70b-instruct",
   "name": "Dracarys Llama 3.1 70B Instruct"
 }, {
-  "id": "google/gemma-2-2b-it",
-  "name": "Gemma 2 2B IT"
-}, {
   "id": "google/gemma-3n-e2b-it",
   "name": "Gemma 3n E2B IT"
 }, {
@@ -108,20 +101,9 @@ export default {
   "name": "Llama 3.1 8B Instruct",
   "toolCalling": false
 }, {
-  "id": "meta/llama-3.2-11b-vision-instruct",
-  "name": "Llama 3.2 11B Vision Instruct",
-  "supportsVision": true
-}, {
-  "id": "meta/llama-3.2-1b-instruct",
-  "name": "Llama 3.2 1B Instruct"
-}, {
   "id": "meta/llama-3.2-3b-instruct",
   "name": "Llama 3.2 3B Instruct",
   "toolCalling": false
-}, {
-  "id": "meta/llama-3.2-90b-vision-instruct",
-  "name": "Llama 3.2 90B Vision Instruct",
-  "supportsVision": true
 }, {
   "id": "meta/llama-4-maverick-17b-128e-instruct",
   "name": "Llama 4 Maverick 17B 128E Instruct"
@@ -138,9 +120,6 @@ export default {
 }, {
   "id": "mistralai/mistral-nemotron",
   "name": "Mistral Nemotron"
-}, {
-  "id": "mistralai/mixtral-8x7b-instruct-v0.1",
-  "name": "Mixtral 8x7B Instruct v0.1"
 }, {
   "id": "nvidia/ising-calibration-1-35b-a3b",
   "name": "Ising Calibration 1 35B A3B",
@@ -183,9 +162,6 @@ export default {
   "id": "nvidia/nemotron-3.5-content-safety",
   "name": "Nemotron 3.5 Content Safety"
 }, {
-  "id": "nvidia/nemotron-mini-4b-instruct",
-  "name": "Nemotron Mini 4B Instruct"
-}, {
   "id": "nvidia/nemotron-nano-12b-v2-vl",
   "name": "Nemotron Nano 12B v2 VL",
   "supportsReasoning": true,
@@ -207,10 +183,8 @@ export default {
 }, {
   "id": "stockmark/stockmark-2-100b-instruct",
   "name": "Stockmark 2 100B Instruct"
-}, {
-  "id": "upstage/solar-10.7b-instruct",
-  "name": "Solar 10.7B Instruct"
 }],
+  passthroughModels: true,
   serviceKinds: ["llm","tts","embedding"],
   ttsConfig: {
     baseUrl: "https://integrate.api.nvidia.com/v1/audio/speech",

@@ -107,8 +107,24 @@ export function createSSEStream(options = {}) {
           let injectedUsage = false;
 
           if (trimmed.startsWith("data:") && trimmed.slice(5).trim() !== "[DONE]") {
+            // Fast path: every reason to parse a chunk requires one of these
+            // markers in its serialized form (choices mutations/injections,
+            // usage capture, finish_reason). Lines lacking all of them —
+            // provider keepalives, pings, custom events — are forwarded
+            // byte-identical with zero JSON work. Substring checks can only
+            // produce false positives (escaped content), never false negatives.
+            const payload = trimmed.slice(5).trim();
+            if (!payload.includes('"choices"') && !payload.includes('"usage"')) {
+              // Mirror the normalization below exactly (untrimmed `line`).
+              output = (line.startsWith("data:") && !line.startsWith("data: "))
+                ? "data: " + line.slice(5) + "\n"
+                : line + "\n";
+              reqLogger?.appendConvertedChunk?.(output);
+              controller.enqueue(sharedEncoder.encode(output));
+              continue;
+            }
             try {
-              const parsed = JSON.parse(trimmed.slice(5).trim());
+              const parsed = JSON.parse(payload);
 
               const idFixed = fixInvalidId(parsed);
 

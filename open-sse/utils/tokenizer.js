@@ -68,18 +68,34 @@ export function countTextTokens(text, model) {
   return Math.ceil(str.length / 4);
 }
 
+// Per-body memoization: BPE-encoding a 300KB body costs tens of ms, and the
+// same object is counted repeatedly (stream finish chunk + usage persistence +
+// retry paths). Bodies are request-scoped, so a WeakMap adds no leak risk.
+const bodyTokenCache = new WeakMap();
+
 /**
  * Count tokens for a whole request body (messages, system, tools, …).
- * Stringifies then counts so any body shape is covered.
+ * Stringifies then counts so any body shape is covered. Result is memoized
+ * per body object + model pair.
  * @param {object} body - request body (may carry its own .model)
  * @param {string} [model] - overrides body.model
  * @returns {number}
  */
 export function countBodyTokens(body, model) {
   if (body == null) return 0;
+  const effectiveModel = model ?? body?.model;
+  if (typeof body === "object") {
+    const cached = bodyTokenCache.get(body);
+    if (cached && cached.model === effectiveModel) return cached.tokens;
+  }
+  let tokens;
   try {
-    return countTextTokens(JSON.stringify(body), model ?? body?.model);
+    tokens = countTextTokens(JSON.stringify(body), effectiveModel);
   } catch {
     return 0;
   }
+  if (typeof body === "object") {
+    try { bodyTokenCache.set(body, { model: effectiveModel, tokens }); } catch { /* frozen etc. */ }
+  }
+  return tokens;
 }

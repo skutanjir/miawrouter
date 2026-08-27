@@ -1,33 +1,69 @@
 import { NextResponse } from "next/server";
-import { FILTERS, FILTER_URLS } from "./filters.js";
+import { FILTERS, FILTER_URLS, findProviderFetcher, extractModels } from "./filters.js";
+import { getProviderConnections } from "@/models";
 
 export const dynamic = "force-dynamic";
 
+// Some registries point at endpoints that require the account's own key. When an
+// unauthenticated probe comes back 401/403, retry once with the active stored
+// connection's credentials (apiKey preferred, then accessToken).
+async function fetchModelsPayload(url, providerId) {
+  const attempt = (token) =>
+    fetch(url, {
+      headers: {
+        Accept: "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+  let res = await attempt();
+  if ((res.status === 401 || res.status === 403) && providerId) {
+    try {
+      const connections = await getProviderConnections({ provider: providerId });
+      const active = connections.find((c) => c.isActive !== false);
+      const token = active?.apiKey || active?.accessToken;
+      if (token) res = await attempt(token);
+    } catch {
+      // credential lookup is best-effort — keep the original response
+    }
+  }
+  return res;
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
+  const providerId = searchParams.get("provider");
   const type = searchParams.get("type");
 
-  if (!type) {
-    return NextResponse.json({ error: "Missing type" }, { status: 400 });
+  // Resolve the fetcher either by registry provider id (preferred) or by legacy
+  // filter-type key. Only fixed URLs registered server-side are ever fetched —
+  // client-supplied URLs are ignored (authenticated SSRF guard).
+  let url;
+  let filter;
+  if (providerId) {
+    const fetcher = findProviderFetcher(providerId);
+    if (!fetcher) {
+      return NextResponse.json({ error: "Unknown provider" }, { status: 400 });
+    }
+    url = fetcher.url;
+    filter = FILTERS[fetcher.type];
+  } else if (type) {
+    filter = FILTERS[type];
+    url = FILTER_URLS[type];
+    if (!filter || !url) {
+      return NextResponse.json({ error: "Unknown filter type" }, { status: 400 });
+    }
+  } else {
+    return NextResponse.json({ error: "Missing provider or type" }, { status: 400 });
   }
-
-  const filter = FILTERS[type];
-  if (!filter) {
-    return NextResponse.json({ error: "Unknown filter type" }, { status: 400 });
-  }
-
-  // Only the fixed URL registered for this filter type is ever fetched — the
-  // client-supplied `url` query param is ignored (authenticated SSRF guard).
-  const url = FILTER_URLS[type];
 
   try {
-    const res = await fetch(url);
+    const res = await fetchModelsPayload(url, providerId);
     if (!res.ok) {
       return NextResponse.json({ data: [] });
     }
     const json = await res.json();
-    const raw = json.data ?? json.models ?? json;
-    const data = filter(Array.isArray(raw) ? raw : []);
+    const data = filter(extractModels(json));
     return NextResponse.json({ data });
   } catch {
     return NextResponse.json({ data: [] });

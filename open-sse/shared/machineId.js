@@ -1,4 +1,7 @@
-import { machineIdSync } from "node-machine-id";
+// node-machine-id is CJS with exports hidden under module.exports.default —
+// named ESM imports fail at runtime, so import the default and destructure.
+import nodeMachineId from "node-machine-id";
+const { machineIdSync } = nodeMachineId;
 import crypto from "node:crypto";
 
 let cachedRawId = null;

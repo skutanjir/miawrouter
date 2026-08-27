@@ -7,8 +7,11 @@ const mitmConfig = fs.readFileSync(path.resolve(import.meta.dirname, "../../src/
 const registry = fs.readFileSync(path.resolve(import.meta.dirname, "../../open-sse/providers/registry/antigravity.js"), "utf8");
 
 describe("sidebar version label", () => {
-  it("shows V0.1.1 only in the sidebar", () => {
-    expect(sidebar).toContain('const SIDEBAR_VERSION = "V0.1.1"');
+  it("shows the current package version only in the sidebar", () => {
+    const pkgVersion = JSON.parse(
+      fs.readFileSync(path.resolve(import.meta.dirname, "../../package.json"), "utf8")
+    ).version;
+    expect(sidebar).toContain(`const SIDEBAR_VERSION = "V${pkgVersion}"`);
     expect(sidebar).toContain("{SIDEBAR_VERSION}");
     // must not touch the package version source
     expect(sidebar).not.toContain("v{APP_CONFIG.version}");

@@ -59,6 +59,19 @@ const DEFAULT_SETTINGS = {
   pxpipeAutoInstall: true,
   pxpipeMinChars: 25000,
   pxpipeTimeoutMs: 15000,
+  // AI auto-memory: capture prompts that look important (local heuristics, no
+  // LLM call) into the local SQLite memories table and inject relevant
+  // recollections as a small system block on later requests. Fully local.
+  aiMemoryEnabled: true,
+  aiMemoryAutoCapture: true,
+  aiMemoryMaxTokens: 400,
+  // Anti-Slop filter (miqdadbadjuber/anti-slop R-01..R-38): built-in UI, copy,
+  // and code hygiene injection ensuring AI generated output avoids AI slop.
+  antiSlopEnabled: false,
+  antiSlopLevel: "full",
+  // Hermes Autonomous Reasoning & CLI-tailored agent engine:
+  hermesAutonomyEnabled: true,
+  hermesAutonomyMode: "full",
   // Response cache layers (L1 exact / L2 semantic / L3 content-address dedup).
   // L2 and L3 are opt-in: L2 needs a configured embedding model; L3 rewrites
   // the request body and is off until explicitly enabled.

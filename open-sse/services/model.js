@@ -36,11 +36,14 @@ export function parseModel(modelStr) {
     return { provider: null, model: null, isAlias: false, providerAlias: null };
   }
 
+  // Strip leading router namespace prefixes like "miawrouter/" or "miawcode/" or "9router/"
+  const cleanStr = modelStr.replace(/^(miawrouter|miawcode|9router)\//i, "");
+
   // Check if standard format: provider/model or alias/model
-  if (modelStr.includes("/")) {
-    const firstSlash = modelStr.indexOf("/");
-    const providerOrAlias = modelStr.slice(0, firstSlash);
-    const model = modelStr.slice(firstSlash + 1);
+  if (cleanStr.includes("/")) {
+    const firstSlash = cleanStr.indexOf("/");
+    const providerOrAlias = cleanStr.slice(0, firstSlash);
+    const model = cleanStr.slice(firstSlash + 1);
     const provider = resolveProviderAlias(providerOrAlias);
     return { provider, model, isAlias: false, providerAlias: providerOrAlias };
   }
@@ -48,7 +51,7 @@ export function parseModel(modelStr) {
   // Alias format (model alias, not provider alias)
   return {
     provider: null,
-    model: modelStr,
+    model: cleanStr,
     isAlias: true,
     providerAlias: null,
   };

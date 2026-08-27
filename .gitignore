@@ -88,3 +88,6 @@ graphify-out/*
 .slim/deepwork/
 .omo
 .opencode
+.bench-data/
+.serena/
+bench/out/

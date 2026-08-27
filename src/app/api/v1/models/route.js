@@ -21,6 +21,7 @@ import { updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { capabilitiesFromServiceKind, getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
 import { resolveProviderConnectionModels } from "../../providers/[id]/models/route.js";
+import { buildNoAuthConnections } from "@/lib/providers/noAuthConnections.js";
 
 // Per-provider live model resolvers. Each receives a connection record and
 // returns { models: [{ id, name? }, ...] } | null on failure.
@@ -134,6 +135,38 @@ const LIVE_MODEL_RESOLVERS = {
     // everything. freeIds lets the caller filter aliases/custom models too.
     const models = list.freeOnlyEnabled && list.freeModels.length ? list.freeModels : list.models;
     return { models, freeIds: list.freeOnlyEnabled ? list.freeIds : null };
+  },
+  freebuff: async (conn) => {
+    const staticModels = (PROVIDER_MODELS["freebuff"] || []).map(m => ({ id: m.id, name: m.name }));
+    const token = conn?.accessToken || conn?.apiKey;
+    if (!token) return { models: staticModels };
+    try {
+      const res = await fetch("https://www.codebuff.com/api/v1/freebuff/session", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "User-Agent": "Freebuff-CLI/0.0.105",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.rateLimitsByModel) {
+          const activeIds = Object.keys(data.rateLimitsByModel);
+          const liveModels = [];
+          for (const id of activeIds) {
+            const matched = staticModels.find(m => m.id === id);
+            liveModels.push(matched || { id, name: id });
+          }
+          for (const sm of staticModels) {
+            if (!liveModels.some(m => m.id === sm.id)) liveModels.push(sm);
+          }
+          return { models: liveModels };
+        }
+      }
+    } catch {}
+    return { models: staticModels };
   },
 };
 
@@ -263,10 +296,18 @@ export async function buildModelsList(kindFilter, options = {}) {
   let connections = [];
   try {
     connections = await getProviderConnections();
-    connections = connections.filter(c => c.isActive !== false);
+    connections = connections.filter(c =>
+      c.isActive !== false && [c.apiKey, c.accessToken, c.refreshToken, c.idToken]
+        .some(value => typeof value === "string" && value.trim() !== "")
+    );
+    const storedProviders = new Set(connections.map((connection) => connection.provider));
+    connections.push(...buildNoAuthConnections(AI_PROVIDERS)
+      .filter((connection) => !storedProviders.has(connection.provider)));
   } catch (e) {
-    console.log("Could not fetch providers, returning all models");
+    console.log("Could not fetch providers, returning no models");
   }
+
+  if (connections.length === 0) return [];
 
   let combos = [];
   try {
@@ -320,43 +361,7 @@ export async function buildModelsList(kindFilter, options = {}) {
     models.push(entry);
   }
 
-  if (connections.length === 0) {
-    // DB unavailable -> return static models, filtered by per-model kind
-    const aliasToProviderId = Object.fromEntries(
-      Object.entries(PROVIDER_ID_TO_ALIAS).map(([id, alias]) => [alias, id])
-    );
-    for (const [alias, providerModels] of Object.entries(PROVIDER_MODELS)) {
-      const providerId = aliasToProviderId[alias] || alias;
-      if (!providerMatchesKinds(providerId, kindFilter)) continue;
-      for (const model of providerModels) {
-        if (!kindFilter.includes(modelKind(model))) continue;
-        if (isDisabled(alias, model.id)) continue;
-        models.push({
-          id: `${alias}/${model.id}`,
-          object: "model",
-          owned_by: alias,
-        });
-      }
-    }
-
-    for (const customModel of customModels) {
-      if (!customModel?.id || (customModel.type && customModel.type !== "llm")) continue;
-      // Custom models without active connection are LLM-only by current schema
-      if (!kindFilter.includes(LLM_KIND)) continue;
-      const providerAlias = customModel.providerAlias;
-      if (!providerAlias) continue;
-
-      const modelId = String(customModel.id).trim();
-      if (!modelId) continue;
-
-      models.push({
-        id: `${providerAlias}/${modelId}`,
-        object: "model",
-        owned_by: providerAlias,
-      });
-    }
-  } else {
-    for (const [providerId, conn] of activeConnectionByProvider.entries()) {
+  for (const [providerId, conn] of activeConnectionByProvider.entries()) {
       if (!providerMatchesKinds(providerId, kindFilter)) continue;
 
       const staticAlias = PROVIDER_ID_TO_ALIAS[providerId] || providerId;
@@ -521,6 +526,12 @@ export async function buildModelsList(kindFilter, options = {}) {
           object: "model",
           owned_by: outputAlias,
         };
+        // Human-readable display name: prefer live resolver metadata, then the
+        // static registry entry, so clients (desktop picker) can show names
+        // like "DeepSeek V4 Flash Free" instead of raw ids.
+        const staticModelEntry = providerModels.find((m) => m?.id === modelId);
+        const displayName = staticModelEntry?.name || staticModelEntry?.displayName;
+        if (displayName) model.name = displayName;
         // Live-catalog resolvers (kiro/qoder/github/clinepass) mostly only return
         // { id, name } — no per-model capability data. Fall back to the same
         // pattern-matched capabilities the dashboard uses (useModelCaps.js) so
@@ -556,7 +567,6 @@ export async function buildModelsList(kindFilter, options = {}) {
           owned_by: outputAlias,
         });
       }
-    }
   }
 
   const dedupedModels = [];

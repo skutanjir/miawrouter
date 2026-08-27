@@ -298,6 +298,13 @@ export async function POST(request) {
           isValid = openrouterRes.ok;
           break;
 
+        case "tokenrouter":
+          const tokenrouterRes = await fetch("https://api.tokenrouter.com/v1/models", {
+            headers: { "Authorization": `Bearer ${apiKey}` },
+          });
+          isValid = tokenrouterRes.ok;
+          break;
+
         case "glm":
         case "glm-cn":
         case "kimi":

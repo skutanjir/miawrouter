@@ -5,14 +5,20 @@ import { OpenCodeGoExecutor } from "../../open-sse/executors/opencode-go.js";
 const CHAT_MODELS = [
   "glm-5.2",
   "glm-5.1",
+  "glm-5.3",
   // OpenCode Go docs' endpoint table currently says kimi-k2.7, but its
   // config example and the live API use kimi-k2.7-code.
   "kimi-k2.7-code",
   "kimi-k2.6",
   "deepseek-v4-pro",
   "deepseek-v4-flash",
+  "deepseek-v4-flash-vision-exp",
   "mimo-v2.5",
   "mimo-v2.5-pro",
+  "mimo-v2-pro",
+  "mimo-v2-omni",
+  "gpt-5.6-luna",
+  "muse-spark-1.2-contributor",
   "glm-5.2-high",
   "glm-5.2-max",
   "glm-5",
@@ -42,6 +48,7 @@ const MESSAGES_MODELS = [
   "minimax-m3",
   "minimax-m2.7",
   "minimax-m2.5",
+  "qwen3.8-max",
   "qwen3.7-max",
   "qwen3.7-plus",
   "qwen3.6-plus",

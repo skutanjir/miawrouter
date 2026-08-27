@@ -38,6 +38,7 @@ const PUBLIC_API_PATHS = [
   "/api/auth/oidc",
   "/api/version",
   "/api/settings/require-login",
+  "/api/oauth/freebuff",
 ];
 
 // Public top-level prefixes (LLM API endpoints with their own API key auth).
@@ -99,12 +100,25 @@ const LOCAL_ONLY_PATHS = [
   "/api/webhooks",
 ];
 
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "vscode-app"]);
 
 function isLoopbackHostname(h) {
   if (!h) return false;
   const name = h.split(":")[0].replace(/^\[|\]$/g, "").toLowerCase();
   return LOOPBACK_HOSTS.has(name);
+}
+
+export function isAllowedLocalOrigin(origin) {
+  if (!origin || origin === "null") return true;
+  if (origin.startsWith("vscode-file://") || origin.startsWith("vscode-webview://") || origin.includes("vscode-cdn.net")) {
+    return true;
+  }
+  try {
+    const url = new URL(origin);
+    return isLoopbackHostname(url.hostname);
+  } catch {
+    return false;
+  }
 }
 
 export function isLocalRequest(request) {
@@ -120,10 +134,12 @@ export function isLocalRequest(request) {
     return false;
   }
   const origin = request.headers.get("origin");
-  if (origin) {
-    try {
-      if (!isLoopbackHostname(new URL(origin).hostname)) return false;
-    } catch { return false; }
+  if (origin && !isAllowedLocalOrigin(origin)) {
+    return false;
+  }
+  const secFetchSite = request.headers.get("sec-fetch-site");
+  if (secFetchSite === "cross-site") {
+    return false;
   }
   return true;
 }
@@ -149,9 +165,20 @@ async function hasValidApiKey(request) {
 }
 
 async function canAccessPublicLlmApi(request) {
-  if (isLocalRequest(request)) return true;
+  const origin = request.headers.get("origin");
+  if (origin && !isAllowedLocalOrigin(origin)) return false;
+  const secFetchSite = request.headers.get("sec-fetch-site");
+  if (secFetchSite === "cross-site") return false;
+
   if (await hasValidCliToken(request)) return true;
-  return await hasValidApiKey(request);
+  if (await hasValidApiKey(request)) return true;
+  if (await hasValidToken(request)) return true;
+
+  const settings = await loadSettings();
+  if (isLocalRequest(request) && (!settings || !settings.requireApiKey)) {
+    return true;
+  }
+  return false;
 }
 
 export async function canAccessLocalOnlyRoute(request) {
@@ -187,6 +214,18 @@ function isPublicApi(pathname) {
   return PUBLIC_API_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
+function withCorsHeaders(response, request) {
+  const origin = request.headers.get("origin");
+  if (origin && isAllowedLocalOrigin(origin)) {
+    const allowOrigin = origin === "null" ? "null" : origin;
+    response.headers.set("Access-Control-Allow-Origin", allowOrigin);
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-miaw-cli-token, x-9r-cli-token");
+    response.headers.set("Access-Control-Allow-Credentials", "true");
+  }
+  return response;
+}
+
 export const __test__ = {
   isLocalRequest,
   isPublicLlmApi,
@@ -197,32 +236,63 @@ export const __test__ = {
 
 export async function proxy(request) {
   const { pathname } = request.nextUrl;
+  const origin = request.headers.get("origin");
+
+  // Block external web origins immediately
+  if (origin && !isAllowedLocalOrigin(origin)) {
+    return new NextResponse(JSON.stringify({ error: "Access denied: origin not allowed. MiawRouter is IDE-isolated." }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" }
+    });
+  }
+
+  // Handle CORS preflight OPTIONS across all routes
+  if (request.method === "OPTIONS") {
+    const headers = {
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-miaw-cli-token, x-9r-cli-token",
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Max-Age": "86400",
+    };
+    if (origin && isAllowedLocalOrigin(origin)) {
+      headers["Access-Control-Allow-Origin"] = origin === "null" ? "null" : origin;
+    }
+    return new NextResponse(null, {
+      status: 204,
+      headers,
+    });
+  }
 
   // Local-only gate for spawn-capable / host-secret routes.
   if (LOCAL_ONLY_PATHS.some((p) => pathname.startsWith(p))) {
     if (!(await canAccessLocalOnlyRoute(request))) {
-      return NextResponse.json({ error: "Local only: CLI token required" }, { status: 403 });
+      return withCorsHeaders(NextResponse.json({ error: "Local only: CLI token required" }, { status: 403 }), request);
     }
   }
 
   // Always protected - require valid JWT or local CLI token (machineId-based)
   if (ALWAYS_PROTECTED.some((p) => pathname.startsWith(p))) {
     if (await hasValidCliToken(request) || await hasValidToken(request))
-      return NextResponse.next();
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return withCorsHeaders(NextResponse.next(), request);
+    return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), request);
   }
 
   if (isPublicLlmApi(pathname)) {
-    if (await canAccessPublicLlmApi(request)) return NextResponse.next();
-    return NextResponse.json({ error: "API key required for remote API access" }, { status: 401 });
+    if (await canAccessPublicLlmApi(request)) {
+      return withCorsHeaders(NextResponse.next(), request);
+    }
+    return withCorsHeaders(NextResponse.json({ error: "API key required for remote API access" }, { status: 401 }), request);
   }
 
   // Deny-by-default for /api/* — public allow-list bypasses, everything else requires auth.
   if (pathname.startsWith("/api/")) {
-    if (isPublicApi(pathname)) return NextResponse.next();
-    if (await hasValidCliToken(request) || await isAuthenticated(request))
-      return NextResponse.next();
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (isPublicApi(pathname)) {
+      return withCorsHeaders(NextResponse.next(), request);
+    }
+    if (await hasValidCliToken(request) || await isAuthenticated(request)) {
+      return withCorsHeaders(NextResponse.next(), request);
+    }
+    return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }), request);
   }
 
   // Protect all dashboard routes

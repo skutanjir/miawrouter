@@ -1,7 +1,17 @@
-// PXPIPE: render bulky Claude-format context as dense PNGs via pxpipe-proxy's
-// library API (transformAnthropicMessages). Fail-open like every token saver:
-// any error/timeout returns { body: null, summary } and leaves the request untouched.
+// PXPIPE: render bulky context as dense PNGs via pxpipe-proxy's library API
+// (transformAnthropicMessages). Supports Claude format directly, plus OpenAI and
+// Responses shapes via lossless request bridges so non-Claude clients and
+// providers (OpenCode, Cursor, Codex, OpenAI-compatible) also benefit from
+// multimodal image compression.
+// Fail-open like every token saver: any error/timeout returns { body: null, summary }
+// and leaves the request untouched.
 import { FORMATS } from "../translator/formats.js";
+import { openaiToClaudeRequest } from "../translator/request/openai-to-claude.js";
+import { claudeToOpenAIRequest } from "../translator/request/claude-to-openai.js";
+import {
+  openaiResponsesToOpenAIRequest,
+  openaiToOpenAIResponsesRequest,
+} from "../translator/request/openai-responses.js";
 
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_MIN_CHARS = 25000;
@@ -25,7 +35,7 @@ function skipped(reason, extra = {}) {
   return { body: null, summary: { applied: false, reason, ...extra } };
 }
 
-// Transform a Claude-format request body through pxpipe. Returns
+// Transform a request body through pxpipe. Returns
 // { body: <new body object> | null, summary } — body is null when nothing changed.
 // opts.transform is injected by the host (src side) so open-sse stays free of
 // filesystem/install concerns and remains usable standalone.
@@ -33,17 +43,64 @@ export async function compressWithPxpipe(body, { enabled, format, model, minChar
   if (!enabled) return skipped("disabled");
   if (typeof transform !== "function") return skipped("not_installed");
   if (!body) return skipped("missing_body");
+
+  // OpenAI format bridge: translate OpenAI -> Claude -> compress -> OpenAI.
+  // This lets OpenCode CLI, Aider, Cline, and OpenAI-compatible providers
+  // enjoy image context compression without unsupported_format bailouts.
+  if (format === FORMATS.OPENAI || (format !== FORMATS.CLAUDE && format !== FORMATS.OPENAI_RESPONSES && Array.isArray(body.messages))) {
+    try {
+      const claudeReq = openaiToClaudeRequest(model, body, false);
+      if (Array.isArray(claudeReq?.system)) {
+        claudeReq.system = claudeReq.system.filter(b => !b?.text || !b.text.includes("You are Claude Code"));
+      }
+      const res = await compressWithPxpipe(claudeReq, { enabled, format: FORMATS.CLAUDE, model, minChars, timeoutMs, transform });
+      if (!res?.body) return res;
+      const oaiBody = claudeToOpenAIRequest(model, res.body, false);
+      return { body: oaiBody, summary: res.summary };
+    } catch (e) {
+      return skipped("transform_error", { detail: e?.message || String(e) });
+    }
+  }
+
+  // OpenAI Responses format bridge (Codex): Responses -> OpenAI -> Claude -> compress -> OpenAI -> Responses.
+  if (format === FORMATS.OPENAI_RESPONSES) {
+    try {
+      const oai = openaiResponsesToOpenAIRequest(model, body, false);
+      if (!Array.isArray(oai?.messages)) return skipped("unsupported_format", { detail: "responses missing messages" });
+      const res = await compressWithPxpipe(oai, { enabled, format: FORMATS.OPENAI, model, minChars, timeoutMs, transform });
+      if (!res?.body) return res;
+      const responsesBody = openaiToOpenAIResponsesRequest(
+        model,
+        { ...oai, input: undefined, messages: res.body.messages },
+        false
+      );
+      return { body: responsesBody, summary: res.summary };
+    } catch (e) {
+      return skipped("transform_error", { detail: e?.message || String(e) });
+    }
+  }
+
   if (format !== FORMATS.CLAUDE) return skipped("unsupported_format", { detail: format });
 
   const startedAt = Date.now();
-  const originalChars = bodyChars(body);
+  // Serialize ONCE: the string feeds both the size gate and the transform
+  // input (previously JSON.stringify ran twice on every request — for bulky
+  // contexts that alone costs hundreds of ms of CPU).
+  let json;
+  try {
+    json = JSON.stringify(body);
+  } catch {
+    return skipped("transform_error", { detail: "body not serializable" });
+  }
+  const originalChars = json?.length || 0;
   const threshold = Number(minChars) > 0 ? Number(minChars) : DEFAULT_MIN_CHARS;
   if (originalChars < threshold) {
     return skipped("below_threshold", { originalChars, threshold });
   }
 
+  let timer;
   try {
-    const encoded = new TextEncoder().encode(JSON.stringify(body));
+    const encoded = new TextEncoder().encode(json);
     const budget = Number(timeoutMs) > 0 ? Number(timeoutMs) : DEFAULT_TIMEOUT_MS;
     // transformAnthropicMessages is local CPU work and can't be aborted; race a
     // timer and discard the result if it loses (input body is never mutated).
@@ -53,7 +110,7 @@ export async function compressWithPxpipe(body, { enabled, format, model, minChar
         model,
         options: { minCompressChars: threshold },
       }),
-      new Promise((resolve) => setTimeout(() => resolve(null), budget)),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(null), budget); }),
     ]);
     if (!result) return skipped("timeout", { originalChars, durationMs: Date.now() - startedAt });
     if (!result.applied) {
@@ -94,6 +151,10 @@ export async function compressWithPxpipe(body, { enabled, format, model, minChar
     return { body: newBody, summary };
   } catch (e) {
     return skipped("transform_error", { detail: e?.message || String(e), originalChars, durationMs: Date.now() - startedAt });
+  } finally {
+    // Never leave the race timer hanging on the event loop when the transform
+    // wins (previously kept the process alive up to timeoutMs per request).
+    if (timer) clearTimeout(timer);
   }
 }
 

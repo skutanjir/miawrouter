@@ -1,6 +1,6 @@
 {
   "name": "miawrouter-app",
-  "version": "0.1.2",
+  "version": "1.0.5",
   "description": "MiawRouter web dashboard",
   "private": true,
   "scripts": {

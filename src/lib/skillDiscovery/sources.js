@@ -4,6 +4,8 @@ import { SKILLS } from "@/shared/constants/skills";
 export const ALLOWED_SOURCES = Object.freeze([
   "https://skills.sh",
   "https://www.skills.sh",
+  "https://github.com",
+  "https://raw.githubusercontent.com",
 ]);
 
 export const SKILLS_SH_BASE = "https://skills.sh";
@@ -76,12 +78,12 @@ export function normalizeLocalSkill(skill) {
     name: skill.name,
     description: skill.description || "",
     source: "miawrouter",
-    sourceRef: null,
-    url: null,
+    sourceRef: skill.sourceRef || null,
+    url: skill.rawUrl || null,
     installs: 0,
     installed: true,
     builtin: true,
-    installCommand: "",
+    installCommand: skill.installCommand || "",
     icon: skill.icon || null,
     endpoint: skill.endpoint || null,
     isEntry: skill.isEntry === true,

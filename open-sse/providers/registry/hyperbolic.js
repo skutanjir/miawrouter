@@ -23,6 +23,11 @@ export default {
     validateUrl: "https://api.hyperbolic.xyz/v1/models",
   },
   models: [
+    { id: "deepseek-ai/DeepSeek-V4-Pro", name: "DeepSeek V4 Pro" },
+    { id: "deepseek-ai/DeepSeek-V4-Flash", name: "DeepSeek V4 Flash" },
+    { id: "zai-org/GLM-5.2", name: "GLM 5.2" },
+    { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6" },
+    { id: "Qwen/Qwen3.5-397B-A17B", name: "Qwen 3.5 397B A17B" },
     { id: "Qwen/QwQ-32B", name: "QwQ 32B" },
     { id: "deepseek-ai/DeepSeek-R1", name: "DeepSeek R1" },
     { id: "deepseek-ai/DeepSeek-V3", name: "DeepSeek V3" },

@@ -34,10 +34,13 @@ vi.mock("@/lib/usageDb.js", () => ({
 }));
 
 const { handleChatCore } = await import("../../open-sse/handlers/chatCore.js");
+const { resetHeadroomFailureCache } = await import("../../open-sse/rtk/headroom.js");
 
 describe("handleChatCore Headroom diagnostics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Clear the module-level endpoint cooldown so tests stay order-independent.
+    resetHeadroomFailureCache();
     global.fetch = vi.fn(async (url) => {
       if (String(url).includes("/v1/compress")) {
         throw Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:8787"), { code: "ECONNREFUSED" });

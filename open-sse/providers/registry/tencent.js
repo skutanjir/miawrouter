@@ -14,6 +14,8 @@ export default {
     },
   },
   category: "apikey",
+  hasFree: true,
+  passthroughModels: true,
   authType: "apikey",
   authModes: ["apikey"],
   transport: {
@@ -39,6 +41,7 @@ export default {
   "name": "Hunyuan FunctionCall"
 }, {
   "id": "hunyuan-lite",
-  "name": "Hunyuan Lite"
+  "name": "Hunyuan Lite",
+  "isFreeTier": true
 }],
 };

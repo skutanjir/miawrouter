@@ -1,0 +1,42 @@
+export default {
+  id: "navy",
+  alias: "navy",
+  uiAlias: "navy",
+  display: {
+    name: "NavyAI",
+    icon: "sailing",
+    color: "#1E3A8A",
+    textIcon: "NV",
+    website: "https://api.navy",
+    notice: {
+      text: "Free shared-pool key from the api.navy Discord (~150K tokens/day pool). GPT-5.6, Claude Opus 5, Gemini 3.x and more through one OpenAI-compatible endpoint.",
+      apiKeyUrl: "https://api.navy",
+    },
+  },
+  category: "freeTier",
+  authType: "apikey",
+  authModes: ["apikey"],
+  hasFree: true,
+  transport: {
+    baseUrl: "https://api.navy/v1/chat/completions",
+    validateUrl: "https://api.navy/v1/models",
+  },
+  modelsFetcher: { url: "https://api.navy/v1/models", type: "openai" },
+  // Seed list verified live 2026-08-26; full catalog (~160 ids) via modelsFetcher.
+  models: [
+    { id: "gpt-5.6-luna", name: "GPT-5.6 Luna" },
+    { id: "gpt-5.6-sol", name: "GPT-5.6 Sol" },
+    { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
+    { id: "gpt-5.5", name: "GPT-5.5" },
+    { id: "gpt-5.4", name: "GPT-5.4" },
+    { id: "gpt-5.3-codex", name: "GPT-5.3 Codex" },
+    { id: "claude-opus-5", name: "Claude Opus 5" },
+    { id: "claude-fable-5", name: "Claude Fable 5" },
+    { id: "claude-opus-4.8", name: "Claude Opus 4.8" },
+    { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash" },
+    { id: "grok-4.6", name: "Grok 4.6" },
+    { id: "kimi-k3", name: "Kimi K3" },
+    { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
+  ],
+  passthroughModels: true,
+};

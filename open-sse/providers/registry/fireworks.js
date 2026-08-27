@@ -19,41 +19,54 @@ export default {
     validateUrl: "https://api.fireworks.ai/inference/v1/models",
   },
   models: [{
-  id: "accounts/fireworks/models/deepseek-v3p1",
-  name: "DeepSeek V3.1"
+  id: "kimi-k3",
+  name: "Kimi K3"
 }, {
-  id: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-  name: "Llama 3.3 70B"
+  id: "kimi-k2p7-code",
+  name: "Kimi K2.7 Code"
 }, {
-  id: "accounts/fireworks/models/qwen3-235b-a22b",
-  name: "Qwen3 235B"
+  id: "kimi-k2p6",
+  name: "Kimi K2.6"
+}, {
+  id: "deepseek-v4-pro-0813",
+  name: "DeepSeek V4 Pro 0813"
+}, {
+  id: "deepseek-v4-pro",
+  name: "DeepSeek V4 Pro",
+  "supportsReasoning": true
+}, {
+  id: "deepseek-v4-flash",
+  name: "DeepSeek V4 Flash",
+  supportsReasoning: true
+}, {
+  id: "deepseek-v4-flash-0731",
+  name: "DeepSeek V4 Flash (0731)",
+  "supportsReasoning": true
+}, {
+  id: "glm-5p2",
+  name: "GLM 5.2"
+}, {
+  id: "glm-5p1",
+  name: "GLM 5.1"
+}, {
+  id: "qwen3p7-plus",
+  name: "Qwen3.7 Plus"
+}, {
+  id: "step-3p7-flash-nvfp4",
+  name: "Step 3.7 Flash NVFP4"
+}, {
+  id: "gpt-oss-120b",
+  name: "OpenAI gpt-oss-120b"
+}, {
+  id: "gpt-oss-20b",
+  name: "OpenAI gpt-oss-20b"
 }, {
   id: "nomic-ai/nomic-embed-text-v1.5",
   name: "Nomic Embed Text v1.5",
   kind: "embedding"
 }, {
-  "id": "deepseek-v4-flash",
-  "name": "DeepSeek V4 Flash",
-  "supportsReasoning": true
-}, {
-  "id": "deepseek-v4-pro",
-  "name": "DeepSeek V4 Pro",
-  "supportsReasoning": true
-}, {
-  "id": "glm-5p1",
-  "name": "GLM 5.1"
-}, {
-  "id": "gpt-oss-120b",
-  "name": "OpenAI gpt-oss-120b"
-}, {
-  "id": "gpt-oss-20b",
-  "name": "OpenAI gpt-oss-20b"
-}, {
   "id": "kimi-k2p5",
   "name": "Kimi K2.5"
-}, {
-  "id": "kimi-k2p6",
-  "name": "Kimi K2.6"
 }, {
   "id": "minimax-m2p5",
   "name": "MiniMax M2.5"

@@ -21,12 +21,12 @@ describe("OmniRoute Free Tier catalog import", () => {
       providerMetadataUpdatedAt: "2026-07-28",
       modelCatalogCuratedAt: "2026-07-22",
     });
-    expect(FREE_TIER_PROVIDERS).toHaveLength(134);
-    expect(FREE_TIER_MODEL_RECORDS).toHaveLength(523);
-    expect(new Set(FREE_TIER_PROVIDERS.map((provider) => provider.id)).size).toBe(134);
+    expect(FREE_TIER_PROVIDERS).toHaveLength(136);
+    expect(FREE_TIER_MODEL_RECORDS).toHaveLength(515);
+    expect(new Set(FREE_TIER_PROVIDERS.map((provider) => provider.id)).size).toBe(136);
     expect(
       new Set(FREE_TIER_MODEL_RECORDS.map((model) => `${model.provider}\0${model.modelId}`)).size
-    ).toBe(523);
+    ).toBe(515);
   });
 
   it("contains every model provider and the latest source additions", () => {
@@ -50,7 +50,7 @@ describe("OmniRoute Free Tier catalog import", () => {
       expect(isFreeTierProviderAvailable(provider.id)).toBe(true);
     }
 
-    const airforce = PROVIDER_MODELS.af.find((model) => model.id === "x-ai/grok-3");
+    const airforce = PROVIDER_MODELS.af.find((model) => model.id === "grok-4.1-fast");
     expect(airforce).toMatchObject({
       isFreeTier: true,
       freeTier: { freeType: "recurring-daily", monthlyTokens: 24_000_000 },

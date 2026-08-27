@@ -9,30 +9,27 @@ export const L1_TTL_MS = 5 * 60 * 1000; // entries expire after 5 minutes
 export const L1_MAX_ENTRIES = 200;
 
 // key -> { value: { status, body, contentType, storedAt }, expiresAt, lastUsed }
+// Map preserves insertion order: most-recently-used entries live at the END,
+// so eviction is O(1) (drop the first key) instead of a full scan per eviction.
 const store = new Map();
 
 function now() {
   return Date.now();
 }
 
-// Drop expired entries and evict least-recently-used beyond the bound.
+// Drop expired entries lazily. Bounded by L1_MAX_ENTRIES so the walk is cheap.
 function sweep() {
   const t = now();
   for (const [key, entry] of store) {
     if (t >= entry.expiresAt) store.delete(key);
   }
-  while (store.size > L1_MAX_ENTRIES) {
-    let oldestKey = null;
-    let oldestUsed = Infinity;
-    for (const [key, entry] of store) {
-      if (entry.lastUsed < oldestUsed) {
-        oldestUsed = entry.lastUsed;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey === null) break;
-    store.delete(oldestKey);
-  }
+}
+
+// Touch an entry: refresh lastUsed and move it to the MRU end. O(1).
+function touch(key, entry) {
+  entry.lastUsed = now();
+  store.delete(key);
+  store.set(key, entry);
 }
 
 // Canonical deep-normalize for the cache key: sort keys, drop cache_control
@@ -108,15 +105,22 @@ export function l1Lookup(key) {
     store.delete(key);
     return null;
   }
-  entry.lastUsed = now();
-  sweep();
+  touch(key, entry);
   return entry.value;
 }
 
 /** Store a response under the given key. Returns true when stored. */
 export function l1Store(key, value) {
-  sweep();
+  store.delete(key); // ensure overwrite lands at the MRU end
   store.set(key, { value, expiresAt: now() + L1_TTL_MS, lastUsed: now() });
+  if (store.size > L1_MAX_ENTRIES) {
+    // Prefer reclaiming expired entries first; fall back to LRU head.
+    sweep();
+    if (store.size > L1_MAX_ENTRIES) {
+      const oldestKey = store.keys().next().value;
+      store.delete(oldestKey);
+    }
+  }
   return true;
 }
 

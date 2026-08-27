@@ -4,6 +4,7 @@ import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
+import { isCircuitBlocked, admitProbe, recordFailure, recordSuccess, releaseProbe } from "../services/circuitBreaker.js";
 
 /**
  * BaseExecutor - Base class for provider executors
@@ -102,9 +103,25 @@ export class BaseExecutor {
     let lastError = null;
     let lastStatus = 0;
     const retryAttemptsByUrl = {};
+    const connectionId = credentials?.connectionId || null;
+
+    // Circuit breaker (Phase 7, now wired): a provider+connection that kept
+    // failing gets skipped FAST instead of paying the full connect timeout
+    // again. HALF_OPEN admits exactly one probe through.
+    if (isCircuitBlocked(this.provider, connectionId)) {
+      const err = new Error(`circuit open for ${this.provider} (recent failures) — failing fast`);
+      err.name = "CircuitOpenError";
+      err.status = HTTP_STATUS.SERVICE_UNAVAILABLE;
+      throw err;
+    }
+    admitProbe(this.provider, connectionId);
 
     // Merge default retry config with provider-specific config
     const retryConfig = { ...DEFAULT_RETRY_CONFIG, ...this.config.retry };
+
+    // Transform the request body ONCE — every fallback URL receives the same
+    // payload; re-transforming per attempt wasted CPU on large bodies.
+    const transformedBody = this.transformRequest(model, body, stream, credentials);
 
     // Schedule retry via retryConfig[statusKey]. Returns true when caller should `urlIndex--; continue`
     // response (optional) lets a subclass hook compute a dynamic delay (e.g. antigravity Retry-After).
@@ -126,7 +143,6 @@ export class BaseExecutor {
 
     for (let urlIndex = 0; urlIndex < fallbackCount; urlIndex++) {
       const url = this.buildUrl(model, stream, urlIndex, credentials);
-      const transformedBody = this.transformRequest(model, body, stream, credentials);
       const headers = this.buildHeaders(credentials, stream, url, model);
 
       if (!retryAttemptsByUrl[urlIndex]) retryAttemptsByUrl[urlIndex] = 0;
@@ -157,9 +173,15 @@ export class BaseExecutor {
         if (this.shouldRetry(response.status, urlIndex)) {
           log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
           lastStatus = response.status;
+          // 5xx = provider-side health problem → feed the circuit breaker.
+          // 429 (quota) is account-scoped and already cooled down elsewhere.
+          if (response.status >= 500) recordFailure(this.provider, connectionId);
           continue;
         }
 
+        // Only a healthy response closes the breaker; 4xx (auth/bad request)
+        // is not evidence of provider health either way.
+        if (response.ok) recordSuccess(this.provider, connectionId);
         return { response, url, headers, transformedBody };
       } catch (error) {
         clearTimeout(connectTimer);
@@ -167,7 +189,14 @@ export class BaseExecutor {
         const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
         dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
         // Connect timeout is internal — convert to retryable network error, don't propagate AbortError
-        if (error.name === "AbortError" && !isConnectTimeout) throw error;
+        if (error.name === "AbortError" && !isConnectTimeout) {
+          // Client abort is not a provider-health signal; release the half-open probe.
+          releaseProbe(this.provider, connectionId);
+          throw error;
+        }
+
+        // Network-level failure (DNS/TCP/TLS/timeout) = provider health problem.
+        recordFailure(this.provider, connectionId);
 
         // Map network/fetch exceptions to 502 retry config
         if (await tryRetry(urlIndex, HTTP_STATUS.BAD_GATEWAY, `network "${error.message}"`)) { urlIndex--; continue; }

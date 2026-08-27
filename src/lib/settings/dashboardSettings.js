@@ -1,5 +1,25 @@
 export const FEATURE_FLAGS = [
   {
+    key: "hermesAutonomyEnabled",
+    name: "Hermes Autonomous Reasoning Engine",
+    description: "Built-in Nous Hermes reasoning, goal decomposition, and CLI-tailored prompt guidance (Auto-ON).",
+  },
+  {
+    key: "aiMemoryEnabled",
+    name: "AI Auto-Memory & Distillation",
+    description: "Automatically recall and apply persistent memories and user preferences into system context (Auto-ON).",
+  },
+  {
+    key: "aiMemoryAutoCapture",
+    name: "AI Memory Auto-Capture",
+    description: "Automatically extract and store important facts and preferences from prompts into local SQLite (Auto-ON).",
+  },
+  {
+    key: "antiSlopEnabled",
+    name: "Anti-Slop Filter (R-01 to R-38)",
+    description: "Built-in miqdadbadjuber/anti-slop system filter rejecting generic AI-generated templates, purple gradients, and AI copy tells.",
+  },
+  {
     key: "cacheL2Enabled",
     name: "Semantic response cache",
     description: "Reuse responses for semantically similar requests. Requires a configured embedding model.",

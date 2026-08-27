@@ -17,6 +17,7 @@ import { getTransform as getPxpipeTransform } from "@/lib/pxpipe/loader.js";
 import { appendPxpipeEvent } from "@/lib/pxpipe/events.js";
 import { publishCacheEvent, publishTokenSaverEvent } from "@/lib/eventBus.js";
 import { createSemanticEmbed } from "@/lib/cache/semanticEmbed.js";
+import { captureAiMemory, recallAiMemory } from "@/lib/aiMemory/service.js";
 import { errorResponse, unavailableResponse } from "open-sse/utils/error.js";
 import { handleComboChat, handleFusionChat, detectRequiredCapabilities } from "open-sse/services/combo.js";
 import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActiveAdapterStrategy } from "open-sse/services/capacityAdapter.js";
@@ -331,6 +332,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       cavemanLevel: chatSettings.cavemanLevel || "full",
       ponytailEnabled: !!chatSettings.ponytailEnabled,
       ponytailLevel: chatSettings.ponytailLevel || "full",
+      antiSlopEnabled: !!chatSettings.antiSlopEnabled,
+      antiSlopLevel: chatSettings.antiSlopLevel || "full",
+      hermesAutonomyEnabled: chatSettings.hermesAutonomyEnabled !== false,
+      hermesAutonomyMode: chatSettings.hermesAutonomyMode || "full",
       pxpipeEnabled: effective.pxpipeEnabled,
       pxpipeMinChars: chatSettings.pxpipeMinChars,
       pxpipeTimeoutMs: chatSettings.pxpipeTimeoutMs,
@@ -351,6 +356,10 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       cacheL3MinChars: Number(chatSettings.cacheL3MinChars) > 0 ? Number(chatSettings.cacheL3MinChars) : 1000,
       semanticEmbed: chatSettings.semanticCacheModel ? createSemanticEmbed(chatSettings.semanticCacheModel) : null,
       bodyLoggingEnabled: effective.bodyLoggingEnabled,
+      // AI auto-memory (privacy-gated; capture additionally opt-out-able).
+      aiMemoryCapture: effective.aiMemoryEnabled && chatSettings.aiMemoryAutoCapture !== false ? captureAiMemory : null,
+      aiMemoryRecall: effective.aiMemoryEnabled ? recallAiMemory : null,
+      aiMemoryMaxTokens: Number(chatSettings.aiMemoryMaxTokens) > 0 ? Number(chatSettings.aiMemoryMaxTokens) : 400,
       providerThinking,
       // Detect source format by endpoint + body
       sourceFormatOverride: request?.url ? detectFormatByEndpoint(new URL(request.url).pathname, body) : null,

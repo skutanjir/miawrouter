@@ -19,17 +19,17 @@ export default {
     validateUrl: "https://api.groq.com/openai/v1/models",
   },
   models: [{
-  id: "llama-3.3-70b-versatile",
-  name: "Llama 3.3 70B"
-}, {
-  id: "meta-llama/llama-4-maverick-17b-128e-instruct",
-  name: "Llama 4 Maverick"
-}, {
-  id: "qwen/qwen3-32b",
-  name: "Qwen3 32B"
-}, {
   id: "openai/gpt-oss-120b",
   name: "GPT-OSS 120B"
+}, {
+  id: "openai/gpt-oss-20b",
+  name: "GPT-OSS 20B"
+}, {
+  id: "qwen/qwen3.6-27b",
+  name: "Qwen3.6 27B"
+}, {
+  id: "minimaxai/minimax-m2.7",
+  name: "MiniMax M2.7 Enterprise"
 }, {
   id: "whisper-large-v3",
   name: "Whisper Large v3",
@@ -40,25 +40,13 @@ export default {
   name: "Whisper Large v3 Turbo",
   params: ["language", "response_format", "temperature", "prompt"],
   kind: "stt"
-}, {
-  id: "distil-whisper-large-v3-en",
-  name: "Distil Whisper Large v3 EN",
-  params: ["language", "response_format", "temperature", "prompt"],
-  kind: "stt"
-}, {
-  "id": "meta-llama/llama-4-scout-17b-16e-instruct",
-  "name": "Llama 4 Scout",
-  "supportsReasoning": false
-}, {
-  "id": "openai/gpt-oss-20b",
-  "name": "GPT-OSS 20B"
-}, {
-  "id": "qwen/qwen3.6-27b",
-  "name": "Qwen3.6 27B"
-}, {
-  "id": "openai/gpt-oss-safeguard-20b",
-  "name": "GPT-OSS Safeguard 20B"
-}],
+},
+  { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", supportsReasoning: false, isFreeTier: true },
+  { id: "qwen/qwen3-32b", name: "Qwen3 32B", isFreeTier: true },
+  { id: "meta-llama/llama-4-scout-17b-16e-instruct", name: "Llama 4 Scout", supportsReasoning: false },
+  { id: "openai/gpt-oss-safeguard-20b", name: "GPT-OSS Safeguard 20B" }
+],
+  passthroughModels: true,
   serviceKinds: ["llm","imageToText","stt"],
   sttConfig: {
     baseUrl: "https://api.groq.com/openai/v1/audio/transcriptions",

@@ -1,0 +1,41 @@
+export default {
+  id: "zenmux",
+  alias: "zm",
+  uiAlias: "zm",
+  display: {
+    name: "ZenMux",
+    icon: "neurology",
+    color: "#7C3AED",
+    textIcon: "ZM",
+    website: "https://zenmux.ai",
+    notice: {
+      text: "OpenAI-compatible multi-provider gateway. Free tier covers the -free models (GLM 4.7/4.6V Flash, DeepSeek V4 Flash Vision); paid models billed per token. Get a key at zenmux.ai.",
+      apiKeyUrl: "https://zenmux.ai",
+    },
+  },
+  category: "freeTier",
+  authType: "apikey",
+  authModes: ["apikey"],
+  hasFree: true,
+  transport: {
+    baseUrl: "https://zenmux.ai/api/v1/chat/completions",
+    validateUrl: "https://zenmux.ai/api/v1/models",
+  },
+  modelsFetcher: { url: "https://zenmux.ai/api/v1/models", type: "openai" },
+  // Seed list verified live 2026-08-26; full catalog (~165 ids) via modelsFetcher.
+  models: [
+    { id: "z-ai/glm-4.7-flash-free", name: "GLM 4.7 Flash (Free)" },
+    { id: "z-ai/glm-4.6v-flash-free", name: "GLM 4.6V Flash (Free)" },
+    { id: "deepseek/deepseek-v4-flash-vision-exp-free", name: "DeepSeek V4 Flash Vision (Free)" },
+    { id: "dots-studio/dots3-note-prev", name: "Dots3 Note Preview (Free)" },
+    { id: "google/gemini-3.7-flash", name: "Gemini 3.7 Flash" },
+    { id: "anthropic/claude-opus-5", name: "Claude Opus 5" },
+    { id: "openai/gpt-5.6-luna", name: "GPT-5.6 Luna" },
+    { id: "moonshotai/kimi-k3", name: "Kimi K3" },
+    { id: "z-ai/glm-5.3", name: "GLM 5.3" },
+    { id: "x-ai/grok-4.6", name: "Grok 4.6" },
+    { id: "deepseek/deepseek-v4-pro", name: "DeepSeek V4 Pro" },
+    { id: "qwen/qwen3.8-max", name: "Qwen 3.8 Max" },
+  ],
+  passthroughModels: true,
+};

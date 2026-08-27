@@ -9,6 +9,13 @@ const DEFAULT_TIMEOUT_MS = 3000;
 const FAILED_ENDPOINT_COOLDOWN_MS = 30_000;
 const failedEndpoints = new Map();
 
+// Test/diagnostic escape hatch: clears the per-endpoint failure cooldown so a
+// suite (or an operator) can re-probe immediately instead of waiting out the
+// 30s backoff. Never called on the request path.
+export function resetHeadroomFailureCache() {
+  failedEndpoints.clear();
+}
+
 function jsonBytes(value) {
   try {
     return new TextEncoder().encode(JSON.stringify(value) || "").length;
@@ -369,7 +376,7 @@ export async function compressWithHeadroom(body, { enabled, url, model, format, 
       return data;
     }
 
-    if (format === "antigravity" || format === "gemini" || format === "gemini-cli") {
+    if (format === "antigravity" || format === "gemini" || format === "gemini-cli" || format === "vertex" || Array.isArray(body.contents) || Array.isArray(body.request?.contents)) {
       const projection = collectGeminiHeadroomMessages(body);
       if (!projection) {
         setDiagnostic(diagnostics, `${format} request did not project to messages[]`);

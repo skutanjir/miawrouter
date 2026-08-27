@@ -22,6 +22,8 @@ import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.j
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { injectPonytail } from "../rtk/ponytail.js";
+import { injectAntiSlop } from "../rtk/antislop.js";
+import { injectHermes } from "../rtk/hermes.js";
 import { compressMessages, formatRtkLog, estimateRequestTokens } from "../rtk/index.js";
 import { DEFAULT_AUTO_TRIGGER_TOKENS } from "../rtk/constants.js";
 import { compressWithHeadroom, formatHeadroomLog, formatHeadroomSizeLog, isHeadroomPhantomSavings } from "../rtk/headroom.js";
@@ -64,7 +66,7 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, antiSlopEnabled, antiSlopLevel, hermesAutonomyEnabled, hermesAutonomyMode, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled, aiMemoryCapture, aiMemoryRecall, aiMemoryMaxTokens }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -160,6 +162,72 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     } catch (e) { log?.warn?.("MODALITY", `image prefetch failed: ${e.message}`); }
   }
 
+  // Per-request opt-out: client can bypass all token savers via header.
+  // New x-miaw-token-saver wins; legacy x-9router-token-saver still accepted.
+  // Hoisted above translation so the PXPIPE pre-translate pass can consult it.
+  const saverHeaderValue =
+    clientRawRequest?.headers?.[TOKEN_SAVER_HEADER] ??
+    clientRawRequest?.headers?.[LEGACY_TOKEN_SAVER_HEADER];
+  const tokenSaverEnabled = saverHeaderValue?.toLowerCase() !== "off";
+
+  // Token-saver flags accumulator for the single "⚙" log line below.
+  // Declared early: the AI-memory hook (pre-translation) also appends to it.
+  const xf = [];
+
+  // AI auto-memory (privacy-gated by the caller): capture prompts that look
+  // important and recall relevant saved memories into a small system block.
+  // Runs on the SOURCE body BEFORE pxpipe can image it, and only for
+  // Claude-format clients (the injected block is a Claude system text part —
+  // translators carry it to every target format). Both hooks fail-open.
+  if ((aiMemoryRecall || aiMemoryCapture) && sourceFormat === FORMATS.CLAUDE && !passthrough) {
+    try {
+      const lastUser = Array.isArray(body?.messages)
+        ? [...body.messages].reverse().find((m) => m?.role === "user")
+        : null;
+      const userText = typeof lastUser?.content === "string"
+        ? lastUser.content
+        : Array.isArray(lastUser?.content)
+          ? lastUser.content.map((b) => (typeof b?.text === "string" ? b.text : "")).filter(Boolean).join(" ")
+          : "";
+      if (userText && typeof aiMemoryCapture === "function") {
+        // Fire-and-forget: capture must never add latency to the request.
+        Promise.resolve()
+          .then(() => aiMemoryCapture({ text: userText, sessionId: sessionSeed, provider, model }))
+          .catch(() => { });
+      }
+      if (userText && Array.isArray(body.system) && typeof aiMemoryRecall === "function") {
+        const memBlock = await aiMemoryRecall({ text: userText, sessionId: sessionSeed, maxTokens: aiMemoryMaxTokens });
+        if (memBlock) {
+          body = { ...body, system: [...body.system, { type: "text", text: memBlock }] };
+          xf.push("MEM:+1");
+          log?.debug?.("MEMORY", `recalled ${memBlock.split("\n").length - 1} memory line(s)`);
+        }
+      }
+    } catch { /* fail-open: memory never breaks the request */ }
+  }
+
+  // PXPIPE pre-translation pass: pxpipe renders context as PNGs.
+  // When the provider target is NOT Claude (antigravity, gemini, kiro, openai-compatible…),
+  // image the bulky source body HERE before translateRequest; the rendered images
+  // survive every translator (direct claude:kiro route, OpenAI pivot with data URIs,
+  // and Gemini inlineData). Claude-format targets keep the post-translate path below
+  // so L0 prompt-cache interlock semantics stay unchanged. Fail-open like every saver.
+  let pxpipePreSummary = null;
+  if (
+    tokenSaverEnabled && pxpipeEnabled && !passthrough &&
+    targetFormat !== FORMATS.CLAUDE &&
+    typeof pxpipeTransform === "function"
+  ) {
+    try {
+      const pre = await compressWithPxpipe(body, {
+        enabled: true, format: sourceFormat, model: upstreamModel,
+        minChars: pxpipeMinChars, timeoutMs: pxpipeTimeoutMs, transform: pxpipeTransform,
+      });
+      pxpipePreSummary = pre.summary || null;
+      if (pre.body) body = pre.body;
+    } catch { /* fail-open: uncompressed request proceeds */ }
+  }
+
   let translatedBody;
   let toolNameMap;
   let customToolNames;
@@ -236,13 +304,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     delete translatedBody.tools;
   }
 
-  // Per-request opt-out: client can bypass all token savers via header.
-  // New x-miaw-token-saver wins; legacy x-9router-token-saver still accepted.
-  const saverHeaderValue =
-    clientRawRequest?.headers?.[TOKEN_SAVER_HEADER] ??
-    clientRawRequest?.headers?.[LEGACY_TOKEN_SAVER_HEADER];
-  const tokenSaverEnabled = saverHeaderValue?.toLowerCase() !== "off";
-
   // Live token-saver telemetry. Fail-open: a throwing subscriber must never
   // break the request, and absent callback is a no-op.
   const saverStages = [];
@@ -261,9 +322,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   };
   const telemetryNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : undefined;
 
-  // Token-saver flags accumulator for the single "⚙" log line below.
-  const xf = [];
-
   // Caveman/Ponytail inject system prompts. They run BEFORE the L0 snapshot so
   // their injected system text is captured as part of the protected cached
   // prefix (and survives the compression interlock).
@@ -277,6 +335,14 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     xf.push(`PONYTAIL:${ponytailLevel}`);
     saverEmit({ stage: "ponytail", applied: true, level: ponytailLevel });
   }
+  if (antiSlopEnabled) {
+    injectAntiSlop(translatedBody, finalFormat, antiSlopLevel || "full");
+    xf.push(`ANTISLOP:${antiSlopLevel || "full"}`);
+  }
+  if (hermesAutonomyEnabled) {
+    injectHermes(translatedBody, finalFormat, clientTool, hermesAutonomyMode || "full");
+    xf.push(`HERMES:${clientTool || "core"}`);
+  }
 
   // L0 prompt-cache orchestration: snapshot the whole pre-compression body
   // (system, tools, message prefix) before any compressor can touch it. The
@@ -285,11 +351,6 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // for two session turns. Fail-open: any error here just disables
   // orchestration for this request.
   const cacheKey = `${provider}:${sessionSeed}`;
-  let cacheState = null;
-  try {
-    cacheState = beginCacheOrchestration(translatedBody);
-  } catch { /* fail-open: no cache orchestration this request */ }
-
   // RTK: compress tool_result content — ONE pass, exclusive mode. The L0
   // orchestration snapshot (cacheState) carries prefixLen (message count of the
   // stable cached prefix) ONLY for messages[]-shaped bodies; Kiro and other
@@ -301,6 +362,18 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     ? rtkAutoTriggerRaw
     : DEFAULT_AUTO_TRIGGER_TOKENS;
   const rtkAutoOn = rtkAutoTrigger === 0 || estimateRequestTokens(translatedBody) >= rtkAutoTrigger;
+
+  // L0 prompt-cache orchestration: tracks multi-turn session continuity, stable
+  // prefix boundaries, and cache hit metrics across all providers. Also inserts
+  // missing breakpoints on Anthropic/Claude endpoints once prefix is stable.
+  const l0Useful = Array.isArray(translatedBody?.messages) || Array.isArray(translatedBody?.input);
+  let cacheState = null;
+  if (l0Useful) {
+    try {
+      cacheState = beginCacheOrchestration(translatedBody);
+    } catch { /* fail-open: no cache orchestration this request */ }
+  }
+
   const rtkStats = compressMessages(translatedBody, tokenSaverEnabled && rtkEnabled && rtkAutoOn, {
     start: cacheState && cacheState.prefixLen > 0 ? cacheState.prefixLen : 0,
     mode: rtkMode || undefined,
@@ -339,17 +412,26 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     saverEmit(hr);
   }
 
-  // PXPIPE: image bulky context (Claude-format bodies only), last saver before dispatch
+  // PXPIPE: image bulky context, last saver before dispatch. Two paths:
+  //  - pre-translate summary exists (Claude client → non-Claude target): the
+  //    source body was already imaged before translation; just report it.
+  //  - otherwise the post-translate body is Claude-format (claude targets and
+  //    claude passthrough) and is transformed here as before.
   let pxpipeSummary = null;
   if (tokenSaverEnabled && pxpipeEnabled) {
-    const pxpipeResult = await compressWithPxpipe(translatedBody, {
-      enabled: true, format: finalFormat, model: upstreamModel,
-      minChars: pxpipeMinChars, timeoutMs: pxpipeTimeoutMs, transform: pxpipeTransform,
-    });
-    pxpipeSummary = pxpipeResult.summary;
-    if (pxpipeResult.body) translatedBody = pxpipeResult.body;
-    if (pxpipeSummary?.applied) xf.push(`PXPIPE:${pxpipeSummary.imageCount}img`);
-    try { onPxpipeEvent?.({ provider, model, ...pxpipeSummary }); } catch { /* stats must not break requests */ }
+    if (pxpipePreSummary) {
+      pxpipeSummary = pxpipePreSummary;
+      if (pxpipeSummary?.applied) xf.push(`PXPIPE:${pxpipeSummary.imageCount}img(pre)`);
+    } else {
+      const pxpipeResult = await compressWithPxpipe(translatedBody, {
+        enabled: true, format: finalFormat, model: upstreamModel,
+        minChars: pxpipeMinChars, timeoutMs: pxpipeTimeoutMs, transform: pxpipeTransform,
+      });
+      pxpipeSummary = pxpipeResult.summary;
+      if (pxpipeResult.body) translatedBody = pxpipeResult.body;
+      if (pxpipeSummary?.applied) xf.push(`PXPIPE:${pxpipeSummary.imageCount}img`);
+    }
+    try { onPxpipeEvent?.({ provider, model, ...(pxpipePreSummary ? { phase: "pre_translate" } : {}), ...pxpipeSummary }); } catch { /* stats must not break requests */ }
     saverEmit({
       stage: "pxpipe",
       applied: pxpipeSummary?.applied === true,
@@ -397,12 +479,14 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   let cacheWriteCtx = null;
   if (!stream && (l1On || l2On)) {
     try {
-      // Scope isolates entries across router API keys + provider accounts; the
-      // raw scope only ever feeds the SHA-256 key.
-      const scope = cacheScope(connectionId, apiKey);
-      const key = l1CacheKey({ provider, model, sourceFormat, targetFormat, body: translatedBody, scope });
+      // Eligibility first: canonicalize+SHA-256 of a large body is real CPU,
+      // and most requests (streaming, tool-heavy) are not cacheable at all.
       const cacheable = isCacheableRequest(translatedBody, { stream });
       if (cacheable) {
+        // Scope isolates entries across router API keys + provider accounts; the
+        // raw scope only ever feeds the SHA-256 key.
+        const scope = cacheScope(connectionId, apiKey);
+        const key = l1CacheKey({ provider, model, sourceFormat, targetFormat, body: translatedBody, scope });
         let hit = null;
         let l2Hit = null;
         let l2Attempted = true;
@@ -558,11 +642,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
       streamController.handleError(error);
       return createErrorResult(499, "Request aborted");
     }
-    const errMsg = formatProviderError(error, provider, model, HTTP_STATUS.BAD_GATEWAY);
+    // Executors may attach a precise HTTP status (e.g. circuit breaker 503).
+    const dispatchStatus = Number(error.status) || HTTP_STATUS.BAD_GATEWAY;
+    const errMsg = formatProviderError(error, provider, model, dispatchStatus);
     if (log?.errorLine) {
-      log.errorLine(reqTag, "✗", `ERROR 502 · ${provider}/${model} · ${Date.now() - requestStartTime}ms\n    ${errMsg}${error.stack ? `\n    ${error.stack}` : ""}`);
+      log.errorLine(reqTag, "✗", `ERROR ${dispatchStatus} · ${provider}/${model} · ${Date.now() - requestStartTime}ms\n    ${errMsg}${error.stack ? `\n    ${error.stack}` : ""}`);
     }
-    return createErrorResult(HTTP_STATUS.BAD_GATEWAY, errMsg);
+    return createErrorResult(dispatchStatus, errMsg);
   }
 
   // Handle 401/403 - try token refresh (skip for noAuth providers)

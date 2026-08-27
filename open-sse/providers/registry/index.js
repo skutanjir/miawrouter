@@ -139,6 +139,17 @@ import p136 from "./github-models.js";
 import p137 from "./inception.js";
 import p138 from "./nous-research.js";
 import p139 from "./reka.js";
+import p140 from "./freebuff.js";
+import p141 from "./gorouter.js";
+import p142 from "./tabitoken.js";
+import p143 from "./unikey.js";
+import p144 from "./openagentic.js";
+import p145 from "./huggingface-router.js";
+import p146 from "./modelscope.js";
+import p147 from "./ovh-ai-endpoints.js";
+import p148 from "./pollinations.js";
+import p149 from "./navy.js";
+import p150 from "./zenmux.js";
 
 export default [
   p0,
@@ -187,6 +198,7 @@ export default [
   p43,
   p44,
   p45,
+  p145,
   p46,
   p47,
   p48,
@@ -200,6 +212,7 @@ export default [
   p55,
   p56,
   p57,
+  p146,
   p58,
   p59,
   p60,
@@ -213,6 +226,7 @@ export default [
   p68,
   p69,
   p70,
+  p147,
   p71,
   p72,
   p73,
@@ -279,4 +293,12 @@ export default [
   p137,
   p138,
   p139,
+  p140,
+  p141,
+  p142,
+  p143,
+  p144,
+  p148,
+  p149,
+  p150,
 ];

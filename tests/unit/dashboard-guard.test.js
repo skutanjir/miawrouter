@@ -1,23 +1,40 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mocks = vi.hoisted(() => ({
-  nextResponse: Symbol("next"),
-  jsonResponse: vi.fn((body, init) => ({
+const mocks = vi.hoisted(() => {
+  // Object returned by NextResponse.next(); carries real Headers so
+  // withCorsHeaders can mutate it.
+  const nextResponse = { headers: new Headers() };
+  const jsonResponse = vi.fn((body, init) => ({
     status: init?.status || 200,
     body,
-  })),
-  getSettings: vi.fn(),
-  validateApiKey: vi.fn(),
-  getConsistentMachineId: vi.fn(),
-  verifyDashboardAuthToken: vi.fn(),
-}));
+    headers: new Headers(init?.headers),
+  }));
+  // Constructible form mirrors `new NextResponse(body, init)` used by the guard
+  // for non-JSON responses (e.g. the 204 OPTIONS preflight). Must be a plain
+  // function (not an arrow) so `new NextResponse(...)` works through vi.fn.
+  const NextResponse = vi.fn(function (body, init) {
+    return {
+      status: init?.status || 200,
+      body,
+      headers: new Headers(init?.headers),
+    };
+  });
+  NextResponse.next = vi.fn(() => nextResponse);
+  NextResponse.json = jsonResponse;
+  NextResponse.redirect = vi.fn((url) => ({ status: 307, url }));
+  return {
+    nextResponse,
+    jsonResponse,
+    NextResponse,
+    getSettings: vi.fn(),
+    validateApiKey: vi.fn(),
+    getConsistentMachineId: vi.fn(),
+    verifyDashboardAuthToken: vi.fn(),
+  };
+});
 
 vi.mock("next/server", () => ({
-  NextResponse: {
-    next: vi.fn(() => mocks.nextResponse),
-    json: mocks.jsonResponse,
-    redirect: vi.fn((url) => ({ status: 307, url })),
-  },
+  NextResponse: mocks.NextResponse,
 }));
 
 vi.mock("@/lib/localDb", () => ({

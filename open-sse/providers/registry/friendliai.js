@@ -15,8 +15,15 @@ export default {
     baseUrl: "https://api.friendli.ai/serverless/v1/chat/completions",
     validateUrl: "https://api.friendli.ai/serverless/v1/models",
   },
+  modelsFetcher: { url: "https://api.friendli.ai/serverless/v1/models", type: "openai" },
+  // Live serverless catalog verified 2026-08-26.
   models: [
-    { id: "meta-llama-3.1-70b-instruct", name: "meta-llama-3.1-70b-instruct" },
-    { id: "meta-llama-3.1-8b-instruct", name: "meta-llama-3.1-8b-instruct" },
+    { id: "zai-org/GLM-5.2", name: "GLM 5.2" },
+    { id: "zai-org/GLM-5.1", name: "GLM 5.1" },
+    { id: "deepseek-ai/DeepSeek-V3.2", name: "DeepSeek V3.2" },
+    { id: "MiniMaxAI/MiniMax-M2.5", name: "MiniMax M2.5" },
+    { id: "google/gemma-4-31B-it", name: "Gemma 4 31B IT" },
+    { id: "LGAI-EXAONE/K-EXAONE-2.0-750B-A37B", name: "K-EXAONE 2.0 750B A37B" },
   ],
+  passthroughModels: true,
 };

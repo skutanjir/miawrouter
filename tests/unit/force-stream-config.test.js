@@ -66,6 +66,7 @@ vi.mock("../../open-sse/rtk/ponytail.js", () => ({
 vi.mock("../../open-sse/rtk/index.js", () => ({
   compressMessages: vi.fn(() => null),
   formatRtkLog: vi.fn(() => ""),
+  estimateRequestTokens: vi.fn(() => 0),
 }));
 
 vi.mock("../../open-sse/rtk/headroom.js", () => ({

@@ -19,6 +19,7 @@ describe("resolvePrivacyFlags", () => {
     expect(resolvePrivacyFlags({})).toEqual({
       cacheL1: true, cacheL2: true, cacheL3: true,
       bodyLogging: true, headroom: true, pxpipe: true,
+      aiMemory: true,
       blockProviders: [],
     });
   });

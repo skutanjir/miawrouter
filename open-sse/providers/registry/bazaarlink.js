@@ -18,16 +18,21 @@ export default {
     baseUrl: "https://bazaarlink.ai/api/v1/chat/completions",
     validateUrl: "https://bazaarlink.ai/api/v1/models",
   },
+  modelsFetcher: { url: "https://bazaarlink.ai/api/v1/models", type: "openai" },
   models: [{
   id: "auto:free",
   name: "Auto Free (Zero Cost)"
 }, {
-  id: "claude-opus-4.7",
-  name: "Claude Opus 4.7",
+  id: "claude-opus-4.6",
+  name: "Claude Opus 4.6",
   contextLength: 1000000
 }, {
   id: "claude-sonnet-4.6",
   name: "Claude Sonnet 4.6",
+  contextLength: 1000000
+}, {
+  id: "claude-opus-4.7",
+  name: "Claude Opus 4.7",
   contextLength: 1000000
 }, {
   id: "claude-haiku-4.5",
@@ -42,17 +47,9 @@ export default {
   name: "GPT-5.4",
   contextLength: 1050000
 }, {
-  id: "gpt-5.4-mini",
-  name: "GPT-5.4 Mini",
+  id: "gpt-5.3-codex",
+  name: "GPT-5.3 Codex",
   contextLength: 400000
-}, {
-  id: "gpt-5.4-nano",
-  name: "GPT-5.4 Nano",
-  contextLength: 400000
-}, {
-  id: "grok-4.3",
-  name: "Grok 4.3",
-  contextLength: 1000000
 }, {
   id: "grok-4.20",
   name: "Grok 4.20",
@@ -70,13 +67,21 @@ export default {
   name: "Gemini 3.1 Flash Lite",
   contextLength: 1048576
 }, {
+  id: "kimi-k3",
+  name: "Kimi K3",
+  contextLength: 262144
+}, {
+  id: "kimi-k2.7-code",
+  name: "Kimi K2.7 Code",
+  contextLength: 262144
+}, {
   id: "kimi-k2.6",
   name: "Kimi K2.6",
   contextLength: 262144
 }, {
-  id: "kimi-k2.5",
-  name: "Kimi K2.5",
-  contextLength: 262144
+  id: "glm-5.2",
+  name: "GLM 5.2",
+  contextLength: 204800
 }, {
   id: "glm-5.1",
   name: "GLM 5.1",
@@ -86,13 +91,14 @@ export default {
   name: "GLM 5",
   contextLength: 204800
 }, {
-  id: "mimo-v2.5-pro",
-  name: "MiMo-V2.5-Pro",
-  contextLength: 1050000
+  id: "deepseek-v4-pro",
+  name: "DeepSeek V4 Pro"
 }, {
-  id: "mimo-v2.5",
-  name: "MiMo-V2.5",
-  contextLength: 1050000
+  id: "deepseek-v4-flash",
+  name: "DeepSeek V4 Flash"
+}, {
+  id: "deepseek-v3.2",
+  name: "DeepSeek V3.2"
 }, {
   id: "minimax-m3",
   name: "MiniMax M3",
@@ -102,26 +108,36 @@ export default {
   name: "MiniMax M2.7",
   contextLength: 204800
 }, {
-  id: "minimax-m2.5",
-  name: "MiniMax M2.5",
-  contextLength: 204800
+  id: "qwen3.8-max",
+  name: "Qwen 3.8 Max"
+}, {
+  id: "qwen3.7-max",
+  name: "Qwen 3.7 Max"
 }, {
   id: "qwen3.6-plus",
   name: "Qwen 3.6 Plus",
   contextLength: 1000000
 }, {
+  id: "seed-1.6",
+  name: "Seed 1.6"
+}, {
   id: "nemotron-3-super-120b-a12b",
   name: "Nemotron 3 Super",
   contextLength: 1000000
+}, {
+  id: "mimo-v2.5-pro",
+  name: "MiMo-V2.5-Pro",
+  contextLength: 1050000
+}, {
+  id: "mimo-v2.5",
+  name: "MiMo-V2.5",
+  contextLength: 1050000
 }, {
   "id": "gemma-4-31b-it",
   "name": "Gemma 4 31B"
 }, {
   "id": "gemma-4-26b-a4b-it",
   "name": "Gemma 4 26B A4B"
-}, {
-  "id": "deepseek-v3.2",
-  "name": "DeepSeek V3.2"
 }, {
   "id": "llama-4-maverick",
   "name": "Llama 4 Maverick"
@@ -134,11 +150,5 @@ export default {
 }, {
   "id": "mistral-large-2512",
   "name": "Mistral Large 3"
-}, {
-  "id": "mistral-medium-3.1",
-  "name": "Mistral Medium 3.1"
-}, {
-  "id": "mistral-small-2603",
-  "name": "Mistral Small 4"
 }],
 };

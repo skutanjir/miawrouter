@@ -92,7 +92,15 @@ const MAX_ASSISTANT_SESSIONS = 5000;
 const MAX_CONTINUATION_SESSIONS = 5000;
 
 // Client headers/body fields that carry an upstream session id (priority order)
-const SESSION_HEADER_KEYS = ["x-session-id", "session-id", "session_id", "x-amp-thread-id"];
+const SESSION_HEADER_KEYS = [
+    "x-session-id", "session-id", "session_id", "x-amp-thread-id",
+    // OpenCode CLI & desktop
+    "x-opencode-session-id", "x-opencode-thread-id", "x-opencode-session",
+    // Cline, Roo Code, Aider, Cursor, Codex
+    "x-cline-task-id", "x-roo-task-id", "x-task-id", "task-id",
+    "x-conversation-id", "conversation-id", "x-thread-id", "thread-id",
+    "x-chat-id", "chat-id", "x-cursor-session-id"
+];
 const CLAUDE_CODE_SESSION_RE = /_session_([a-f0-9-]+)$/;
 
 function sha16(text) {
@@ -148,7 +156,18 @@ function extractClientSessionId(headers, body, scope = "") {
     const fromBody =
         normalizeSessionId(body?.prompt_cache_key) ||
         normalizeSessionId(body?.session_id) ||
+        normalizeSessionId(body?.sessionId) ||
         normalizeSessionId(body?.conversation_id) ||
+        normalizeSessionId(body?.conversationId) ||
+        normalizeSessionId(body?.thread_id) ||
+        normalizeSessionId(body?.threadId) ||
+        normalizeSessionId(body?.task_id) ||
+        normalizeSessionId(body?.taskId) ||
+        normalizeSessionId(body?.chat_id) ||
+        normalizeSessionId(body?.chatId) ||
+        normalizeSessionId(body?.metadata?.session_id) ||
+        normalizeSessionId(body?.metadata?.sessionId) ||
+        normalizeSessionId(body?.metadata?.conversation_id) ||
         (scope === "kiro" ? null : normalizeSessionId(body?.metadata?.user_id));
     return fromBody || null;
 }

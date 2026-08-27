@@ -28,8 +28,20 @@ export default {
   id: "deepseek-ai/DeepSeek-V3.2",
   name: "DeepSeek V3.2"
 }, {
-  id: "deepseek-ai/DeepSeek-V3.2-Exp",
-  name: "DeepSeek V3.2 Exp"
+  id: "moonshotai/Kimi-K3",
+  name: "Kimi K3"
+}, {
+  id: "moonshotai/Kimi-K2.7-Code",
+  name: "Kimi K2.7 Code"
+}, {
+  id: "zai-org/GLM-5.2",
+  name: "GLM 5.2"
+}, {
+  id: "Qwen/Qwen3.8-2.4T-A95B",
+  name: "Qwen 3.8 2.4T A95B"
+}, {
+  id: "MiniMaxAI/MiniMax-M3",
+  name: "MiniMax M3"
 }, {
   id: "deepseek-ai/DeepSeek-V3.1",
   name: "DeepSeek V3.1"

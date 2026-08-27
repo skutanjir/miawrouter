@@ -101,6 +101,22 @@ export default {
   upstreamModelId: "gpt-5.3-codex-spark",
   quotaFamily: "review"
 }, {
+  id: "gpt-5.3-codex",
+  name: "GPT 5.3 Codex"
+}, {
+  id: "gpt-5.3-codex-review",
+  name: "GPT 5.3 Codex Review",
+  upstreamModelId: "gpt-5.3-codex",
+  quotaFamily: "review"
+}, {
+  id: "gpt-5.5-pro",
+  name: "GPT 5.5 Pro"
+}, {
+  id: "gpt-5.5-pro-review",
+  name: "GPT 5.5 Pro Review",
+  upstreamModelId: "gpt-5.5-pro",
+  quotaFamily: "review"
+}, {
   id: "gpt-5.5-image",
   name: "GPT 5.5 Image",
   capabilities: ["text2img", "edit"],
@@ -126,8 +142,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-sol-max",
@@ -137,8 +153,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-sol-xhigh",
@@ -148,8 +164,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000,
   "timeoutMs": 1200000
 }, {
@@ -160,8 +176,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000,
   "timeoutMs": 1200000
 }, {
@@ -172,8 +188,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-sol-low",
@@ -183,8 +199,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-terra-ultra",
@@ -194,8 +210,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-terra-max",
@@ -205,8 +221,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-terra-xhigh",
@@ -216,8 +232,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000,
   "timeoutMs": 1200000
 }, {
@@ -228,8 +244,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000,
   "timeoutMs": 1200000
 }, {
@@ -240,8 +256,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-terra-low",
@@ -251,8 +267,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-luna-max",
@@ -262,8 +278,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-luna-xhigh",
@@ -273,8 +289,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000,
   "timeoutMs": 1200000
 }, {
@@ -285,8 +301,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000,
   "timeoutMs": 1200000
 }, {
@@ -297,8 +313,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-luna-low",
@@ -308,8 +324,8 @@ export default {
   "supportsReasoning": true,
   "supportsVision": true,
   "supportsXHighEffort": true,
-  "contextLength": 272000,
-  "maxInputTokens": 272000,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
   "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.5-xhigh",

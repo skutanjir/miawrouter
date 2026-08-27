@@ -30,12 +30,36 @@ describe("compressWithPxpipe gates", () => {
     expect(summary.reason).toBe("not_installed");
   });
 
-  it("skips non-Claude formats", async () => {
+  it("skips unsupported formats without messages", async () => {
     const transform = vi.fn();
-    const { body, summary } = await compressWithPxpipe(claudeBody(), { enabled: true, format: "openai", transform });
+    const { body, summary } = await compressWithPxpipe({ weird: true }, { enabled: true, format: "bogus", transform });
     expect(body).toBeNull();
     expect(summary.reason).toBe("unsupported_format");
     expect(transform).not.toHaveBeenCalled();
+  });
+
+  it("compresses OpenAI format bodies through the lossless bridge", async () => {
+    const oaiBody = {
+      model: "gpt-4o",
+      messages: [{ role: "user", content: bigText }],
+    };
+    const compressedClaude = {
+      model: "gpt-4o",
+      messages: [{
+        role: "user",
+        content: [{ type: "image", source: { type: "base64", media_type: "image/png", data: "cG5n" } }],
+      }],
+    };
+    const { body, summary } = await compressWithPxpipe(oaiBody, {
+      enabled: true,
+      format: "openai",
+      model: "gpt-4o",
+      minChars: 1000,
+      transform: appliedTransform(compressedClaude),
+    });
+    expect(body).toBeDefined();
+    expect(body.messages[0].content[0].image_url.url).toContain("data:image/png;base64,cG5n");
+    expect(summary.applied).toBe(true);
   });
 
   it("bypasses small prompts below minChars", async () => {

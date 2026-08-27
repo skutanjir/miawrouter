@@ -37,6 +37,7 @@ import WindsurfExecutor from "./windsurf.js";
 import { DefaultExecutor } from "./default.js";
 import { DevinCliExecutor } from "./devin-cli.js";
 import { ManusWebExecutor } from "./manus-web.js";
+import { FreebuffExecutor } from "./freebuff.js";
 
 const executors = {
   antigravity: new AntigravityExecutor(),
@@ -65,6 +66,9 @@ const executors = {
   opencode: new OpenCodeExecutor(),
   "opencode-go": new OpenCodeGoExecutor(),
   "opencode-zen": new OpenCodeZenExecutor(),
+  freebuff: new FreebuffExecutor(),
+  fb: new FreebuffExecutor(), // Alias for freebuff
+  "freebuff-com": new FreebuffExecutor(), // Alias
   "grok-web": new GrokWebExecutor(),
   "grok-cli": new GrokCliExecutor(),
   gcli: new GrokCliExecutor(), // Alias

@@ -30,6 +30,9 @@ export default {
   id: "glm-5.1",
   name: "GLM 5.1"
 }, {
+  id: "glm-5.3",
+  name: "GLM 5.3"
+}, {
   id: "kimi-k2.7-code",
   name: "Kimi K2.7 Code"
 }, {
@@ -42,8 +45,18 @@ export default {
   id: "deepseek-v4-flash",
   name: "DeepSeek V4 Flash"
 }, {
+  id: "deepseek-v4-flash-vision-exp",
+  name: "DeepSeek V4 Flash Vision Exp",
+  supportsVision: true
+}, {
   id: "mimo-v2.5",
   name: "MiMo V2.5"
+}, {
+  id: "mimo-v2-pro",
+  name: "MiMo V2 Pro"
+}, {
+  id: "mimo-v2-omni",
+  name: "MiMo V2 Omni"
 }, {
   id: "mimo-v2.5-pro",
   name: "MiMo V2.5 Pro"
@@ -58,6 +71,10 @@ export default {
 }, {
   id: "minimax-m2.5",
   name: "MiniMax M2.5",
+  targetFormat: "claude"
+}, {
+  id: "qwen3.8-max",
+  name: "Qwen 3.8 Max",
   targetFormat: "claude"
 }, {
   id: "qwen3.7-max",
@@ -205,5 +222,13 @@ export default {
   "id": "deepseek-v4-flash-max",
   "name": "DeepSeek V4 Flash (max effort)",
   "supportsReasoning": true
+}, {
+  "id": "gpt-5.6-luna",
+  "name": "GPT-5.6 Luna",
+  "contextLength": 1050000
+}, {
+  "id": "muse-spark-1.2-contributor",
+  "name": "Muse Spark 1.2 Contributor",
+  "contextLength": 1048576
 }],
 };
