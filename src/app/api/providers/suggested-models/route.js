@@ -43,7 +43,7 @@ export async function GET(request) {
   if (providerId) {
     const fetcher = findProviderFetcher(providerId);
     if (!fetcher) {
-      return NextResponse.json({ error: "Unknown provider" }, { status: 400 });
+      return NextResponse.json({ data: [], status: "empty" });
     }
     url = fetcher.url;
     filter = FILTERS[fetcher.type];
@@ -51,15 +51,18 @@ export async function GET(request) {
     filter = FILTERS[type];
     url = FILTER_URLS[type];
     if (!filter || !url) {
-      return NextResponse.json({ error: "Unknown filter type" }, { status: 400 });
+      return NextResponse.json({ data: [], status: "empty" });
     }
   } else {
-    return NextResponse.json({ error: "Missing provider or type" }, { status: 400 });
+    return NextResponse.json({ data: [], status: "empty" });
   }
 
   try {
     const res = await fetchModelsPayload(url, providerId);
     if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        return NextResponse.json({ data: [], authRequired: true });
+      }
       return NextResponse.json({ data: [] });
     }
     const json = await res.json();

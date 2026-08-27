@@ -63,12 +63,21 @@ export const FILTERS = {
 // Registry-derived allowlist: providerId → { url, type }. Built once per server
 // process; a provider id param is resolved here before anything is fetched.
 export const PROVIDER_FETCHERS = [];
+const seenProviders = new Set();
+
 for (const entry of REGISTRY) {
   const fetcher = entry.modelsFetcher;
-  if (!fetcher || typeof fetcher.url !== "string" || !fetcher.url.startsWith("https://")) continue;
-  const type = typeof fetcher.type === "string" && FILTERS[fetcher.type] ? fetcher.type : "openai";
-  if (!FILTER_URLS[type]) FILTER_URLS[type] = fetcher.url;
-  PROVIDER_FETCHERS.push({ providerId: entry.id, url: fetcher.url, type });
+  if (fetcher && typeof fetcher.url === "string" && fetcher.url.startsWith("https://")) {
+    const type = typeof fetcher.type === "string" && FILTERS[fetcher.type] ? fetcher.type : "openai";
+    if (!FILTER_URLS[type]) FILTER_URLS[type] = fetcher.url;
+    PROVIDER_FETCHERS.push({ providerId: entry.id, url: fetcher.url, type });
+    seenProviders.add(entry.id);
+  } else if (entry.transport?.validateUrl && typeof entry.transport.validateUrl === "string" && entry.transport.validateUrl.startsWith("https://") && !seenProviders.has(entry.id)) {
+    // Automatically enable upstream model resolution for any provider with a validateUrl models endpoint
+    const url = entry.transport.validateUrl;
+    PROVIDER_FETCHERS.push({ providerId: entry.id, url, type: "openai" });
+    seenProviders.add(entry.id);
+  }
 }
 
 export function findProviderFetcher(providerId) {

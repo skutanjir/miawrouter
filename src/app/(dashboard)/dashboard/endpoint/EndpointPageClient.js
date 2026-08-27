@@ -78,6 +78,16 @@ export default function APIPageClient({ machineId }) {
   // API key visibility toggle state
   const [visibleKeys, setVisibleKeys] = useState(new Set());
 
+  // V1 Models Catalog (/v1/models) state
+  const [showModelsModal, setShowModelsModal] = useState(false);
+  const [v1Models, setV1Models] = useState([]);
+  const [v1ModelsLoading, setV1ModelsLoading] = useState(false);
+  const [v1ModelsSearch, setV1ModelsSearch] = useState("");
+  const [v1ModelsImporting, setV1ModelsImporting] = useState(false);
+  const [v1ModelsImportProgress, setV1ModelsImportProgress] = useState({ done: 0, total: 0 });
+  const [v1ModelsError, setV1ModelsError] = useState("");
+  const [importedModelIds, setImportedModelIds] = useState(new Set());
+
   // Client-side local/remote detection (UI hint only, not a security gate)
   const [isRemoteHost, setIsRemoteHost] = useState(false);
   useEffect(() => {
@@ -698,6 +708,66 @@ export default function APIPageClient({ machineId }) {
     });
   };
 
+  const handleFetchV1Models = async () => {
+    setShowModelsModal(true);
+    setV1ModelsLoading(true);
+    setV1ModelsError("");
+    try {
+      // Find an active API key for authentication if requireApiKey is enabled
+      const activeKey = keys.find(k => k.isActive !== false)?.key;
+      const headers = { Accept: "application/json" };
+      if (activeKey) headers.Authorization = `Bearer ${activeKey}`;
+
+      const res = await fetch("/api/v1/models", { headers });
+      if (!res.ok) {
+        setV1ModelsError(`Failed to fetch /v1/models: HTTP ${res.status}`);
+        setV1ModelsLoading(false);
+        return;
+      }
+      const json = await res.json();
+      const rawList = Array.isArray(json?.data) ? json.data : Array.isArray(json?.models) ? json.models : Array.isArray(json) ? json : [];
+      setV1Models(rawList);
+    } catch (err) {
+      setV1ModelsError(err.message || "Failed to fetch /v1/models");
+    } finally {
+      setV1ModelsLoading(false);
+    }
+  };
+
+  const handleImportSingleV1Model = async (modelItem) => {
+    const rawId = modelItem.id || "";
+    const parts = rawId.split("/");
+    const providerAlias = parts.length > 1 ? parts[0] : (modelItem.owned_by || "openai");
+    const id = parts.length > 1 ? parts.slice(1).join("/") : rawId;
+
+    try {
+      const res = await fetch("/api/models/custom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerAlias, id, type: modelItem.kind || "llm", name: modelItem.name || id }),
+      });
+      if (res.ok) {
+        setImportedModelIds(prev => new Set([...prev, rawId]));
+        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("customModelChanged"));
+      }
+    } catch (e) {
+      console.log("Error importing model:", e);
+    }
+  };
+
+  const handleImportAllV1Models = async () => {
+    if (v1Models.length === 0) return;
+    setV1ModelsImporting(true);
+    setV1ModelsImportProgress({ done: 0, total: v1Models.length });
+    let done = 0;
+    for (const m of v1Models) {
+      await handleImportSingleV1Model(m);
+      done++;
+      setV1ModelsImportProgress({ done, total: v1Models.length });
+    }
+    setV1ModelsImporting(false);
+  };
+
   const [baseUrl, setBaseUrl] = useState("/v1");
 
   // Hydration fix: Only access window on client side
@@ -912,6 +982,33 @@ export default function APIPageClient({ machineId }) {
                 Enable
               </Button>
             )}
+          </div>
+
+          {/* Models Catalog (/v1/models) direct GET & Import action */}
+          <div className="mt-2 pt-3 border-t border-border-subtle flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <span className="text-xs font-mono px-2 py-1 rounded bg-green-500/10 text-green-600 dark:text-green-400 font-semibold shrink-0 text-center">
+              GET /models
+            </span>
+            <Input value={`${currentEndpoint}/models`} readOnly className="flex-1 font-mono text-sm" />
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => copy(`${currentEndpoint}/models`, "models_url")}
+                className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors shrink-0"
+                title="Copy /v1/models URL"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {copied === "models_url" ? "check" : "content_copy"}
+                </span>
+              </button>
+              <Button
+                size="sm"
+                icon="download"
+                onClick={handleFetchV1Models}
+                className="bg-primary text-white hover:bg-primary/90 flex-1 sm:flex-initial"
+              >
+                Get & Import Models
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1296,6 +1393,132 @@ export default function APIPageClient({ machineId }) {
               {tsLoading ? "Disabling..." : "Disable"}
             </Button>
             <Button onClick={() => setShowDisableTsModal(false)} variant="ghost" fullWidth disabled={tsLoading}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* V1 Models Catalog Modal */}
+      <Modal
+        isOpen={showModelsModal}
+        title="Router Models Catalog (/v1/models)"
+        onClose={() => setShowModelsModal(false)}
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            <div className="relative flex-1">
+              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted text-[18px]">
+                search
+              </span>
+              <input
+                type="text"
+                placeholder="Search models..."
+                value={v1ModelsSearch}
+                onChange={(e) => setV1ModelsSearch(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-border bg-input text-sm text-text-main focus:outline-none focus:border-primary"
+              />
+            </div>
+            {v1Models.length > 0 && (
+              <Button
+                size="sm"
+                icon="download"
+                disabled={v1ModelsImporting}
+                onClick={handleImportAllV1Models}
+                className="bg-primary text-white"
+              >
+                {v1ModelsImporting
+                  ? `Importing (${v1ModelsImportProgress.done}/${v1ModelsImportProgress.total})…`
+                  : `Import All Custom (${v1Models.length})`}
+              </Button>
+            )}
+          </div>
+
+          {v1ModelsLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-2 text-text-muted">
+              <span className="material-symbols-outlined animate-spin text-2xl text-primary">progress_activity</span>
+              <span className="text-sm">Fetching active models from /v1/models…</span>
+            </div>
+          ) : v1ModelsError ? (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm">
+              {v1ModelsError}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-96 overflow-y-auto pr-1">
+              {(() => {
+                const filtered = v1Models.filter((m) => {
+                  const q = v1ModelsSearch.toLowerCase().trim();
+                  if (!q) return true;
+                  return (m.id || "").toLowerCase().includes(q) || (m.name || "").toLowerCase().includes(q) || (m.owned_by || "").toLowerCase().includes(q);
+                });
+                if (filtered.length === 0) {
+                  return (
+                    <div className="text-center py-8 text-text-muted text-sm">
+                      {v1ModelsSearch ? "No matching models found" : "No models currently available from /v1/models"}
+                    </div>
+                  );
+                }
+                return filtered.map((m) => {
+                  const isImported = importedModelIds.has(m.id);
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-border-subtle hover:bg-surface-2 transition-colors"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <code className="text-xs font-mono font-semibold text-text-main">
+                            {m.id}
+                          </code>
+                          {m.owned_by && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-text-muted border border-border-subtle">
+                              {m.owned_by}
+                            </span>
+                          )}
+                          {m.kind && m.kind !== "llm" && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                              {m.kind}
+                            </span>
+                          )}
+                        </div>
+                        {m.name && m.name !== m.id && (
+                          <p className="text-xs text-text-muted mt-0.5">{m.name}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => copy(m.id, `model_${m.id}`)}
+                          className="p-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded text-text-muted hover:text-primary transition-colors"
+                          title="Copy model ID"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">
+                            {copied === `model_${m.id}` ? "check" : "content_copy"}
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleImportSingleV1Model(m)}
+                          disabled={isImported}
+                          className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                            isImported
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400 cursor-default"
+                              : "bg-primary/10 text-primary hover:bg-primary/20"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">
+                            {isImported ? "check" : "add"}
+                          </span>
+                          {isImported ? "Imported" : "Import"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-2 border-t border-border">
+            <Button variant="ghost" onClick={() => setShowModelsModal(false)}>
+              Close
+            </Button>
           </div>
         </div>
       </Modal>

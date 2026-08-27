@@ -58,7 +58,13 @@ export default function UpstreamModelsSection({
       const json = await res.json();
       const data = json.data ?? [];
       setModels(data);
-      setStatus(data.length > 0 ? "ready" : "empty");
+      if (data.length > 0) {
+        setStatus("ready");
+      } else if (json.authRequired) {
+        setStatus("auth_required");
+      } else {
+        setStatus("empty");
+      }
     } catch (err) {
       if (err.name === "AbortError") return;
       setStatus("error");
@@ -147,11 +153,27 @@ export default function UpstreamModelsSection({
     );
   }
 
+  if (status === "auth_required") {
+    return (
+      <div className="w-full mt-2 flex items-center gap-2 rounded-lg border border-black/[0.06] dark:border-white/[0.06] px-3 py-2">
+        <span className="material-symbols-outlined text-[16px] text-text-muted shrink-0">vpn_key</span>
+        <span className="text-xs text-text-muted">Connect an active API key above to load live models from this provider</span>
+        <button
+          onClick={handleRefresh}
+          className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline"
+        >
+          <span className="material-symbols-outlined text-[14px]">refresh</span>
+          Check
+        </button>
+      </div>
+    );
+  }
+
   if (status === "empty") {
     return (
       <div className="w-full mt-2 flex items-center gap-2 rounded-lg border border-black/[0.06] dark:border-white/[0.06] px-3 py-2">
         <span className="material-symbols-outlined text-[16px] text-text-muted shrink-0">info</span>
-        <span className="text-xs text-text-muted">No public model list available for this provider</span>
+        <span className="text-xs text-text-muted">No public upstream models endpoint for this provider</span>
       </div>
     );
   }

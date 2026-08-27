@@ -30,7 +30,7 @@ const coreItems = [
 
 // Sidebar-only version label (product decision; intentionally independent of
 // the package.json version shown by /api/version).
-const SIDEBAR_VERSION = "V1.0.5";
+const SIDEBAR_VERSION = "V1.0.6";
 
 const analyticsItems = [
   { href: "/dashboard/usage", label: "Usage + Cache", icon: "bar_chart" },
