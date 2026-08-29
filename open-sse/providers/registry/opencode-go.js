@@ -33,6 +33,10 @@ export default {
   id: "glm-5.3",
   name: "GLM 5.3"
 }, {
+  id: "glm-5.3-flash",
+  name: "GLM 5.3 Flash",
+  supportsReasoning: true
+}, {
   id: "kimi-k2.7-code",
   name: "Kimi K2.7 Code"
 }, {

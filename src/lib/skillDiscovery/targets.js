@@ -8,10 +8,43 @@ export const MIAWROUTER_TARGET = "miawrouter";
 // presence-based (config dir exists); we never write into CLI dirs directly —
 // CLI installs always surface the canonical `npx skills add` command.
 const CLI_TARGET_DEFS = Object.freeze([
-  { id: "claude", label: "Claude Code", detectPath: () => path.join(os.homedir(), ".claude") },
-  { id: "codex", label: "OpenAI Codex", detectPath: () => path.join(os.homedir(), ".codex") },
-  { id: "opencode", label: "OpenCode", detectPath: () => path.join(os.homedir(), ".config", "opencode") },
-  { id: "cursor", label: "Cursor", detectPath: () => path.join(os.homedir(), ".cursor") },
+  {
+    id: "claude",
+    label: "Claude Code",
+    detectPath: () => path.join(os.homedir(), ".claude"),
+    fallbackPaths: () => [
+      process.env.APPDATA ? path.join(process.env.APPDATA, "Claude") : null,
+      path.join(os.homedir(), ".claude"),
+    ].filter(Boolean),
+  },
+  {
+    id: "codex",
+    label: "OpenAI Codex",
+    detectPath: () => path.join(os.homedir(), ".codex"),
+    fallbackPaths: () => [
+      process.env.APPDATA ? path.join(process.env.APPDATA, "codex") : null,
+      path.join(os.homedir(), ".codex"),
+    ].filter(Boolean),
+  },
+  {
+    id: "opencode",
+    label: "OpenCode",
+    detectPath: () => path.join(os.homedir(), ".config", "opencode"),
+    fallbackPaths: () => [
+      process.env.APPDATA ? path.join(process.env.APPDATA, "opencode") : null,
+      path.join(os.homedir(), ".config", "opencode"),
+      path.join(os.homedir(), ".opencode"),
+    ].filter(Boolean),
+  },
+  {
+    id: "cursor",
+    label: "Cursor",
+    detectPath: () => path.join(os.homedir(), ".cursor"),
+    fallbackPaths: () => [
+      process.env.APPDATA ? path.join(process.env.APPDATA, "Cursor") : null,
+      path.join(os.homedir(), ".cursor"),
+    ].filter(Boolean),
+  },
 ]);
 
 export function listCliTargetDefs() {
@@ -27,7 +60,10 @@ export function detectCliTargets(fsImpl = null) {
   return CLI_TARGET_DEFS.map((def) => {
     let available = false;
     try {
-      available = fsx.existsSync(def.detectPath());
+      const candidates = typeof def.fallbackPaths === "function"
+        ? def.fallbackPaths()
+        : [def.detectPath()];
+      available = candidates.some((p) => fsx.existsSync(p));
     } catch {
       available = false;
     }

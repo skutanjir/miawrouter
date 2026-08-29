@@ -6,6 +6,7 @@ const CHAT_MODELS = [
   "glm-5.2",
   "glm-5.1",
   "glm-5.3",
+  "glm-5.3-flash",
   // OpenCode Go docs' endpoint table currently says kimi-k2.7, but its
   // config example and the live API use kimi-k2.7-code.
   "kimi-k2.7-code",

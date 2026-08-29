@@ -89,6 +89,13 @@ export function extractModels(json) {
   if (Array.isArray(json)) return json;
   if (Array.isArray(json?.data)) return json.data;
   if (Array.isArray(json?.models)) return json.models;
+  if (json?.provider && typeof json.provider === "object") {
+    return Object.entries(json.provider).flatMap(([providerId, provider]) =>
+      provider?.models && typeof provider.models === "object"
+        ? Object.entries(provider.models).map(([id, model]) => ({ id, ...model }))
+        : []
+    );
+  }
   if (json && typeof json === "object") {
     // models.dev-style catalogs: { "provider-id": { "model-id": {...} } }
     const first = Object.values(json)[0];

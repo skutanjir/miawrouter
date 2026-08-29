@@ -125,13 +125,13 @@ export function normalizeUsage(usage) {
     if (Number.isFinite(numeric)) normalized[key] = numeric;
   };
 
-  assignNumber("prompt_tokens", usage?.prompt_tokens);
-  assignNumber("completion_tokens", usage?.completion_tokens);
+  assignNumber("prompt_tokens", usage?.prompt_tokens ?? usage?.input_tokens);
+  assignNumber("completion_tokens", usage?.completion_tokens ?? usage?.output_tokens);
   assignNumber("total_tokens", usage?.total_tokens);
   assignNumber("cache_read_input_tokens", usage?.cache_read_input_tokens);
-  assignNumber("cache_creation_input_tokens", usage?.cache_creation_input_tokens);
-  assignNumber("cached_tokens", usage?.cached_tokens);
-  assignNumber("reasoning_tokens", usage?.reasoning_tokens);
+  assignNumber("cache_creation_input_tokens", usage?.cache_creation_input_tokens ?? usage?.prompt_tokens_details?.cache_creation_tokens);
+  assignNumber("cached_tokens", usage?.cached_tokens ?? usage?.prompt_tokens_details?.cached_tokens ?? usage?.prompt_cache_hit_tokens ?? usage?.cachedContentTokenCount ?? usage?.usageMetadata?.cachedContentTokenCount);
+  assignNumber("reasoning_tokens", usage?.reasoning_tokens ?? usage?.completion_tokens_details?.reasoning_tokens ?? usage?.output_tokens_details?.reasoning_tokens ?? usage?.usageMetadata?.thoughtsTokenCount);
 
   // Preserve nested details objects for OpenAI format forwarding
   if (usage?.prompt_tokens_details && typeof usage.prompt_tokens_details === "object") {

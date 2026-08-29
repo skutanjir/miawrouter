@@ -7,12 +7,14 @@ export const dynamic = "force-dynamic";
 // Some registries point at endpoints that require the account's own key. When an
 // unauthenticated probe comes back 401/403, retry once with the active stored
 // connection's credentials (apiKey preferred, then accessToken).
-async function fetchModelsPayload(url, providerId) {
+async function fetchModelsPayload(url, providerId, fetcher) {
+  const authHeader = fetcher?.authHeader || "Authorization";
+  const authPrefix = fetcher?.authPrefix ?? "Bearer ";
   const attempt = (token) =>
     fetch(url, {
       headers: {
         Accept: "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(token ? { [authHeader]: `${authPrefix}${token}` } : {}),
       },
     });
 
@@ -40,6 +42,7 @@ export async function GET(request) {
   // client-supplied URLs are ignored (authenticated SSRF guard).
   let url;
   let filter;
+  let fetcherConfig;
   if (providerId) {
     const fetcher = findProviderFetcher(providerId);
     if (!fetcher) {
@@ -47,6 +50,7 @@ export async function GET(request) {
     }
     url = fetcher.url;
     filter = FILTERS[fetcher.type];
+    fetcherConfig = fetcher;
   } else if (type) {
     filter = FILTERS[type];
     url = FILTER_URLS[type];
@@ -58,7 +62,7 @@ export async function GET(request) {
   }
 
   try {
-    const res = await fetchModelsPayload(url, providerId);
+    const res = await fetchModelsPayload(url, providerId, fetcherConfig);
     if (!res.ok) {
       if (res.status === 401 || res.status === 403) {
         return NextResponse.json({ data: [], authRequired: true });

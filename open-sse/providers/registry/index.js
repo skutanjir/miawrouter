@@ -35,6 +35,7 @@ import p32 from "./firecrawl.js";
 import p33 from "./fireworks.js";
 import p34 from "./gemini-cli.js";
 import p35 from "./gemini.js";
+import p151 from "./genspark.js";
 import p36 from "./github.js";
 import p37 from "./gitlab.js";
 import p38 from "./glm-cn.js";
@@ -188,6 +189,7 @@ export default [
   p33,
   p34,
   p35,
+  p151,
   p36,
   p37,
   p38,

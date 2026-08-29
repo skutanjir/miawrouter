@@ -14,7 +14,12 @@ const NPM_CMD = IS_WIN ? "npm.cmd" : "npm";
 // Same PATH extension trick as headroom/detect.js: packaged/launchd environments
 // often miss the Node bin dirs.
 const EXTRA_BINS = IS_WIN
-  ? [`${process.env.ProgramFiles || ""}\\nodejs`, `${process.env.APPDATA || ""}\\npm`]
+  ? [
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\nodejs`,
+      `${process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)"}\\nodejs`,
+      `${process.env.APPDATA || ""}\\npm`,
+      `${process.env.LOCALAPPDATA || ""}\\Programs\\nodejs`,
+    ]
   : ["/usr/local/bin", "/opt/homebrew/bin", `${process.env.HOME || ""}/.local/bin`, "/usr/bin", "/bin"];
 const EXTENDED_PATH = [...EXTRA_BINS, process.env.PATH || ""].filter(Boolean).join(path.delimiter);
 
@@ -34,12 +39,18 @@ export function libraryEntry() {
 
 export function findNpm() {
   try {
-    const out = execSync(`${IS_WIN ? "where" : "which"} npm`, {
+    const out = execSync(`${IS_WIN ? "where npm" : "which npm"}`, {
       stdio: ["ignore", "pipe", "ignore"],
       windowsHide: true,
       env: { ...process.env, PATH: EXTENDED_PATH },
     }).toString().trim();
-    return out ? out.split(/\r?\n/)[0].trim() : null;
+    if (!out) return null;
+    const lines = out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    if (IS_WIN) {
+      const cmd = lines.find((l) => l.toLowerCase().endsWith(".cmd") || l.toLowerCase().endsWith(".bat"));
+      if (cmd) return cmd;
+    }
+    return lines[0] || null;
   } catch {
     return null;
   }
@@ -93,10 +104,11 @@ async function runInstall() {
       cwd: PXPIPE_DIR,
       stdio: ["ignore", outFd, outFd],
       windowsHide: true,
+      shell: false,
       env: { ...process.env, PATH: EXTENDED_PATH },
     });
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
+      child.kill();
       reject(new Error("npm install timed out after 5 minutes — see install.log"));
     }, INSTALL_TIMEOUT_MS);
     child.once("error", (e) => { clearTimeout(timer); reject(e); });

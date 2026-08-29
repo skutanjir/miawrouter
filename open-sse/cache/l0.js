@@ -298,8 +298,14 @@ export function getSessionInfo(cacheKey) {
 // were set, which routing may want to act on).
 export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage = null } = {}) {
   if (!usage || typeof usage !== "object") return;
-  const cacheRead = usage.cache_read_input_tokens ?? usage.cached_tokens ?? usage.prompt_tokens_details?.cached_tokens;
-  const cacheCreation = usage.cache_creation_input_tokens;
+  const cacheRead = usage.cache_read_input_tokens
+    ?? usage.cached_tokens
+    ?? usage.prompt_tokens_details?.cached_tokens
+    ?? usage.prompt_cache_hit_tokens
+    ?? usage.cachedContentTokenCount
+    ?? usage.usageMetadata?.cachedContentTokenCount;
+  const cacheCreation = usage.cache_creation_input_tokens
+    ?? usage.prompt_tokens_details?.cache_creation_tokens;
   if (cacheRead === undefined && cacheCreation === undefined) return;
   const read = Number(cacheRead) || 0;
   const create = Number(cacheCreation) || 0;

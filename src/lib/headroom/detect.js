@@ -23,10 +23,35 @@ const WHICH_CMD = IS_WIN ? "where" : "which";
 const EXTRA_BINS = IS_WIN
   ? [
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python313\\Scripts`,
+      `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python313`,
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python312\\Scripts`,
+      `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python312`,
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python311\\Scripts`,
+      `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python311`,
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python310\\Scripts`,
+      `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python310`,
       `${process.env.APPDATA || ""}\\Python\\Python313\\Scripts`,
+      `${process.env.APPDATA || ""}\\Python\\Python312\\Scripts`,
+      `${process.env.APPDATA || ""}\\Python\\Python311\\Scripts`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python313\\Scripts`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python313`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python312\\Scripts`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python312`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python311\\Scripts`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python311`,
+      `${process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)"}\\Python313`,
+      `${process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)"}\\Python312`,
+      `${process.env.LOCALAPPDATA || ""}\\Microsoft\\WindowsApps`,
+      "C:\\Python313\\Scripts",
+      "C:\\Python313",
+      "C:\\Python312\\Scripts",
+      "C:\\Python312",
+      "C:\\Python311\\Scripts",
+      "C:\\Python311",
+      `${process.env.USERPROFILE || ""}\\miniconda3\\Scripts`,
+      `${process.env.USERPROFILE || ""}\\miniconda3`,
+      `${process.env.USERPROFILE || ""}\\anaconda3\\Scripts`,
+      `${process.env.USERPROFILE || ""}\\anaconda3`,
     ]
   : [
       "/usr/local/bin",
@@ -41,12 +66,28 @@ const EXTRA_BINS = IS_WIN
     ];
 
 const EXTENDED_PATH = [...EXTRA_BINS, process.env.PATH || ""].filter(Boolean).join(path.delimiter);
-const PYTHON_CANDIDATES = ["python3.13", "python3.12", "python3.11", "python3.10", "python3", "python"];
+const PYTHON_CANDIDATES = IS_WIN
+  ? ["py -3.13", "py -3.12", "py -3.11", "py -3.10", "py -3", "py", "python", "python3", "python3.13", "python3.12", "python3.11", "python3.10"]
+  : ["python3.13", "python3.12", "python3.11", "python3.10", "python3", "python"];
 const MIN_VERSION = [3, 10];
 const HEADROOM_HEALTH_TIMEOUT_MS = 1500;
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]", "0.0.0.0"]);
 
 export const DEFAULT_HEADROOM_URL = process.env.HEADROOM_URL || "http://localhost:8787";
+
+// Keep the launcher and its version flag separate. Passing "py -3.13" as the
+// executable works through a shell but fails with execFile/spawn on Windows.
+export function pythonCommandSpec(candidate, isWindows = IS_WIN) {
+  if (candidate && typeof candidate === "object") {
+    return { command: candidate.command, args: Array.isArray(candidate.args) ? candidate.args : [] };
+  }
+  const value = String(candidate || "").trim();
+  if (isWindows && /^py\s+-\S+$/.test(value)) {
+    const [command, ...args] = value.split(/\s+/);
+    return { command, args };
+  }
+  return { command: value, args: [] };
+}
 
 // Detect whether the headroom CLI is installed and where its binary lives.
 export function findHeadroomBinary() {
@@ -82,34 +123,36 @@ function pythonCandidates() {
   }
   for (const dir of EXTRA_BINS) {
     if (!dir) continue;
-    for (const n of PYTHON_CANDIDATES) list.push(path.join(dir, IS_WIN ? `${n}.exe` : n));
+    const names = IS_WIN
+      ? ["python.exe", "python3.exe", "python3.13.exe", "python3.12.exe", "python3.11.exe", "python3.10.exe"]
+      : PYTHON_CANDIDATES;
+    for (const n of names) list.push(path.join(dir, n));
   }
   list.push(...PYTHON_CANDIDATES);
   return list;
 }
 
-export function findPython310() {
+export function findPython310Spec() {
   let fallback = null;
   for (const candidate of pythonCandidates()) {
+    const spec = pythonCommandSpec(candidate);
     try {
-      const ver = execSync(`${candidate} --version`, {
-        stdio: ["ignore", "pipe", "ignore"],
-        windowsHide: true,
-        env: { ...process.env, PATH: EXTENDED_PATH },
-      }).toString().trim();
+      const ver = IS_WIN
+        ? execFileSync(spec.command, [...spec.args, "--version"], { stdio: ["ignore", "pipe", "ignore"], windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH } }).toString().trim()
+        : execSync(`${spec.command} --version`, { stdio: ["ignore", "pipe", "ignore"], windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH } }).toString().trim();
       const match = ver.match(/(\d+)\.(\d+)/);
       if (!match) continue;
       const [major, minor] = [parseInt(match[1], 10), parseInt(match[2], 10)];
       if (!(major > MIN_VERSION[0] || (major === MIN_VERSION[0] && minor >= MIN_VERSION[1]))) continue;
-      if (!fallback) fallback = candidate;
+      if (!fallback) fallback = spec;
       try {
-        execFileSync(candidate, ["-m", "pip", "show", "headroom-ai"], {
+        execFileSync(spec.command, [...spec.args, "-m", "pip", "show", "headroom-ai"], {
           stdio: ["ignore", "pipe", "ignore"],
           windowsHide: true,
           timeout: HEADROOM_PIP_TIMEOUT_MS,
           env: { ...process.env, PATH: EXTENDED_PATH },
         });
-        return candidate;
+        return spec;
       } catch {
         // Keep scanning until an interpreter that sees headroom-ai is found.
       }
@@ -118,6 +161,12 @@ export function findPython310() {
     }
   }
   return fallback;
+}
+
+export function findPython310() {
+  const spec = findPython310Spec();
+  if (!spec) return null;
+  return spec.args.length ? [spec.command, ...spec.args].join(" ") : spec.command;
 }
 
 // Probe whether a Headroom proxy is reachable at the given URL by hitting /health.
@@ -167,10 +216,10 @@ export async function getHeadroomStatus(url) {
 //
 // Returns: { installed: bool, version: string|null, extras: { code, ml } }
 export function getInstalledHeadroomExtras(python) {
-  const py = python || findPython310();
-  if (!py) return { installed: false, version: null, extras: { code: false, ml: false } };
+  const spec = pythonCommandSpec(python || findPython310());
+  if (!spec.command) return { installed: false, version: null, extras: { code: false, ml: false } };
   try {
-    const out = execFileSync(py, ["-m", "pip", "list", "--format=json", "--disable-pip-version-check"], {
+    const out = execFileSync(spec.command, [...spec.args, "-m", "pip", "list", "--format=json", "--disable-pip-version-check"], {
       stdio: ["ignore", "pipe", "ignore"],
       windowsHide: true,
       timeout: HEADROOM_PIP_TIMEOUT_MS,

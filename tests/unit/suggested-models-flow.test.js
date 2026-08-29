@@ -27,6 +27,16 @@ describe("suggested-models extractModels", () => {
     ]);
   });
 
+  it("unwraps models nested in the Genspark OpenCode config", () => {
+    expect(extractModels({
+      provider: {
+        "genspark-llm-proxy": {
+          models: { "gpt-5.6-luna": { name: "GPT-5.6 Luna" } },
+        },
+      },
+    })).toEqual([{ id: "gpt-5.6-luna", name: "GPT-5.6 Luna" }]);
+  });
+
   it("returns [] for junk input instead of throwing", () => {
     expect(extractModels(null)).toEqual([]);
     expect(extractModels("nope")).toEqual([]);
@@ -114,4 +124,60 @@ describe("new free-tier providers are registered with refreshable model lists", 
       expect(findProviderFetcher(id)?.type).toBe("openai");
     });
   }
+});
+
+describe("Genspark provider", () => {
+  it("is an API-key provider with a live OpenAI model fetcher", () => {
+    const entry = REGISTRY.find((e) => e.id === "genspark");
+    expect(entry).toBeDefined();
+    expect(entry.authType).toBe("apikey");
+    expect(entry.transport.baseUrl).toBe("https://www.genspark.ai/api/llm_proxy/v1/chat/completions");
+    expect(entry.transport.auth).toEqual({ combined: true, header: "Authorization", scheme: "bearer" });
+    expect(entry.modelsFetcher).toMatchObject({
+      url: "https://www.genspark.ai/api/llm_proxy/v1/models",
+      type: "openai",
+      authHeader: "Authorization",
+      authPrefix: "Bearer ",
+    });
+    expect(entry.models.length).toBeGreaterThan(0);
+  });
+
+  it("is resolvable through the suggested-models allowlist", () => {
+    expect(findProviderFetcher("genspark")?.type).toBe("openai");
+  });
+
+  it("ships the complete fallback catalog", () => {
+    const ids = new Set(REGISTRY.find((e) => e.id === "genspark").models.map((model) => model.id));
+    expect(ids.size).toBe(35);
+    for (const id of [
+      "claude-fable-5",
+      "claude-opus-5",
+      "claude-opus-4-8",
+      "claude-opus-4-6-1m",
+      "claude-sonnet-4-6-1m",
+      "claude-sonnet-5",
+      "gpt-5.6-luna",
+      "gpt-5.6-sol",
+      "gpt-5.6-terra",
+      "deep-seek-v4-pro-baseten",
+      "deep-seek-v4-flash",
+      "gpt-5.4-mini",
+      "gpt-5.4-nano",
+      "grok-4.5",
+      "grok-4.6",
+      "kimi-k2p6",
+      "minimax-m2p7",
+      "minimax-m3",
+      "glm-5p2",
+      "kimi-k3",
+      "deepseek-v4-pro-0813",
+      "solar-pro4",
+      "claude-sonnet-4-6",
+      "gemini-3.1-pro-preview",
+      "gemini-3.5-flash",
+      "gemini-3.6-flash",
+      "gemini-3.7-flash",
+      "gemini-3.1-flash-lite-preview",
+    ]) expect(ids.has(id)).toBe(true);
+  });
 });

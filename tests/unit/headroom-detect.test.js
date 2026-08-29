@@ -15,13 +15,33 @@ vi.mock("child_process", () => ({
   execFileSync: mocks.execFileSync,
 }));
 
-import { findPython310, getHeadroomStatus, getInstalledHeadroomExtras, isLoopbackHeadroomUrl } from "../../src/lib/headroom/detect.js";
+import { findPython310, getHeadroomStatus, getInstalledHeadroomExtras, isLoopbackHeadroomUrl, pythonCommandSpec } from "../../src/lib/headroom/detect.js";
 
 afterEach(() => {
   vi.clearAllMocks();
 });
 
 describe("headroom detect", () => {
+  it("splits Windows py launcher versions into executable and args", () => {
+    expect(pythonCommandSpec("py -3.13", true)).toEqual({ command: "py", args: ["-3.13"] });
+    expect(pythonCommandSpec("python", true)).toEqual({ command: "python", args: [] });
+  });
+
+  it("supports a Python command spec when probing pip", () => {
+    mocks.execFileSync.mockImplementationOnce(() => Buffer.from(JSON.stringify([
+      { name: "headroom-ai", version: "0.26.0" },
+    ])));
+    expect(getInstalledHeadroomExtras({ command: "py", args: ["-3.13"] })).toMatchObject({
+      installed: true,
+      version: "0.26.0",
+    });
+    expect(mocks.execFileSync).toHaveBeenCalledWith(
+      "py",
+      ["-3.13", "-m", "pip", "list", "--format=json", "--disable-pip-version-check"],
+      expect.any(Object),
+    );
+  });
+
   it("detects installed headroom version and extras from pip list", () => {
     const result = getInstalledHeadroomExtras("python3");
 

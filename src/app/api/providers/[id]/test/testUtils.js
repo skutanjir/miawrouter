@@ -479,7 +479,7 @@ async function fetchWithConnectionProxy(url, options = {}, effectiveProxy = null
   });
 }
 
-async function testApiKeyConnection(connection, effectiveProxy = null) {
+export async function testApiKeyConnection(connection, effectiveProxy = null) {
   if (isOpenAICompatibleProvider(connection.provider)) {
     const modelsBase = connection.providerSpecificData?.baseUrl;
     if (!modelsBase) return { valid: false, error: "Missing base URL" };
@@ -556,6 +556,12 @@ async function testApiKeyConnection(connection, effectiveProxy = null) {
       case "openai": {
         const res = await fetchWithConnectionProxy("https://api.openai.com/v1/models", { headers: { Authorization: `Bearer ${connection.apiKey}` } }, effectiveProxy);
         return { valid: res.ok, error: res.ok ? null : "Invalid API key" };
+      }
+      case "genspark": {
+        const res = await fetchWithConnectionProxy("https://www.genspark.ai/api/tool_cli/me", {
+          headers: { "X-Api-Key": connection.apiKey },
+        }, effectiveProxy);
+        return { valid: res.ok, error: res.ok ? null : "Invalid Genspark API key" };
       }
       case "vercel-ai-gateway": {
         const res = await fetchWithConnectionProxy("https://ai-gateway.vercel.sh/v1/models", { headers: { Authorization: `Bearer ${connection.apiKey}` } }, effectiveProxy);

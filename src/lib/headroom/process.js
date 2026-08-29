@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { spawn } from "child_process";
+import { spawn, execFileSync } from "child_process";
 import { DATA_DIR } from "@/lib/dataDir.js";
-import { findHeadroomBinary, findPython310, HEADROOM_COMPRESSION_EXTRAS, EXTRA_MARKERS, getInstalledHeadroomExtras } from "./detect.js";
+import { findHeadroomBinary, findPython310Spec, HEADROOM_COMPRESSION_EXTRAS, EXTRA_MARKERS, getInstalledHeadroomExtras } from "./detect.js";
 
 const HEADROOM_DIR = path.join(DATA_DIR, "headroom");
 const PID_FILE = path.join(HEADROOM_DIR, "proxy.pid");
@@ -35,6 +35,14 @@ function clearPid() {
 export function isPidAlive(pid) {
   if (!pid || typeof pid !== "number") return false;
   try { process.kill(pid, 0); return true; } catch { return false; }
+}
+
+function terminatePid(pid, force) {
+  if (process.platform === "win32") {
+    execFileSync("taskkill.exe", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true, timeout: 3000 });
+    return;
+  }
+  process.kill(pid, force ? "SIGKILL" : "SIGTERM");
 }
 
 export function getManagedPid() {
@@ -113,11 +121,11 @@ export function stopHeadroomProxy() {
   const pid = getManagedPid();
   if (!pid) return { stopped: false, reason: "not_running" };
   try {
-    process.kill(pid, "SIGTERM");
+    terminatePid(pid, false);
     // Give it a moment, then force if still alive.
     setTimeout(() => {
       if (isPidAlive(pid)) {
-        try { process.kill(pid, "SIGKILL"); } catch { /* already gone */ }
+        try { terminatePid(pid, true); } catch { /* already gone */ }
       }
     }, 2000);
     clearPid();
@@ -135,13 +143,13 @@ export function stopHeadroomProxy() {
 export async function restartHeadroomProxy(opts = {}) {
   const pid = getManagedPid();
   if (pid) {
-    try { process.kill(pid, "SIGTERM"); } catch { /* already gone */ }
+    try { terminatePid(pid, false); } catch { /* already gone */ }
     // Wait up to ~3s for graceful exit, force-kill if still alive.
     for (let i = 0; i < 30 && isPidAlive(pid); i++) {
       await new Promise((r) => setTimeout(r, 100));
     }
     if (isPidAlive(pid)) {
-      try { process.kill(pid, "SIGKILL"); } catch { /* already gone */ }
+      try { terminatePid(pid, true); } catch { /* already gone */ }
       await new Promise((r) => setTimeout(r, 300));
     }
     clearPid();
@@ -165,7 +173,7 @@ export function getHeadroomLogTail(maxLines = 200) {
 // already present.
 export async function installHeadroomExtras(extras = []) {
   const requested = Array.isArray(extras) ? extras.filter((e) => HEADROOM_COMPRESSION_EXTRAS.includes(e)) : [];
-  const py = findPython310();
+  const py = findPython310Spec();
   if (!py) {
     const err = new Error("Python >= 3.10 not found");
     err.code = "NO_PYTHON";
@@ -186,7 +194,7 @@ export async function installHeadroomExtras(extras = []) {
   ensureDir();
   // Truncate ("w") so the log reflects only the current install for live progress.
   const outFd = fs.openSync(INSTALL_LOG_FILE, "w");
-  const child = spawn(py, args, {
+  const child = spawn(py.command, [...py.args, ...args], {
     stdio: ["ignore", outFd, outFd],
     windowsHide: true,
     env: { ...process.env },
@@ -212,7 +220,7 @@ export async function installHeadroomExtras(extras = []) {
 // huggingface-hub). `headroom-ai` base and the `proxy` extra are never removed.
 export async function uninstallHeadroomExtras(extras = []) {
   const requested = Array.isArray(extras) ? extras.filter((e) => HEADROOM_COMPRESSION_EXTRAS.includes(e)) : [];
-  const py = findPython310();
+  const py = findPython310Spec();
   if (!py) {
     const err = new Error("Python >= 3.10 not found");
     err.code = "NO_PYTHON";
@@ -228,7 +236,7 @@ export async function uninstallHeadroomExtras(extras = []) {
 
   ensureDir();
   const outFd = fs.openSync(INSTALL_LOG_FILE, "w");
-  const child = spawn(py, args, {
+  const child = spawn(py.command, [...py.args, ...args], {
     stdio: ["ignore", outFd, outFd],
     windowsHide: true,
     env: { ...process.env },
