@@ -82,6 +82,10 @@ export function createSSEStream(options = {}) {
       const text = decoder.decode(chunk, { stream: true });
       buffer += text;
       reqLogger?.appendProviderChunk?.(text);
+      // Native Gemini/Antigravity passthrough streams often omit usage metadata.
+      // Count their wire text so the existing estimator can persist a useful
+      // output-token estimate instead of reporting 0/0.
+      if (mode === STREAM_MODE.PASSTHROUGH) totalContentLength += text.length;
 
       const lines = buffer.split("\n");
       buffer = lines.pop() || "";
@@ -114,7 +118,7 @@ export function createSSEStream(options = {}) {
             // byte-identical with zero JSON work. Substring checks can only
             // produce false positives (escaped content), never false negatives.
             const payload = trimmed.slice(5).trim();
-            if (!payload.includes('"choices"') && !payload.includes('"usage"')) {
+            if (!payload.includes('"choices"') && !payload.includes('"usage"') && !payload.includes('"usageMetadata"')) {
               // Mirror the normalization below exactly (untrimmed `line`).
               output = (line.startsWith("data:") && !line.startsWith("data: "))
                 ? "data: " + line.slice(5) + "\n"

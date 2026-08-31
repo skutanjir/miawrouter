@@ -10,6 +10,7 @@ import {
   setCachedPassword,
   loadEncryptedPassword,
   isSudoPasswordRequired,
+  canRunSudoWithoutPassword,
   initDbHooks,
 } from "@/mitm/manager";
 import { getSettings, updateSettings } from "@/lib/localDb";
@@ -69,7 +70,10 @@ export async function GET() {
   try {
     const status = await getMitmStatus();
     const settings = await getSettings();
-    const hasCachedPassword = !!getCachedPassword() || !!(await loadEncryptedPassword());
+    // A saved password is not proof that sudo will accept it. Only skip the
+    // Linux password dialog when the current sudo timestamp is valid.
+    const sudoNoPassword = !isWin && canRunSudoWithoutPassword();
+    const hasCachedPassword = isWin || sudoNoPassword;
     return NextResponse.json({
       running: status.running,
       pid: status.pid || null,
@@ -78,7 +82,7 @@ export async function GET() {
       dnsStatus: status.dnsStatus || {},
       hasCachedPassword,
       isWin,
-      needsSudoPassword: !isWin && !hasCachedPassword && isSudoPasswordRequired(),
+      needsSudoPassword: !isWin && !sudoNoPassword && isSudoPasswordRequired(),
       isAdmin: checkIsAdmin(),
       mitmRouterBaseUrl:
         (settings.mitmRouterBaseUrl && String(settings.mitmRouterBaseUrl).trim()) ||

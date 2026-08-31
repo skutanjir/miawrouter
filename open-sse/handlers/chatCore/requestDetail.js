@@ -94,12 +94,14 @@ export function formatDoneLine({ usage, latency }) {
 }
 
 export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, label = "USAGE", silent = false }) {
-  if (!tokens || typeof tokens !== "object") return;
+  if (!tokens || typeof tokens !== "object") {
+    // Some native Gemini/Antigravity streams omit usage metadata. Keep the
+    // request visible in analytics even when token counts are unavailable.
+    tokens = { prompt_tokens: 0, completion_tokens: 0 };
+  }
 
   const inTokens = tokens.input_tokens ?? tokens.prompt_tokens ?? 0;
   const outTokens = tokens.output_tokens ?? tokens.completion_tokens ?? 0;
-
-  if (inTokens === 0 && outTokens === 0) return;
 
   if (!silent) {
     const time = new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });

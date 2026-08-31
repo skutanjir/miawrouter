@@ -5,7 +5,7 @@ const os = require("os");
 const net = require("net");
 const https = require("https");
 const crypto = require("crypto");
-const { addDNSEntry, removeDNSEntry, removeAllDNSEntries, removeAllDNSEntriesSync, checkAllDNSStatus, TOOL_HOSTS, isSudoAvailable, isSudoPasswordRequired } = require("./dns/dnsConfig");
+const { addDNSEntry, removeDNSEntry, removeAllDNSEntries, removeAllDNSEntriesSync, checkAllDNSStatus, TOOL_HOSTS, isSudoAvailable, canRunSudoWithoutPassword, isSudoPasswordRequired } = require("./dns/dnsConfig");
 const { isAdmin } = require("./winElevated.js");
 
 const IS_WIN = process.platform === "win32";
@@ -76,6 +76,8 @@ function ensureRuntimeServer(bundledPath) {
 
     const runtimeDir = path.join(DATA_DIR, "runtime", "mitm");
     const runtimeServer = path.join(runtimeDir, "server.js");
+    fs.mkdirSync(runtimeDir, { recursive: true });
+    fs.writeFileSync(path.join(runtimeDir, "package.json"), '{"type":"commonjs"}\n');
 
     // Skip copy if sizes match (bundle unchanged since last run)
     if (fs.existsSync(runtimeServer)) {
@@ -84,7 +86,6 @@ function ensureRuntimeServer(bundledPath) {
       } catch { /* recopy */ }
     }
 
-    fs.mkdirSync(runtimeDir, { recursive: true });
     fs.copyFileSync(bundledPath, runtimeServer);
     return runtimeServer;
   } catch (e) {
@@ -110,7 +111,9 @@ function getProcessUsingPort443() {
         if (processMatch) return processMatch[1].replace(".exe", "");
       }
     } else {
-      const result = execSync(`${LSOF_BIN} -i :443`, { encoding: "utf8", windowsHide: true });
+      // `-i :443` also matches ports such as 44343. Restrict to the exact
+      // TCP listener so unrelated local services are not reported as a clash.
+      const result = execSync(`${LSOF_BIN} -nP -iTCP:443 -sTCP:LISTEN`, { encoding: "utf8", windowsHide: true });
       const lines = result.trim().split("\n");
       if (lines.length > 1) return lines[1].split(/\s+/)[0];
     }
@@ -631,12 +634,23 @@ async function startServer(apiKey, sudoPassword, forceKillPort443 = false) {
       shellQuoteSingle(process.execPath),
       shellQuoteSingle(effectiveServerPath),
     ].join(" ");
+    let sudoArgs;
+    try {
+      execSync("sudo -n true", { stdio: "ignore", windowsHide: true });
+      sudoArgs = ["-n", "-E", "sh", "-c", inlineCmd];
+    } catch {
+      sudoArgs = ["-S", "-E", "sh", "-c", inlineCmd];
+    }
     serverProcess = spawn(
-      "sudo", ["-S", "-E", "sh", "-c", inlineCmd],
+      "sudo", sudoArgs,
       { detached: false, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] }
     );
-    serverProcess.stdin.write(`${sudoPassword}\n`);
-    serverProcess.stdin.end();
+    if (sudoArgs[0] === "-S") {
+      serverProcess.stdin.write(`${sudoPassword || ""}\n`);
+      serverProcess.stdin.end();
+    } else {
+      serverProcess.stdin.end();
+    }
   } else {
     // Docker/minimal images: no sudo — same as Windows-style direct spawn
     serverProcess = spawn(process.execPath, [effectiveServerPath], {
@@ -878,6 +892,7 @@ module.exports = {
   loadEncryptedPassword,
   clearEncryptedPassword,
   isSudoPasswordRequired,
+  canRunSudoWithoutPassword,
   initDbHooks,
   restoreToolDNS,
   hasDnsPrivilege,

@@ -79,12 +79,21 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 async function resolveTargetIP(hostname) {
   const cached = cachedTargetIPs[hostname];
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.ip;
-  const resolver = new dns.Resolver();
-  resolver.setServers(["8.8.8.8"]);
-  const resolve4 = promisify(resolver.resolve4.bind(resolver));
-  const addresses = await resolve4(hostname);
-  cachedTargetIPs[hostname] = { ip: addresses[0], ts: Date.now() };
-  return cachedTargetIPs[hostname].ip;
+  // The system resolver sees our /etc/hosts MITM redirect and can return
+  // 127.0.0.1; that address is valid for the client, never for upstream.
+  for (const server of ["1.1.1.1", "8.8.8.8", "9.9.9.9", "127.0.0.53"]) {
+    try {
+      const resolver = new dns.Resolver();
+      resolver.setServers([server]);
+      const addresses = await promisify(resolver.resolve4.bind(resolver))(hostname);
+      const ip = addresses.find((address) => address !== "127.0.0.1" && address !== "0.0.0.0");
+      if (ip) {
+        cachedTargetIPs[hostname] = { ip, ts: Date.now() };
+        return ip;
+      }
+    } catch { /* try the next resolver */ }
+  }
+  throw new Error(`DNS resolution failed for ${hostname}`);
 }
 
 function collectBodyRaw(req) {

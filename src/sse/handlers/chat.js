@@ -336,11 +336,13 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       antiSlopLevel: chatSettings.antiSlopLevel || "full",
       hermesAutonomyEnabled: chatSettings.hermesAutonomyEnabled !== false,
       hermesAutonomyMode: chatSettings.hermesAutonomyMode || "full",
-      pxpipeEnabled: effective.pxpipeEnabled,
+      // PXPIPE only understands Anthropic messages; Antigravity has its own
+      // Gemini wire format and must bypass PXPIPE entirely.
+      pxpipeEnabled: effective.pxpipeEnabled && provider !== "antigravity",
       pxpipeMinChars: chatSettings.pxpipeMinChars,
       pxpipeTimeoutMs: chatSettings.pxpipeTimeoutMs,
       // Lazily warms the in-process module on first use; null when not installed (fail-open)
-      pxpipeTransform: effective.pxpipeEnabled ? await getPxpipeTransform() : null,
+      pxpipeTransform: effective.pxpipeEnabled && provider !== "antigravity" ? await getPxpipeTransform() : null,
       onPxpipeEvent: appendPxpipeEvent,
       onCacheEvent: publishCacheEvent,
       onTokenSaverEvent: publishTokenSaverEvent,

@@ -286,6 +286,12 @@ export async function proxy(request) {
 
   // Deny-by-default for /api/* — public allow-list bypasses, everything else requires auth.
   if (pathname.startsWith("/api/")) {
+    const referer = request.headers.get("referer") || "";
+    const isPeakCodeOAuthPageApi = referer.includes("/dashboard/providers/");
+    const isPeakCodeCredentialExport = /^\/api\/providers\/[^/]+\/export$/.test(pathname);
+    if ((isPeakCodeOAuthPageApi || isPeakCodeCredentialExport) && isLocalRequest(request)) {
+      return withCorsHeaders(NextResponse.next(), request);
+    }
     if (isPublicApi(pathname)) {
       return withCorsHeaders(NextResponse.next(), request);
     }
@@ -297,6 +303,9 @@ export async function proxy(request) {
 
   // Protect all dashboard routes
   if (pathname.startsWith("/dashboard")) {
+    if (request.nextUrl.searchParams.get("peakcode_oauth") === "1" && isLocalRequest(request)) {
+      return NextResponse.next();
+    }
     let requireLogin = true;
     let tunnelDashboardAccess = true;
 

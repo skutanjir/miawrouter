@@ -78,11 +78,18 @@ async function pipeSSE(routerRes, res, dumper) {
  */
 async function pipeTransformedSSE(routerRes, res, transformFn, state) {
   const ct = routerRes.headers.get("content-type") || "application/json";
-  const resHeaders = { "Content-Type": ct, "Cache-Control": "no-cache", "Connection": "keep-alive" };
-  if (ct.includes("text/event-stream")) resHeaders["X-Accel-Buffering"] = "no";
-  res.writeHead(200, resHeaders);
+  const resHeaders = { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive" };
+  resHeaders["X-Accel-Buffering"] = "no";
+  const status = routerRes.status || 200;
+  res.writeHead(status, resHeaders);
 
   if (!routerRes.body) {
+    res.end(await routerRes.text().catch(() => ""));
+    return;
+  }
+
+  // Preserve router errors; they are JSON, not SSE.
+  if (status < 200 || status >= 300 || !ct.includes("text/event-stream")) {
     res.end(await routerRes.text().catch(() => ""));
     return;
   }
@@ -90,6 +97,13 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
   const reader = routerRes.body.getReader();
   const decoder = new TextDecoder("utf-8", { fatal: false });
   let buffer = "";
+  const writeOutput = (output) => {
+    if (typeof output === "string" || Buffer.isBuffer(output) || output instanceof Uint8Array) {
+      res.write(output);
+    } else {
+      res.write(`data: ${JSON.stringify(output)}\r\n\r\n`);
+    }
+  };
 
   while (true) {
     const { done, value } = await reader.read();
@@ -120,12 +134,23 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
               const len = output.length || output.byteLength || 0;
               log(`[write binary frame] (${len}B) first 20B: ${Array.from(output.slice(0, 20)).join(',')}`);
             }
-            res.write(Buffer.from(output));
+            writeOutput(output);
           }
         }
       } catch {
         // Skip unparseable lines
       }
+    }
+  }
+
+  // Process a final unterminated SSE line before flushing the translator.
+  const tail = buffer.trim();
+  if (tail.startsWith("data:") && tail.slice(5).trim() !== "[DONE]") {
+    try {
+      const result = transformFn(JSON.parse(tail.slice(5).trim()), state);
+      if (result != null) for (const output of (Array.isArray(result) ? result : [result])) writeOutput(output);
+    } catch (error) {
+      log(`[SSE transform] final chunk ignored: ${error.message}`);
     }
   }
 
@@ -135,7 +160,7 @@ async function pipeTransformedSSE(routerRes, res, transformFn, state) {
     if (flushed != null) {
       const outputs = Array.isArray(flushed) ? flushed : [flushed];
       for (const output of outputs) {
-        res.write(output);
+        writeOutput(output);
       }
     }
   } catch { /* ignore flush errors */ }

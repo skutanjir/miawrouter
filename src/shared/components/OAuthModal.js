@@ -57,6 +57,20 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
   const [placeholderUrl, setPlaceholderUrl] = useState("/callback?code=...");
   const callbackProcessedRef = useRef(false);
 
+  const notifyParent = useCallback((result) => {
+    const connectionId = result?.connection?.id || result?.connectionId;
+    if (connectionId) {
+      const message = { type: "miawrouter_oauth_success", provider, connectionId };
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(message, "*");
+      }
+      if (window.parent !== window) {
+        window.parent.postMessage(message, "*");
+      }
+    }
+    onSuccess?.(result);
+  }, [onSuccess, provider]);
+
   // Detect if running on localhost (client-side only)
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -89,12 +103,12 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       if (!res.ok) throw new Error(data.error);
 
       setStep("success");
-      onSuccess?.();
+      notifyParent(data);
     } catch (err) {
       setError(err.message);
       setStep("error");
     }
-  }, [authData, provider, onSuccess, oauthMeta]);
+  }, [authData, provider, notifyParent, oauthMeta]);
 
   const completeXaiManualCode = useCallback(async (code) => {
     if (!authData?.state) return;
@@ -108,12 +122,12 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
       if (!res.ok) throw new Error(data.error);
 
       setStep("success");
-      onSuccess?.();
+      notifyParent(data);
     } catch (err) {
       setError(err.message);
       setStep("error");
     }
-  }, [authData, onSuccess]);
+  }, [authData, notifyParent]);
 
   // Poll for device code token
   const startPolling = useCallback(async (deviceCode, codeVerifier, interval, extraData, deadlineMs) => {
@@ -155,7 +169,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
           pollingAbortRef.current = true; // Stop polling immediately
           setStep("success");
           setPolling(false);
-          onSuccess?.();
+          notifyParent(data);
           return;
         }
 
@@ -177,7 +191,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
     setError("Authorization timeout");
     setStep("error");
     setPolling(false);
-  }, [provider, onSuccess]);
+  }, [provider, notifyParent]);
 
   // Trae/Windsurf proxy OAuth flow: dynamic-port local callback → auto exchange.
   const startProxyFlow = useCallback(async (providerId) => {
@@ -467,7 +481,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         if (data.status === "done") {
           callbackProcessedRef.current = true;
           setStep("success");
-          onSuccess?.();
+          notifyParent(data);
           return;
         }
         if (data.status === "error") {
@@ -489,7 +503,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
     };
     setTimeout(tick, POLL_INTERVAL_MS);
     return () => { cancelled = true; };
-  }, [authData, onSuccess]);
+  }, [authData, notifyParent]);
 
   // Listen for OAuth callback via multiple methods
   useEffect(() => {
@@ -589,7 +603,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setStep("success");
-        onSuccess?.();
+        notifyParent(data);
         return;
       }
 
@@ -605,7 +619,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setStep("success");
-        onSuccess?.();
+        notifyParent(data);
         return;
       }
 

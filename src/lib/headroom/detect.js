@@ -22,6 +22,8 @@ const WHICH_CMD = IS_WIN ? "where" : "which";
 // Extra bin dirs often missing from a packaged/launchd PATH (Python installs headroom here).
 const EXTRA_BINS = IS_WIN
   ? [
+      `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python314\\Scripts`,
+      `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python314`,
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python313\\Scripts`,
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python313`,
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python312\\Scripts`,
@@ -31,9 +33,12 @@ const EXTRA_BINS = IS_WIN
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python310\\Scripts`,
       `${process.env.LOCALAPPDATA || ""}\\Programs\\Python\\Python310`,
       `${process.env.APPDATA || ""}\\Python\\Python313\\Scripts`,
+      `${process.env.APPDATA || ""}\\Python\\Python314\\Scripts`,
       `${process.env.APPDATA || ""}\\Python\\Python312\\Scripts`,
       `${process.env.APPDATA || ""}\\Python\\Python311\\Scripts`,
       `${process.env.ProgramFiles || "C:\\Program Files"}\\Python313\\Scripts`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python314\\Scripts`,
+      `${process.env.ProgramFiles || "C:\\Program Files"}\\Python314`,
       `${process.env.ProgramFiles || "C:\\Program Files"}\\Python313`,
       `${process.env.ProgramFiles || "C:\\Program Files"}\\Python312\\Scripts`,
       `${process.env.ProgramFiles || "C:\\Program Files"}\\Python312`,
@@ -67,7 +72,7 @@ const EXTRA_BINS = IS_WIN
 
 const EXTENDED_PATH = [...EXTRA_BINS, process.env.PATH || ""].filter(Boolean).join(path.delimiter);
 const PYTHON_CANDIDATES = IS_WIN
-  ? ["py -3.13", "py -3.12", "py -3.11", "py -3.10", "py -3", "py", "python", "python3", "python3.13", "python3.12", "python3.11", "python3.10"]
+  ? ["py -3.14", "py -3.13", "py -3.12", "py -3.11", "py -3.10", "py -3", "py", "python", "python3", "python3.14", "python3.13", "python3.12", "python3.11", "python3.10"]
   : ["python3.13", "python3.12", "python3.11", "python3.10", "python3", "python"];
 const MIN_VERSION = [3, 10];
 const HEADROOM_HEALTH_TIMEOUT_MS = 1500;

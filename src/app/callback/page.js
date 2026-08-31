@@ -54,6 +54,16 @@ function CallbackContent() {
       }
     }
 
+    // Embedded OAuth flow: send the provider callback back to PeakCode Router.
+    if (window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: "oauth_callback", data: callbackData }, "*");
+        relayed = true;
+      } catch (e) {
+        console.log("parent postMessage failed:", e);
+      }
+    }
+
     // Method 2: BroadcastChannel (same origin tabs)
     try {
       const channel = new BroadcastChannel("oauth_callback");

@@ -777,6 +777,25 @@ exports[`GOLDEN buildHeaders (default executor providers) > gemini-web → heade
 }
 `;
 
+exports[`GOLDEN buildHeaders (default executor providers) > genspark → headers (apiKey / oauth) 1`] = `
+{
+  "apiKey": {
+    "Accept": "text/event-stream",
+    "Authorization": "Bearer <TOK>",
+    "Content-Type": "application/json",
+  },
+  "nonStream": {
+    "Authorization": "Bearer <TOK>",
+    "Content-Type": "application/json",
+  },
+  "oauth": {
+    "Accept": "text/event-stream",
+    "Authorization": "Bearer <TOK>",
+    "Content-Type": "application/json",
+  },
+}
+`;
+
 exports[`GOLDEN buildHeaders (default executor providers) > github-models → headers (apiKey / oauth) 1`] = `
 {
   "apiKey": {
@@ -2193,6 +2212,13 @@ exports[`GOLDEN buildUrl (default executor providers) > gemini-web → url (stre
 {
   "nonStream": "https://gemini.google.com/app",
   "stream": "https://gemini.google.com/app",
+}
+`;
+
+exports[`GOLDEN buildUrl (default executor providers) > genspark → url (stream + non-stream) 1`] = `
+{
+  "nonStream": "https://www.genspark.ai/api/llm_proxy/v1/chat/completions",
+  "stream": "https://www.genspark.ai/api/llm_proxy/v1/chat/completions",
 }
 `;
 
