@@ -7,6 +7,7 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import { DEFAULT_PLUGINS } from "@/shared/constants/coworkPlugins";
+import { configureClaudeSubagents } from "@/lib/agents/subagentAutomator";
 
 const execAsync = promisify(exec);
 
@@ -87,6 +88,20 @@ const readSettings = async () => {
   }
 };
 
+const readClaudeSubagents = async () => {
+  const agentsDir = path.join(os.homedir(), ".claude", "agents");
+  const subagents = {};
+  const roles = ["explorer", "reviewer", "planner", "fast"];
+  for (const role of roles) {
+    try {
+      const content = await fs.readFile(path.join(agentsDir, `${role}.md`), "utf8");
+      const match = content.match(/^model:\s*["']?([^"'\r\n]+)["']?/m);
+      if (match) subagents[role] = match[1].trim();
+    } catch {}
+  }
+  return subagents;
+};
+
 // GET - Check claude CLI and read current settings
 export async function GET() {
   try {
@@ -103,10 +118,12 @@ export async function GET() {
     const settings = await readSettings();
     const has9Router = !!(settings?.env?.ANTHROPIC_BASE_URL);
     const claudeJson = await readClaudeJson();
+    const subagents = await readClaudeSubagents();
 
     return NextResponse.json({
       installed: true,
       settings: settings,
+      subagents: subagents,
       has9Router: has9Router,
       exaMcpEnabled: !!claudeJson?.mcpServers?.exa,
       settingsPath: getClaudeSettingsPath(),
@@ -123,7 +140,7 @@ export async function GET() {
 // POST - Backup old fields and write new settings
 export async function POST(request) {
   try {
-    const { env, exaMcpEnabled, maxContextTokens } = await request.json();
+    const { env, exaMcpEnabled, maxContextTokens, subagents } = await request.json();
     
     if (!env || typeof env !== "object") {
       return NextResponse.json(
@@ -180,6 +197,11 @@ export async function POST(request) {
     // Exa MCP toggle — write to ~/.claude.json (CLI reads mcpServers from here).
     if (EXA_PLUGIN) {
       await writeClaudeJsonMcp(exaMcpEnabled ? { exa: buildExaMcpEntry() } : null);
+    }
+
+    // Subagents — write ~/.claude/agents/*.md if subagents provided
+    if (subagents && typeof subagents === "object") {
+      await configureClaudeSubagents({ roles: subagents });
     }
 
     return NextResponse.json({

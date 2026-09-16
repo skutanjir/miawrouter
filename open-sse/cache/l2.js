@@ -3,9 +3,9 @@
 // callback from src, which calls the local /v1/embeddings route) + cosine
 // similarity. Never fake lexical matching. Fail-open on embedding errors.
 //
-// Entries are scoped by model family (e.g. "claude:claude-sonnet"), gated on
-// tool-free, reproducible requests whose prompt is not code-generation-shaped,
-// bounded per family by maxEntries, and expire after ttlMs.
+// Entries are scoped by exact model, request format/account, and a fingerprint
+// of the request context with the final user text replaced by a marker. This
+// keeps semantic reuse inside the same system/history/settings context.
 
 import crypto from "crypto";
 import { emitCacheEvent } from "./events.js";
@@ -22,25 +22,62 @@ function now() {
   return Date.now();
 }
 
-// Strip version/date suffixes so "claude-sonnet-4-6" and "claude-sonnet-4-5"
-// share a family: "claude-sonnet"; "gpt-5.4" → "gpt".
-function modelFamily(model) {
-  if (typeof model !== "string") return "";
-  return model.replace(/[-_.]?v?\d+([._-]\d+)*([_-]\d{8})?$/i, "");
-}
-
 // Hash the raw scope (router API key + account connection) before it can land
 // in a bucket key: isolation without ever storing the raw values.
 function scopeHash(scope) {
   return scope ? crypto.createHash("sha256").update(scope).digest("hex").slice(0, 16) : "";
 }
 
-// Family buckets isolate entries by scope (router API key + account connection)
-// AND client response format, so a semantic hit can never cross accounts,
-// clients, or formats — e.g. a Claude client can never receive a response that
-// was produced for an OpenAI-shaped request.
+// Buckets isolate entries by scope, client response format, provider, and exact
+// model. Context matching happens per entry so one bucket remains bounded by
+// maxEntries instead of creating an unbounded Map for every conversation.
 function familyKey({ provider, model, scope = "", sourceFormat = "", targetFormat = "" }) {
-  return `${scopeHash(scope)}|${sourceFormat}|${targetFormat}|${provider}:${modelFamily(model)}`;
+  return `${scopeHash(scope)}|${sourceFormat}|${targetFormat}|${provider}:${model || ""}`;
+}
+
+const SEMANTIC_QUERY_MARKER = "__miawrouter_semantic_query__";
+
+function isUserItem(item) {
+  return item?.role === "user" || (item?.type === "message" && item?.role === "user");
+}
+
+function maskUserText(item) {
+  if (!item || typeof item !== "object") return item;
+  if (typeof item.content === "string") return { ...item, content: SEMANTIC_QUERY_MARKER };
+  if (!Array.isArray(item.content)) return item;
+  return {
+    ...item,
+    content: item.content.map((block) => {
+      if (typeof block === "string") return SEMANTIC_QUERY_MARKER;
+      if (block && typeof block === "object" && typeof block.text === "string") {
+        return { ...block, text: SEMANTIC_QUERY_MARKER };
+      }
+      return block;
+    }),
+  };
+}
+
+// Same request context, different final user question: this is the safe
+// scope for semantic reuse. The exact L1 key already canonicalizes markers.
+function semanticContextKey({ provider, model, scope, sourceFormat, targetFormat, body }) {
+  const field = Array.isArray(body?.messages) ? "messages"
+    : Array.isArray(body?.input) ? "input"
+      : null;
+  if (!field) return "";
+  const items = body[field];
+  let lastUserIndex = -1;
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (isUserItem(items[i])) {
+      lastUserIndex = i;
+      break;
+    }
+  }
+  if (lastUserIndex < 0) return "";
+  const contextBody = {
+    ...body,
+    [field]: items.map((item, index) => index === lastUserIndex ? maskUserText(item) : item),
+  };
+  return l1Key({ provider, model, sourceFormat, targetFormat, body: contextBody, scope });
 }
 
 // Cosine similarity with a zero-vector guard. Pure math, no lexical features.
@@ -127,6 +164,8 @@ export async function l2Lookup({ provider, model, scope = "", sourceFormat = "",
   const text = lastUserText(body);
   if (!text) return null;
   if (looksLikeCodeGeneration(text)) return null;
+  const contextKey = semanticContextKey({ provider, model, scope, sourceFormat, targetFormat, body });
+  if (!contextKey) return null;
 
   const family = familyKey({ provider, model, scope, sourceFormat, targetFormat });
   const entries = store.get(family);
@@ -145,6 +184,7 @@ export async function l2Lookup({ provider, model, scope = "", sourceFormat = "",
   let bestSim = -1;
   const t = now();
   for (const [key, entry] of entries) {
+    if (entry.contextKey !== contextKey) continue;
     if (t >= entry.expiresAt) continue;
     const sim = cosine(embedding, entry.embedding);
     if (sim > bestSim) {
@@ -176,6 +216,8 @@ export async function l2Store({ provider, model, scope = "", sourceFormat = "", 
   const text = lastUserText(body);
   if (!text) return false;
   if (looksLikeCodeGeneration(text)) return false;
+  const contextKey = semanticContextKey({ provider, model, scope, sourceFormat, targetFormat, body });
+  if (!contextKey) return false;
 
   let embedding;
   try {
@@ -197,6 +239,7 @@ export async function l2Store({ provider, model, scope = "", sourceFormat = "", 
   entries.set(entryKey, {
     embedding,
     value,
+    contextKey,
     lastUsed: now(),
     expiresAt: now() + ttlMs,
   });

@@ -103,6 +103,16 @@ function normalizeExpiresAt(expiresAt) {
   return date.toISOString();
 }
 
+function connectionProxyOptions(credentials) {
+  return {
+    connectionProxyEnabled: credentials?.providerSpecificData?.connectionProxyEnabled === true,
+    connectionProxyUrl: credentials?.providerSpecificData?.connectionProxyUrl || "",
+    connectionNoProxy: credentials?.providerSpecificData?.connectionNoProxy || "",
+    vercelRelayUrl: credentials?.providerSpecificData?.vercelRelayUrl || "",
+    strictProxy: credentials?.providerSpecificData?.strictProxy === true,
+  };
+}
+
 /**
  * Providers that carry a real Google project ID.
  * @param {string} provider
@@ -121,13 +131,17 @@ function needsProjectId(provider) {
  * @param {string} connectionId
  * @param {string} accessToken
  */
-function _refreshProjectId(provider, connectionId, accessToken) {
+function _refreshProjectId(provider, connectionId, accessToken, providerSpecificData = null) {
   if (!needsProjectId(provider) || !connectionId || !accessToken) return;
 
   // Evict the stale cached entry so getProjectIdForConnection does a real fetch
   invalidateProjectId(connectionId);
 
-  getProjectIdForConnection(connectionId, accessToken, provider)
+  getProjectIdForConnection(connectionId, accessToken, provider, {
+    proxyOptions: {
+      ...connectionProxyOptions({ providerSpecificData }),
+    },
+  })
     .then((projectId) => {
       if (!projectId) return;
       updateProviderCredentials(connectionId, { projectId }).catch((err) => {
@@ -237,7 +251,7 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
       lastRefreshAt: creds.lastRefreshAt || null,
     });
 
-    const newCreds = await _refreshProviderCredentials(provider, creds, log);
+    const newCreds = await _refreshProviderCredentials(provider, creds, log, connectionProxyOptions(creds));
     if (newCreds?.accessToken || newCreds?.apiKey || newCreds?.copilotToken) {
       const mergedCreds = {
         ...newCreds,
@@ -259,7 +273,7 @@ export async function checkAndRefreshToken(provider, credentials, options = {}) 
       };
 
       // Non-blocking: refresh projectId with the new access token
-      _refreshProjectId(provider, creds.connectionId, creds.accessToken);
+      _refreshProjectId(provider, creds.connectionId, creds.accessToken, creds.providerSpecificData);
     }
   }
 

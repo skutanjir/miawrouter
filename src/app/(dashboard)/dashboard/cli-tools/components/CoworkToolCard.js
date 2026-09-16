@@ -5,6 +5,7 @@ import { Card, Button, ManualConfigModal, ComboFormModal, McpMarketplaceModal, M
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
+import ToolSubagentsSection from "./ToolSubagentsSection";
 
 const ENDPOINT = "/api/cli-tools/cowork-settings";
 
@@ -38,6 +39,7 @@ export default function CoworkToolCard({
   const [message, setMessage] = useState(null);
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModels, setSelectedModels] = useState([]);
+  const [subagents, setSubagents] = useState({ explorer: "", reviewer: "", planner: "", fast: "" });
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
   const [plugins, setPlugins] = useState([]);
@@ -249,7 +251,19 @@ export default function CoworkToolCard({
       <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-8 flex items-center justify-center shrink-0">
-            <Image src={tool.image} alt={tool.name} width={32} height={32} className="size-8 object-contain rounded-lg" sizes="32px" onError={(e) => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+            <Image
+              src={tool.image}
+              alt={tool.name}
+              width={32}
+              height={32}
+              className="size-8 object-contain rounded-lg"
+              sizes="32px"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -476,12 +490,26 @@ export default function CoworkToolCard({
                           );
                         })}
                       </div>
-                      <p className="text-[10px] text-text-muted leading-snug">
-                        ⚠️ Local plugins run as subprocess via <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">npx</code>. Requires Node.js installed.
+                      <p className="text-[10px] text-text-muted leading-snug flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px] text-amber-500">warning</span>
+                        <span>Local plugins run as subprocess via <code className="px-1 py-0.5 rounded bg-black/5 dark:bg-white/5">npx</code>. Requires Node.js installed.</span>
                       </p>
                     </div>
                   </div>
                 )}
+
+                {/* Subagents Section */}
+                <ToolSubagentsSection
+                  toolName={tool.name}
+                  toolId="cowork"
+                  subagents={subagents}
+                  onChange={setSubagents}
+                  activeProviders={activeProviders}
+                  modelAliases={modelAliases}
+                  hasActiveProviders={hasActiveProviders}
+                  baseUrl={customBaseUrl || baseUrl}
+                  apiKey={selectedApiKey}
+                />
               </div>
 
               {message && (

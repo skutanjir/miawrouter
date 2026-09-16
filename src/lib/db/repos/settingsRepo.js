@@ -48,6 +48,7 @@ const DEFAULT_SETTINGS = {
   rtkEnabled: true,
   rtkMode: DEFAULT_RTK_MODE,
   tokenSaverAutoTriggerTokens: DEFAULT_AUTO_TRIGGER_TOKENS,
+  responseFocus: "balanced",
   headroomEnabled: false,
   headroomUrl: DEFAULT_HEADROOM_URL,
   headroomCompressUserMessages: false,

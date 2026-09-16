@@ -185,8 +185,9 @@ export default function MitmToolCard({
             <div className="flex flex-col gap-0.5 text-[11px] text-text-muted px-1">
                 <p>Toggle DNS to redirect {tool.name} traffic through MiawRouter via MITM.</p>
               {tool.routingAvailable !== false && !dnsActive && (
-                <p className="text-amber-600 text-[10px] mt-1">
-                  ⚠️ Enable DNS to edit model mappings
+                <p className="text-amber-600 text-[10px] mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">warning</span>
+                  <span>Enable DNS to edit model mappings</span>
                 </p>
               )}
             </div>

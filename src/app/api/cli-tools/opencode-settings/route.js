@@ -77,16 +77,24 @@ export async function GET() {
     const providerConfig = config?.provider?.[PROVIDER_KEY] || config?.provider?.[LEGACY_PROVIDER_KEY];
     const modelMap = providerConfig?.models || {};
 
+    const subagents = {
+      explorer: isOurs(config?.agent?.explorer?.model) ? stripOurs(config.agent.explorer.model) : (config?.agent?.explorer?.model || ""),
+      reviewer: isOurs(config?.agent?.reviewer?.model) ? stripOurs(config.agent.reviewer.model) : (config?.agent?.reviewer?.model || ""),
+      planner: isOurs(config?.agent?.planner?.model) ? stripOurs(config.agent.planner.model) : (config?.agent?.planner?.model || ""),
+      fast: isOurs(config?.agent?.fast?.model) ? stripOurs(config.agent.fast.model) : (config?.agent?.fast?.model || ""),
+    };
+
     return NextResponse.json({
       installed: true,
       config,
+      subagents,
       has9Router: has9RouterConfig(config),
       configPath: getConfigPath(),
-        opencode: {
-          models: Object.keys(modelMap),
-          activeModel: isOurs(config?.model) ? stripOurs(config.model) : null,
-          baseURL: providerConfig?.options?.baseURL || null,
-        },
+      opencode: {
+        models: Object.keys(modelMap),
+        activeModel: isOurs(config?.model) ? stripOurs(config.model) : null,
+        baseURL: providerConfig?.options?.baseURL || null,
+      },
     });
   } catch (error) {
     console.log("Error checking opencode settings:", error);
@@ -97,7 +105,7 @@ export async function GET() {
 // POST - Apply 9Router as openai-compatible provider (multi-model support)
 export async function POST(request) {
   try {
-    const { baseUrl, apiKey, model, models, activeModel, subagentModel } = await request.json();
+    const { baseUrl, apiKey, model, models, activeModel, subagentModel, subagents } = await request.json();
 
     // Accept either `model` (string, legacy) or `models` (array of strings)
     const modelsArray = Array.isArray(models) ? models.slice() : (typeof model === "string" ? [model] : []);
@@ -120,7 +128,14 @@ export async function POST(request) {
 
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const keyToUse = apiKey || "sk_miawrouter";
-    const effectiveSubagentModel = subagentModel || modelsArray[0];
+
+    // Subagents dictionary
+    const effectiveRoles = {
+      explorer: subagents?.explorer || subagentModel || modelsArray[0],
+      reviewer: subagents?.reviewer || modelsArray[0],
+      planner: subagents?.planner || modelsArray[0],
+      fast: subagents?.fast || subagentModel || modelsArray[0],
+    };
 
     // Ensure provider object
     if (!config.provider) config.provider = {};
@@ -139,8 +154,16 @@ export async function POST(request) {
     // Ensure models map exists
     existingProvider.models = existingProvider.models || {};
 
-    // Add or update entries for all requested models
-    for (const m of modelsArray) {
+    // Add or update entries for all requested models and subagent models
+    const allModelsToRegister = new Set([
+      ...modelsArray,
+      effectiveRoles.explorer,
+      effectiveRoles.reviewer,
+      effectiveRoles.planner,
+      effectiveRoles.fast,
+    ]);
+
+    for (const m of allModelsToRegister) {
       if (!m || typeof m !== "string") continue;
       existingProvider.models[m] = { name: m, modalities: { input: ["text", "image"], output: ["text"] } };
     }
@@ -160,12 +183,27 @@ export async function POST(request) {
       }
     }
 
-    // Add subagent configuration
+    // Add full subagent configurations
     if (!config.agent) config.agent = {};
     config.agent.explorer = {
       description: "Fast explorer subagent for codebase exploration",
       mode: "subagent",
-      model: modelKey(effectiveSubagentModel),
+      model: modelKey(effectiveRoles.explorer),
+    };
+    config.agent.reviewer = {
+      description: "Reviewer & auditor for adversarial review and validation",
+      mode: "subagent",
+      model: modelKey(effectiveRoles.reviewer),
+    };
+    config.agent.planner = {
+      description: "Architectural planner for task decomposition",
+      mode: "subagent",
+      model: modelKey(effectiveRoles.planner),
+    };
+    config.agent.fast = {
+      description: "Fast helper subagent for rapid edits and diffs",
+      mode: "subagent",
+      model: modelKey(effectiveRoles.fast),
     };
 
     await fs.writeFile(configPath, JSON.stringify(config, null, 2));

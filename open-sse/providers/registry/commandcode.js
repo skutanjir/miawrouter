@@ -25,7 +25,7 @@ export default {
     format: "commandcode",
     forceStream: true,
     headers: {
-      "x-command-code-version": "0.25.7",
+      "x-command-code-version": "1.54.0",
       "x-cli-environment": "cli",
     },
   },
@@ -33,6 +33,7 @@ export default {
     // Claude Models
     { id: "claude-sonnet-5", name: "Claude Sonnet 5", contextLength: 1000000 },
     { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", contextLength: 1000000 },
+    { id: "claude-fable-5-1", name: "Claude Fable 5.1", contextLength: 1000000 },
     { id: "claude-fable-5", name: "Claude Fable 5", contextLength: 1000000 },
     { id: "claude-opus-5", name: "Claude Opus 5", contextLength: 1000000 },
     { id: "claude-opus-4-8", name: "Claude Opus 4.8", contextLength: 1000000 },
@@ -49,6 +50,9 @@ export default {
     // DeepSeek Models
     { id: "deepseek/deepseek-v4-pro", name: "DeepSeek V4 Pro", contextLength: 1000000 },
     { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash", contextLength: 1000000 },
+    { id: "deepseek/deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp", contextLength: 1000000, supportsVision: true },
+    { id: "deepseek/deepseek-v4-flash-fast", name: "DeepSeek V4 Flash Fast", contextLength: 1000000 },
+    { id: "deepseek/deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash", contextLength: 1000000 },
     // Kimi Models
     { id: "moonshotai/Kimi-K3", name: "Kimi K3", contextLength: 1000000 },
     { id: "moonshotai/Kimi-K2.7-Code", name: "Kimi K2.7 Code", contextLength: 256000 },
@@ -56,6 +60,7 @@ export default {
     { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6", contextLength: 256000 },
     { id: "moonshotai/Kimi-K2.5", name: "Kimi K2.5", contextLength: 256000 },
     // GLM Models
+    { id: "z-ai/glm-5.3-flash", name: "GLM 5.3 Flash", contextLength: 1000000 },
     { id: "zai-org/GLM-5.3", name: "GLM 5.3", contextLength: 1000000 },
     { id: "zai-org/GLM-5.2", name: "GLM 5.2", contextLength: 1000000 },
     { id: "zai-org/GLM-5.2-Fast", name: "GLM 5.2 Fast", contextLength: 1000000 },
@@ -69,8 +74,10 @@ export default {
     { id: "xiaomi/mimo-v2.5-pro", name: "MiMo V2.5 Pro", contextLength: 1000000 },
     { id: "xiaomi/mimo-v2.5", name: "MiMo V2.5", contextLength: 1000000 },
     // Qwen Models
+    { id: "Qwen/Qwen3.8-Max-0902", name: "Qwen 3.8 Max 0902", contextLength: 1000000 },
     { id: "Qwen/Qwen3.8-Max", name: "Qwen 3.8 Max", contextLength: 1000000 },
     { id: "Qwen/Qwen3.8-27B", name: "Qwen 3.8 27B", contextLength: 262144 },
+    { id: "Qwen/Qwen3.8-Flash", name: "Qwen 3.8 Flash", contextLength: 1000000 },
     { id: "Qwen/Qwen3.7-Max", name: "Qwen 3.7 Max", contextLength: 1000000 },
     { id: "Qwen/Qwen3.7-Plus", name: "Qwen 3.7 Plus", contextLength: 1000000 },
     { id: "Qwen/Qwen3.7-Flash", name: "Qwen 3.7 Flash", contextLength: 1000000 },
@@ -81,7 +88,9 @@ export default {
     { id: "stepfun/Step-3.5-Flash", name: "Step 3.5 Flash", contextLength: 1000000 },
     // Tencent Models
     { id: "tencent/hy3-paid", name: "Tencent Hy3", contextLength: 262144 },
+    { id: "tencent/hy4-preview", name: "Tencent Hy4 Preview", contextLength: 1048576 },
     // Gemini Models
+    { id: "google/gemini-3.8-flash", name: "Gemini 3.8 Flash", contextLength: 1000000 },
     { id: "google/gemini-3.7-flash", name: "Gemini 3.7 Flash", contextLength: 1048576 },
     { id: "google/gemini-3.6-flash", name: "Gemini 3.6 Flash", contextLength: 1000000 },
     { id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash", contextLength: 1000000 },
@@ -93,9 +102,13 @@ export default {
     { id: "thinkingmachines/inkling", name: "Inkling", contextLength: 256000 },
     { id: "thinkingmachines/inkling-small", name: "Inkling Small", contextLength: 1000000 },
     { id: "poolside/laguna-s-2.1-free", name: "Laguna S 2.1 (Free)", contextLength: 256000, isFreeTier: true },
+    { id: "meituan/LongCat-2.0:free", name: "LongCat 2.0 (Free)", contextLength: 1048576, isFreeTier: true },
+    { id: "inclusionai/ling-3.0-flash-sante:free", name: "Ling 3.0 Flash Sante (Free)", contextLength: 262144, isFreeTier: true },
     { id: "meta/muse-spark-1.1", name: "Muse Spark 1.1", contextLength: 1048576 },
     { id: "meta/muse-spark-1.2", name: "Muse Spark 1.2", contextLength: 1048576 },
     { id: "meta/muse-spark-1.2-contributor", name: "Muse Spark 1.2 Contributor", contextLength: 1048576 },
+    { id: "meta/muse-spark-1.3", name: "Muse Spark 1.3", contextLength: 1048576 },
+    { id: "meta/muse-spark-1.3-contributor", name: "Muse Spark 1.3 Contributor", contextLength: 1048576 },
     { id: "xai/grok-4.5", name: "Grok 4.5", contextLength: 500000 },
     { id: "xai/grok-4.6", name: "Grok 4.6", contextLength: 500000 }
   ],

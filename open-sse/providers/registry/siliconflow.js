@@ -25,8 +25,16 @@ export default {
   id: "deepseek-ai/DeepSeek-V4-Flash",
   name: "DeepSeek V4 Flash"
 }, {
+  id: "deepseek-ai/DeepSeek-V3.2-Exp",
+  name: "DeepSeek V3.2 Exp",
+  supportsReasoning: true
+}, {
   id: "deepseek-ai/DeepSeek-V3.2",
   name: "DeepSeek V3.2"
+}, {
+  id: "stepfun-ai/Step-3.5-Flash",
+  name: "Step 3.5 Flash",
+  supportsReasoning: true
 }, {
   id: "moonshotai/Kimi-K3",
   name: "Kimi K3"

@@ -5,6 +5,7 @@ import { translateRequest, translateResponse, initState } from "../../open-sse/t
 import { FORMATS } from "../../open-sse/translator/formats.js";
 import { AntigravityExecutor } from "../../open-sse/executors/antigravity.js";
 import { openaiToAntigravityRequest } from "../../open-sse/translator/request/openai-to-gemini.js";
+import { cleanJSONSchemaForAntigravity } from "../../open-sse/translator/formats/gemini.js";
 import { ANTIGRAVITY_DEFAULT_SYSTEM } from "../../open-sse/config/appConstants.js";
 
 const AG2O = (req) =>
@@ -82,6 +83,22 @@ describe("Antigravity → Claude", () => {
 });
 
 describe("Antigravity executor", () => {
+  it("fills missing items for nested array tool schemas", () => {
+    const schema = cleanJSONSchemaForAntigravity({
+      type: "object",
+      properties: {
+        query: {
+          type: "object",
+          properties: {
+            where: { type: "array", items: { type: "array" } },
+          },
+        },
+      },
+    });
+
+    expect(schema.properties.query.properties.where.items.items).toEqual({ type: "string" });
+  });
+
   it("strips optional from nested tool schemas", () => {
     const out = new AntigravityExecutor().transformRequest("gemini-2.5-pro", {
       request: {
@@ -135,5 +152,20 @@ describe("Antigravity executor", () => {
     expect(system).toContain("USER_SYSTEM_PROMPT");
     expect(system).not.toContain(ANTIGRAVITY_DEFAULT_SYSTEM);
     expect(system).not.toContain("Please ignore the following [ignore]");
+  });
+
+  it("does not synthesize a project ID when credentials are not onboarded", () => {
+    const credentials = { connectionId: "conn-fallback-project" };
+    const request = openaiToAntigravityRequest("gemini-3.5-flash-low", {
+      messages: [{ role: "user", content: "hello" }],
+    }, true, credentials);
+
+    expect(request.project).toBeNull();
+  });
+
+  it("fails before sending when the executor has no real project ID", () => {
+    expect(() => new AntigravityExecutor().transformRequest("gemini-3.5-flash-low", {
+      request: { contents: [{ role: "user", parts: [{ text: "hello" }] }] },
+    }, true, { connectionId: "conn-missing-project" })).toThrow(/real Google Cloud Code project ID/);
   });
 });

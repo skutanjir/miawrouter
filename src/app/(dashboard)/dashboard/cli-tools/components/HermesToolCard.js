@@ -5,6 +5,7 @@ import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/comp
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
+import ToolSubagentsSection from "./ToolSubagentsSection";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
 const ENDPOINT = "/api/cli-tools/hermes-settings";
@@ -31,6 +32,8 @@ export default function HermesToolCard({
   const [message, setMessage] = useState(null);
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [subagents, setSubagents] = useState({ explorer: "", reviewer: "", planner: "", fast: "" });
+  const [syncDesktop, setSyncDesktop] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
@@ -79,6 +82,15 @@ export default function HermesToolCard({
       hasInitializedModel.current = true;
       const cfg = hermesStatus.settings?.model;
       if (cfg?.default) setSelectedModel(cfg.default);
+      const sub = hermesStatus.settings?.subagents;
+      if (sub) {
+        setSubagents({
+          explorer: sub.explorer || "",
+          reviewer: sub.reviewer || "",
+          planner: sub.planner || "",
+          fast: sub.fast || "",
+        });
+      }
     }
   }, [hermesStatus]);
 
@@ -124,14 +136,51 @@ export default function HermesToolCard({
           baseUrl: getEffectiveBaseUrl(),
           apiKey: keyToUse,
           model: selectedModel,
+          subagentModels: subagents,
+          syncDesktop,
         }),
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: "success", text: "Settings applied successfully!" });
+        setMessage({ type: "success", text: "Settings applied to Hermes Agent & Desktop!" });
         checkStatus();
       } else {
         setMessage({ type: "error", text: data.error || "Failed to apply settings" });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: error.message });
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const handleAutoAddDesktop = async () => {
+    setApplying(true);
+    setMessage(null);
+    try {
+      const keyToUse = selectedApiKey?.trim()
+        || (apiKeys?.length > 0 ? apiKeys[0].key : null)
+        || (!cloudEnabled ? "sk_miawrouter" : null);
+
+      const chosenModel = selectedModel || "ag/gemini-3.8-flash-high";
+
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          baseUrl: getEffectiveBaseUrl(),
+          apiKey: keyToUse,
+          model: chosenModel,
+          syncDesktop: true,
+          subagentModels: subagents,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: "success", text: "Hermes Desktop (Native) configured & added successfully!" });
+        checkStatus();
+      } else {
+        setMessage({ type: "error", text: data.error || "Failed to configure Hermes Desktop" });
       }
     } catch (error) {
       setMessage({ type: "error", text: error.message });
@@ -149,6 +198,7 @@ export default function HermesToolCard({
       if (res.ok) {
         setMessage({ type: "success", text: "Settings reset successfully!" });
         setSelectedModel("");
+        setSubagentModel("");
         checkStatus();
       } else {
         setMessage({ type: "error", text: data.error || "Failed to reset settings" });
@@ -165,17 +215,39 @@ export default function HermesToolCard({
     setModalOpen(false);
   };
 
+  const handleSubagentSelect = (model) => {
+    setSubagentModel(model.value);
+    setSubagentModalOpen(false);
+  };
+
   const getManualConfigs = () => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim())
       ? selectedApiKey
       : (!cloudEnabled ? "sk_miawrouter" : "<API_KEY_FROM_DASHBOARD>");
 
-    const yamlContent = `model:\n  default: "${selectedModel || "provider/model-id"}"\n  provider: "custom"\n  base_url: "${getEffectiveBaseUrl()}"\n`;
+    const yamlContent = `model:\n  default: "${selectedModel || "provider/model-id"}"\n  provider: "custom"\n  base_url: "${getEffectiveBaseUrl()}"\n\nsubagents:\n  enabled: true\n  default_model: "${selectedModel || "provider/model-id"}"\n  models:\n    explorer: "${subagents.explorer || selectedModel || "provider/model-id"}"\n    reviewer: "${subagents.reviewer || selectedModel || "provider/model-id"}"\n    planner: "${subagents.planner || selectedModel || "provider/model-id"}"\n    fast: "${subagents.fast || selectedModel || "provider/model-id"}"\n`;
     const envContent = `OPENAI_API_KEY=${keyToUse}\n`;
+    const desktopContent = JSON.stringify({
+      endpoint: getEffectiveBaseUrl(),
+      apiKey: keyToUse,
+      model: selectedModel || "provider/model-id",
+      nativeDesktop: true,
+      subagents: {
+        enabled: true,
+        default_model: selectedModel || "provider/model-id",
+        models: {
+          explorer: subagents.explorer || selectedModel || "provider/model-id",
+          reviewer: subagents.reviewer || selectedModel || "provider/model-id",
+          planner: subagents.planner || selectedModel || "provider/model-id",
+          fast: subagents.fast || selectedModel || "provider/model-id",
+        },
+      },
+    }, null, 2);
 
     return [
       { filename: "~/.hermes/config.yaml", content: yamlContent },
       { filename: "~/.hermes/.env", content: envContent },
+      { filename: "~/.hermes/desktop.json", content: desktopContent },
     ];
   };
 
@@ -184,7 +256,19 @@ export default function HermesToolCard({
       <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-8 flex items-center justify-center shrink-0">
-            <Image src="/providers/hermes.png" alt={tool.name} width={32} height={32} className="size-8 object-contain rounded-lg" sizes="32px" onError={(e) => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+            <Image
+              src="/providers/hermes.png"
+              alt={tool.name}
+              width={32}
+              height={32}
+              className="size-8 object-contain rounded-lg"
+              sizes="32px"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -192,6 +276,7 @@ export default function HermesToolCard({
               {configStatus === "configured" && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">Connected</span>}
               {configStatus === "not_configured" && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-full">Not configured</span>}
               {configStatus === "other" && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full">Other</span>}
+              {hermesStatus?.desktopInstalled && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full">Desktop Native</span>}
             </div>
             <p className="text-xs text-text-muted truncate">{tool.description}</p>
           </div>
@@ -204,7 +289,7 @@ export default function HermesToolCard({
           {checking && (
             <div className="flex items-center gap-2 text-text-muted">
               <span className="material-symbols-outlined animate-spin">progress_activity</span>
-              <span>Checking Hermes Agent...</span>
+              <span>Checking Hermes Agent & Desktop...</span>
             </div>
           )}
 
@@ -214,11 +299,15 @@ export default function HermesToolCard({
                 <div className="flex items-start gap-3">
                   <span className="material-symbols-outlined text-yellow-500">warning</span>
                   <div className="flex-1">
-                    <p className="font-medium text-yellow-600 dark:text-yellow-400">Hermes Agent not detected locally</p>
-                    <p className="text-sm text-text-muted">Install: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash</p>
+                    <p className="font-medium text-yellow-600 dark:text-yellow-400">Hermes Agent / Desktop not detected locally</p>
+                    <p className="text-sm text-text-muted">You can 1-click auto-add the native Hermes Desktop config or install CLI: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash</p>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 pl-0 sm:pl-9">
+                  <Button variant="primary" size="sm" onClick={handleAutoAddDesktop} loading={applying} className="w-full sm:w-auto">
+                    <span className="material-symbols-outlined text-[18px] mr-1">add_circle</span>
+                    Auto-Add Hermes Desktop (Native)
+                  </Button>
                   <Button variant="secondary" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto !bg-yellow-500/20 !border-yellow-500/40 !text-yellow-700 dark:!text-yellow-300 hover:!bg-yellow-500/30">
                     <span className="material-symbols-outlined text-[18px] mr-1">content_copy</span>
                     Manual Config
@@ -270,6 +359,34 @@ export default function HermesToolCard({
                   </div>
                   <button onClick={() => setModalOpen(true)} disabled={!hasActiveProviders} className={`w-full sm:w-auto rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 whitespace-nowrap sm:shrink-0 ${hasActiveProviders ? "bg-surface border-border text-text-main hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}>Select</button>
                 </div>
+
+                {/* Subagents Section */}
+                <ToolSubagentsSection
+                  toolName={tool.name}
+                  toolId="hermes"
+                  subagents={subagents}
+                  onChange={setSubagents}
+                  activeProviders={activeProviders}
+                  modelAliases={modelAliases}
+                  hasActiveProviders={hasActiveProviders}
+                  baseUrl={getEffectiveBaseUrl()}
+                  apiKey={selectedApiKey}
+                />
+
+                {/* Desktop Native Sync Checkbox */}
+                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
+                  <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Hermes Desktop</span>
+                  <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
+                  <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={syncDesktop}
+                      onChange={(e) => setSyncDesktop(e.target.checked)}
+                      className="rounded border-border text-primary focus:ring-primary/50"
+                    />
+                    <span>Sync native desktop app configuration (~/.hermes/desktop.json)</span>
+                  </label>
+                </div>
               </div>
 
               {message && (
@@ -282,6 +399,9 @@ export default function HermesToolCard({
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={!selectedModel} loading={applying} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleAutoAddDesktop} loading={applying} className="w-full sm:w-auto">
+                  <span className="material-symbols-outlined text-[14px] mr-1">desktop_windows</span>Sync Native Desktop
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleReset} disabled={!hermesStatus?.has9Router} loading={restoring} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
@@ -303,14 +423,14 @@ export default function HermesToolCard({
           selectedModel={selectedModel}
           activeProviders={activeProviders}
           modelAliases={modelAliases}
-          title="Select Model for Hermes Agent"
+          title="Select Model for Hermes Agent & Desktop"
         />
       )}
 
       <ManualConfigModal
         isOpen={showManualConfigModal}
         onClose={() => setShowManualConfigModal(false)}
-        title="Hermes Agent - Manual Configuration"
+        title="Hermes Agent & Desktop - Manual Configuration"
         configs={getManualConfigs()}
       />
     </Card>

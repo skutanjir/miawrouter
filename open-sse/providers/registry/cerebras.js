@@ -23,6 +23,7 @@ export default {
   },
   models: [
     { id: "gpt-oss-120b", name: "GPT OSS 120B" },
+    { id: "qwen-3.8-27b", name: "Qwen 3.8 27B" },
     { id: "gemma-4-31b", name: "Gemma 4 31B" },
     { id: "llama-3.3-70b", name: "Llama 3.3 70B", isFreeTier: true },
     { id: "llama3.1-8b", name: "Llama 3.1 8B", isFreeTier: true },

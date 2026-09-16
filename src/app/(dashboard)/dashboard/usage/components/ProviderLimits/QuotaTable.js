@@ -81,6 +81,38 @@ function sortQuotas(quotas, sortMode) {
   return quotas;
 }
 
+function getAntigravityFamily(quota) {
+  const name = String(quota.name || "").toLowerCase();
+  if (name.includes("claude")) return "claude";
+  if (name.includes("gemini")) return "gemini";
+  return "other";
+}
+
+function getAntigravityWindow(quota) {
+  const explicitWindow = String(
+    quota.window || quota.period || quota.quotaWindow || "",
+  ).toLowerCase();
+
+  if (explicitWindow.includes("week")) return "weekly";
+  if (explicitWindow.includes("hour") || explicitWindow.includes("5h")) return "hourly";
+
+  const resetAt = quota.resetAt ? new Date(quota.resetAt).getTime() : 0;
+  // ponytail: Antigravity exposes resetTime, not a window type; use its
+  // cadence until the provider returns explicit period metadata.
+  return resetAt - Date.now() > 24 * 60 * 60 * 1000 ? "weekly" : "hourly";
+}
+
+const ANTIGRAVITY_FAMILY_LABELS = {
+  gemini: "Gemini",
+  claude: "Claude",
+  other: "Lainnya",
+};
+
+const ANTIGRAVITY_WINDOW_LABELS = {
+  hourly: "Per jam",
+  weekly: "Per minggu",
+};
+
 /**
  * Quota Table Component - Table-based display for quota data
  */
@@ -90,8 +122,11 @@ export default function QuotaTable({
   sortMode = "default",
   showSortLabel = false,
   onHideQuota = null,
+  provider = null,
 }) {
   const [page, setPage] = useState(1);
+  const [selectedFamily, setSelectedFamily] = useState(null);
+  const [selectedWindow, setSelectedWindow] = useState(null);
 
   const normalizedQuotas = useMemo(
     () => quotas.map((quota, index) => ({
@@ -107,11 +142,48 @@ export default function QuotaTable({
     [normalizedQuotas, sortMode],
   );
 
-  const totalPages = Math.max(1, Math.ceil(sortedQuotas.length / PAGE_SIZE));
+  const antigravityGroups = useMemo(() => {
+    if (provider !== "antigravity") return [];
+
+    const families = new Map();
+    sortedQuotas.forEach((quota) => {
+      const family = getAntigravityFamily(quota);
+      const window = getAntigravityWindow(quota);
+      if (!families.has(family)) families.set(family, new Map());
+      const windows = families.get(family);
+      if (!windows.has(window)) windows.set(window, []);
+      windows.get(window).push(quota);
+    });
+
+    return [...families.entries()].map(([family, windows]) => ({
+      family,
+      windows: [...windows.entries()].map(([window, rows]) => ({ window, rows })),
+    }));
+  }, [provider, sortedQuotas]);
+
+  const activeFamily = antigravityGroups.find((group) => group.family === selectedFamily)
+    || antigravityGroups[0];
+  const activeWindow = activeFamily?.windows.find((group) => group.window === selectedWindow)
+    || activeFamily?.windows[0];
+  const displayedQuotas = provider === "antigravity"
+    ? activeWindow?.rows || []
+    : sortedQuotas;
+
+  const totalPages = Math.max(1, Math.ceil(displayedQuotas.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [sortMode, quotas]);
+  }, [sortMode, quotas, selectedFamily, selectedWindow]);
+
+  useEffect(() => {
+    if (provider !== "antigravity" || antigravityGroups.length === 0) return;
+    const nextFamily = antigravityGroups.find((group) => group.family === selectedFamily)
+      || antigravityGroups[0];
+    const nextWindow = nextFamily.windows.find((group) => group.window === selectedWindow)
+      || nextFamily.windows[0];
+    if (nextFamily.family !== selectedFamily) setSelectedFamily(nextFamily.family);
+    if (nextWindow.window !== selectedWindow) setSelectedWindow(nextWindow.window);
+  }, [antigravityGroups, provider, selectedFamily, selectedWindow]);
 
   useEffect(() => {
     setPage((currentPage) => Math.min(currentPage, totalPages));
@@ -121,12 +193,12 @@ export default function QuotaTable({
     return null;
   }
 
-  const currentPageRows = sortedQuotas.slice(
+  const currentPageRows = displayedQuotas.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
   );
-  const pageStart = sortedQuotas.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const pageEnd = Math.min(page * PAGE_SIZE, sortedQuotas.length);
+  const pageStart = displayedQuotas.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const pageEnd = Math.min(page * PAGE_SIZE, displayedQuotas.length);
 
   const cellPad = compact ? "py-1 px-1.5" : "py-2 px-3";
   const nameText = compact ? "text-[11px]" : "text-sm";
@@ -137,9 +209,48 @@ export default function QuotaTable({
 
   return (
     <div className="space-y-2">
+      {provider === "antigravity" && antigravityGroups.length > 0 && (
+        <div className="space-y-1.5 rounded-lg border border-black/10 bg-black/[0.02] p-1.5 dark:border-white/10 dark:bg-white/[0.03]">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            <span className="material-symbols-outlined px-1 text-[14px] text-text-muted">tune</span>
+            {antigravityGroups.map((group) => (
+              <button
+                key={group.family}
+                type="button"
+                onClick={() => {
+                  setSelectedFamily(group.family);
+                  setSelectedWindow(group.windows[0]?.window || null);
+                }}
+                className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${activeFamily?.family === group.family ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-black/5 hover:text-text-primary dark:hover:bg-white/5"}`}
+              >
+                {ANTIGRAVITY_FAMILY_LABELS[group.family]}
+                <span className="ml-1 opacity-70">
+                  {group.windows.reduce((count, window) => count + window.rows.length, 0)}
+                </span>
+              </button>
+            ))}
+          </div>
+          {activeFamily && activeFamily.windows.length > 1 && (
+            <div className="flex items-center gap-1 border-t border-black/5 pt-1.5 dark:border-white/5">
+              {activeFamily.windows.map((group) => (
+                <button
+                  key={group.window}
+                  type="button"
+                  onClick={() => setSelectedWindow(group.window)}
+                  className={`rounded-md px-2 py-1 text-[10px] transition-colors ${activeWindow?.window === group.window ? "bg-surface-2 font-medium text-text-primary" : "text-text-muted hover:bg-black/5 dark:hover:bg-white/5"}`}
+                >
+                  {ANTIGRAVITY_WINDOW_LABELS[group.window] || "Lainnya"}
+                  <span className="ml-1 opacity-70">{group.rows.length}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-2">
         <div className="text-[10px] text-text-muted">
-          {sortedQuotas.length} quota{sortedQuotas.length > 1 ? "s" : ""}
+          {displayedQuotas.length} quota{displayedQuotas.length > 1 ? "s" : ""}
         </div>
         {showSortLabel && (
           <div className="rounded-md border border-black/10 bg-black/[0.02] px-2 py-1 text-[10px] text-text-muted dark:border-white/10 dark:bg-white/[0.03]">
@@ -248,7 +359,7 @@ export default function QuotaTable({
         <div className="rounded-md border border-black/10 bg-black/[0.02] px-2 py-1.5 dark:border-white/10 dark:bg-white/[0.03]">
           <div className="flex items-center justify-between gap-2 text-[10px] text-text-muted">
             <span>
-              Showing {pageStart}-{pageEnd} of {sortedQuotas.length}
+              Showing {pageStart}-{pageEnd} of {displayedQuotas.length}
             </span>
             <span>
               Page {page} / {totalPages}

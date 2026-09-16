@@ -4,11 +4,13 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 
+const os = require("os");
+
 const cliDir = path.resolve(__dirname, "..");
 const appDir = path.resolve(cliDir, "..");
 const rootDir = path.resolve(appDir, "..");
 const cliAppDir = process.env.MIAW_CLI_APP_DIR || process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
-const buildHomeDir = path.join(cliDir, ".build-home");
+const buildHomeDir = path.join(os.tmpdir(), "miaw-cli-build-home");
 const buildDistDirName = ".next-cli-build";
 const buildDistDir = path.join(appDir, buildDistDirName);
 
@@ -23,6 +25,14 @@ const EXCLUDE_PATTERNS = [
   "*.log",          // Log files
   "tmp",            // Temp files
   ".DS_Store",      // macOS files
+  ".build-home",
+  ".9router",
+  ".miawrouter",
+  "*.db",
+  "*.db-journal",
+  "jwt-secret",
+  "machine-id",
+  "machine-id-salt",
 ];
 
 function shouldExclude(name) {

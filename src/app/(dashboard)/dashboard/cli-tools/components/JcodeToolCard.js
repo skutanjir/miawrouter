@@ -5,6 +5,7 @@ import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/comp
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
+import ToolSubagentsSection from "./ToolSubagentsSection";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
 export default function JcodeToolCard({
@@ -29,6 +30,7 @@ export default function JcodeToolCard({
   const [message, setMessage] = useState(null);
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [subagents, setSubagents] = useState({ explorer: "", reviewer: "", planner: "", fast: "" });
   const [modalOpen, setModalOpen] = useState(false);
   const [modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
@@ -80,6 +82,9 @@ export default function JcodeToolCard({
         if (provider.default_model) {
           setSelectedModel(provider.default_model);
         }
+        if (provider.subagents) {
+          setSubagents(provider.subagents);
+        }
         // Try to match API key from env file
         const envApiKey = jcodeStatus.envApiKey;
         if (envApiKey && apiKeys?.some(k => k.key === envApiKey)) {
@@ -129,13 +134,15 @@ export default function JcodeToolCard({
         || (apiKeys?.length > 0 ? apiKeys[0].key : null)
         || (!cloudEnabled ? "sk_miawrouter" : null);
 
+      const allModels = Array.from(new Set([selectedModel, ...Object.values(subagents)].filter(Boolean)));
       const res = await fetch("/api/cli-tools/jcode-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           baseUrl: getEffectiveBaseUrl(),
           apiKey: keyToUse,
-          models: selectedModel ? [selectedModel] : [],
+          models: allModels.length > 0 ? allModels : (selectedModel ? [selectedModel] : []),
+          subagents,
         }),
       });
       const data = await res.json();
@@ -214,7 +221,19 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
       <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-8 flex items-center justify-center shrink-0">
-            <Image src={tool.image || "/providers/jcode.png"} alt={tool.name} width={32} height={32} className="size-8 object-contain rounded-lg" sizes="32px" onError={(e) => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+            <Image
+              src={tool.image || "/providers/jcode.png"}
+              alt={tool.name}
+              width={32}
+              height={32}
+              className="size-8 object-contain rounded-lg"
+              sizes="32px"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -326,6 +345,19 @@ id = "${selectedModel || "cc/claude-opus-4-7"}"`;
                   </div>
                   <button onClick={() => setModalOpen(true)} disabled={!hasActiveProviders} className={`w-full sm:w-auto rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 whitespace-nowrap sm:shrink-0 ${hasActiveProviders ? "bg-surface border-border text-text-main hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}>Select</button>
                 </div>
+
+                {/* Subagents Section */}
+                <ToolSubagentsSection
+                  toolName={tool.name}
+                  toolId="jcode"
+                  subagents={subagents}
+                  onChange={setSubagents}
+                  activeProviders={activeProviders}
+                  modelAliases={modelAliases}
+                  hasActiveProviders={hasActiveProviders}
+                  baseUrl={getEffectiveBaseUrl()}
+                  apiKey={selectedApiKey}
+                />
 
                 {/* Usage hint */}
                 <div className="flex flex-col gap-1 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">

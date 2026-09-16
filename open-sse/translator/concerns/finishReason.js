@@ -18,6 +18,8 @@ export function toOpenAIFinish(reason, format) {
         case "stop": return OPENAI_FINISH.STOP;
         case "length": return OPENAI_FINISH.LENGTH;
         case "tool-calls":
+        case "tool_calls":
+        case "tool-call":
         case "tool_use": return OPENAI_FINISH.TOOL_CALLS;
         case "content-filter": return OPENAI_FINISH.CONTENT_FILTER;
         case "error": return OPENAI_FINISH.STOP;

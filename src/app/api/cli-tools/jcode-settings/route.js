@@ -125,18 +125,20 @@ export async function GET() {
 
   const config = await readConfig();
   const has9Router = has9RouterConfig(config);
+  const provider = config?.providers?.[PROVIDER_KEY] || config?.providers?.[LEGACY_PROVIDER_KEY];
 
   return NextResponse.json({
     installed: true,
     config,
     has9Router,
+    subagents: provider?.subagents || null,
     configPath: getConfigPath(),
   });
 }
 
 export async function POST(request) {
   try {
-    const { baseUrl, apiKey, models } = await request.json();
+    const { baseUrl, apiKey, models, subagents } = await request.json();
 
     if (!baseUrl || !apiKey) {
       return NextResponse.json(
@@ -155,6 +157,11 @@ export async function POST(request) {
       config.providers = {};
     }
 
+    const allModels = Array.from(new Set([
+      ...(models || []),
+      ...Object.values(subagents || {}),
+    ].filter(Boolean)));
+
     config.providers[PROVIDER_KEY] = {
       type: "openai-compatible",
       base_url: normalizedBaseUrl,
@@ -163,6 +170,8 @@ export async function POST(request) {
       env_file: "provider-miawrouter.env",
       default_model: models && models.length > 0 ? models[0] : "cc/claude-opus-4-7",
       requires_api_key: true,
+      ...(subagents ? { subagents } : {}),
+      models: allModels.map((id) => ({ id })),
     };
     delete config.providers[LEGACY_PROVIDER_KEY];
 

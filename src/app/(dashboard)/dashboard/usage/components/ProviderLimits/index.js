@@ -1269,6 +1269,7 @@ export default function ProviderLimits() {
                 ) : (
                   <QuotaTable
                     quotas={visibleQuotas}
+                    provider={conn.provider}
                     compact
                     sortMode="default"
                     showSortLabel={

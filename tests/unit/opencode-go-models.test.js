@@ -43,6 +43,22 @@ const CHAT_MODELS = [
   "deepseek-v4-pro-max",
   "deepseek-v4-flash-high",
   "deepseek-v4-flash-max",
+  "deepseek-v4.1-flash",
+  "deepseek-v4.1-flash-low",
+  "deepseek-v4.1-flash-high",
+  "deepseek-v4.1-flash-max",
+  "grok-4.6",
+  "grok-4.6-low",
+  "grok-4.6-medium",
+  "grok-4.6-high",
+  "grok-4.6-xhigh",
+  "hy4-preview",
+  "hy4-preview-none",
+  "hy4-preview-high",
+  "longcat-2.0",
+  "muse-spark-1.3-contributor",
+  "omen-alpha",
+  "ox-alpha-free",
 ];
 
 const MESSAGES_MODELS = [
@@ -60,6 +76,10 @@ const MESSAGES_MODELS = [
   "qwen3.6-plus-high",
   "qwen3.6-plus-max",
   "qwen3.5-plus",
+  "qwen3.8-flash",
+  "qwen3.8-flash-low",
+  "qwen3.8-flash-medium",
+  "qwen3.8-flash-xhigh",
 ];
 
 describe("OpenCode Go official model catalog", () => {

@@ -3,6 +3,8 @@ import { getThinkingLevels } from "../../open-sse/providers/thinkingLevels.js";
 
 describe("getThinkingLevels", () => {
   it.each([
+    ["gpt-6-astra", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-6-astra-review", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
     ["gpt-5.6-sol", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
     ["gpt-5.6-terra", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
     ["gpt-5.6-luna", ["none", "minimal", "low", "medium", "high", "xhigh", "max"]],

@@ -8,15 +8,18 @@ export const MITM_TOOLS = {
     description: "Google Antigravity IDE with MITM",
     configType: "mitm",
     mitmDomain: "daily-cloudcode-pa.googleapis.com",
-    modelAliases: ["gemini-3.7-flash-high", "gemini-3.7-flash-medium", "gemini-3.7-flash-low", "gemini-3.6-flash-high", "gemini-3.6-flash-medium", "gemini-3.6-flash-low", "gemini-3.5-flash-low", "gemini-3-flash-agent", "gemini-3.5-flash-extra-low", "gemini-3.1-pro-low", "gemini-pro-agent", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium", "gemini-3-flash"],
+    modelAliases: ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "gemini-3.7-flash-high", "gemini-3.7-flash-medium", "gemini-3.7-flash-low", "gemini-3.6-flash-high", "gemini-3.6-flash-medium", "gemini-3.6-flash-low", "gemini-3.5-flash-low", "gemini-3-flash-agent", "gemini-3.5-flash-extra-low", "gemini-3.1-pro-low", "gemini-pro-agent", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium", "gemini-3-flash"],
     defaultModels: [
+      { id: "gemini-3.8-flash-high", name: "Gemini 3.8 Flash (High)", alias: "gemini-3.8-flash-high" },
+      { id: "gemini-3.8-flash-medium", name: "Gemini 3.8 Flash (Medium) / Default", alias: "gemini-3.8-flash-medium", mandatory: true },
+      { id: "gemini-3.8-flash-low", name: "Gemini 3.8 Flash (Low)", alias: "gemini-3.8-flash-low" },
       { id: "gemini-3.7-flash-high", name: "Gemini 3.7 Flash (High)", alias: "gemini-3.7-flash-high" },
       { id: "gemini-3.7-flash-medium", name: "Gemini 3.7 Flash (Medium)", alias: "gemini-3.7-flash-medium" },
       { id: "gemini-3.7-flash-low", name: "Gemini 3.7 Flash (Low)", alias: "gemini-3.7-flash-low" },
       { id: "gemini-3.6-flash-high", name: "Gemini 3.6 Flash (High)", alias: "gemini-3.6-flash-high" },
       { id: "gemini-3.6-flash-medium", name: "Gemini 3.6 Flash (Medium)", alias: "gemini-3.6-flash-medium" },
       { id: "gemini-3.6-flash-low", name: "Gemini 3.6 Flash (Low)", alias: "gemini-3.6-flash-low" },
-      { id: "gemini-3.5-flash-low", name: "Gemini 3.5 Flash (Medium) / Default", alias: "gemini-3.5-flash-low", mandatory: true },
+      { id: "gemini-3.5-flash-low", name: "Gemini 3.5 Flash (Medium)", alias: "gemini-3.5-flash-low" },
       { id: "gemini-3-flash-agent", name: "Gemini 3.5 Flash (High)", alias: "gemini-3-flash-agent" },
       { id: "gemini-3.5-flash-extra-low", name: "Gemini 3.5 Flash (Low)", alias: "gemini-3.5-flash-extra-low" },
       { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro (Low)", alias: "gemini-3.1-pro-low" },
@@ -68,6 +71,7 @@ export const MITM_TOOLS = {
       { id: "claude-haiku-4.5", name: "Claude Haiku 4.5", alias: "claude-haiku-4.5" },
       { id: "deepseek-3.2", name: "DeepSeek 3.2", alias: "deepseek-3.2" },
       { id: "minimax-m2.1", name: "MiniMax M2.1", alias: "minimax-m2.1" },
+      { id: "gpt-6-astra", name: "GPT 6 Astra", alias: "gpt-6-astra", contextLength: 872000, rateMultiplier: 3.0 },
       { id: "gpt-5.6-sol", name: "GPT 5.6 Sol", alias: "gpt-5.6-sol", contextLength: 272000, rateMultiplier: 2.4 },
       { id: "gpt-5.6-terra", name: "GPT 5.6 Terra", alias: "gpt-5.6-terra", contextLength: 272000, rateMultiplier: 1.2 },
       { id: "gpt-5.6-luna", name: "GPT 5.6 Luna", alias: "gpt-5.6-luna", contextLength: 272000, rateMultiplier: 0.6 },
@@ -151,10 +155,10 @@ export const CLI_TOOLS = {
   },
   hermes: {
     id: "hermes",
-    name: "Hermes Agent",
+    name: "Hermes Agent & Desktop",
     image: "/providers/hermes.png",
     color: "#8B5CF6",
-    description: "Nous Research self-improving AI agent",
+    description: "Nous Research self-improving AI agent & native desktop app",
     configType: "custom",
   },
   droid: {
@@ -324,6 +328,7 @@ amp --model "{{model}}"
   pi: {
     id: "pi",
     name: "Pi CLI",
+    icon: "terminal",
     color: "#6E56CF",
     description: "Pi coding agent CLI — OpenAI-compatible provider via environment",
     docsUrl: "https://pi.dev/docs/latest/providers",
@@ -345,6 +350,44 @@ amp --model "{{model}}"
 export OPENAI_BASE_URL="{{baseUrl}}"
 pi --model "{{model}}"
 # In interactive mode, switch models with /model (or Ctrl+L)`,
+    },
+  },
+  "oh-my-pi": {
+    id: "oh-my-pi",
+    name: "Oh My Pi",
+    icon: "terminal",
+    color: "#6E56CF",
+    description: "Oh My Pi terminal coding agent via OpenAI-compatible routing",
+    docsUrl: "https://github.com/can1357/oh-my-pi",
+    configType: "guide",
+    defaultCommand: "omp",
+    autoConfig: { endpoint: "/api/cli-tools/oh-my-pi-settings", configPath: "~/.omp/agent/models.yml" },
+    notes: [
+      { type: "info", text: "Oh My Pi reads custom providers from ~/.omp/agent/models.yml and supports the openai-completions API." },
+      { type: "warning", text: "Use a MiawRouter dashboard API key. The generated model ID is sent through MiawRouter, so keep the selected provider/model pair intact." },
+    ],
+    guideSteps: [
+      { step: 1, title: "Install Oh My Pi", desc: "Recommended: bun install -g @oh-my-pi/pi-coding-agent. The official installer can also install the prebuilt omp binary." },
+      { step: 2, title: "API Key", type: "apiKeySelector" },
+      { step: 3, title: "Select Model", type: "modelSelector" },
+      { step: 4, title: "Auto-configure", desc: "Use the button above to merge MiawRouter into ~/.omp/agent/models.yml, or copy the YAML below." },
+    ],
+    codeBlock: {
+      language: "yaml",
+      code: `providers:
+  miawrouter:
+    baseUrl: "{{baseUrl}}"
+    api: openai-completions
+    apiKey: "{{apiKey}}"
+    authHeader: true
+    models:
+      - id: "{{model}}"
+        name: "MiawRouter {{model}}"
+        contextWindow: 1000000
+        maxTokens: 384000
+
+# Start with: omp --model "miawrouter/{{model}}"
+`,
     },
   },
   zed: {
@@ -386,6 +429,7 @@ pi --model "{{model}}"
   zcode: {
     id: "zcode",
     name: "ZCode",
+    icon: "code",
     color: "#2563EB",
     description: "ZCode desktop app (zcode.z.ai) — OpenAI-compatible provider in API Key mode",
     docsUrl: "https://zcode.z.ai/en/docs/configuration",
@@ -457,10 +501,11 @@ pi --model "{{model}}"
     docsUrl: "https://github.com/DeepSeek-TUI/DeepSeek-TUI",
     configType: "custom",
     defaultCommand: "deepseek",
-    modelAliases: ["deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner"],
+    modelAliases: ["deepseek-flash", "deepseek-v4-pro", "deepseek-v4-flash", "deepseek-chat", "deepseek-reasoner"],
     defaultModels: [
+      { id: "deepseek-flash", name: "DeepSeek V4.1 Flash", alias: "deepseek-flash" },
       { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", alias: "deepseek-v4-pro" },
-      { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", alias: "deepseek-v4-flash" },
+      { id: "deepseek-v4-flash", name: "DeepSeek V4.1 Flash (Legacy ID)", alias: "deepseek-v4-flash" },
       { id: "deepseek-chat", name: "DeepSeek V3 Chat", alias: "deepseek-chat" },
     ],
     notes: [

@@ -12,6 +12,15 @@ export default function CLIToolsPageClient({ machineId }) {
   const [loading, setLoading] = useState(true);
   const [toolStatuses, setToolStatuses] = useState({});
 
+  const fetchStatuses = async () => {
+    try {
+      const res = await fetch(ALL_STATUSES_URL);
+      if (res.ok) setToolStatuses(await res.json());
+    } catch (error) {
+      console.log("Error fetching tool statuses:", error);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     (async () => {

@@ -45,7 +45,20 @@ export default {
     clientSecret: "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",
   },
   models: [{
-  id: "gemini-3.7-flash-high",
+   id: "gemini-3.8-flash-high",
+   name: "Gemini 3.8 Flash (High)",
+   upstreamModelId: "gemini-3.8-flash-tiered(high)",
+   aliases: ["gemini-3.8-flash"]
+ }, {
+   id: "gemini-3.8-flash-medium",
+   name: "Gemini 3.8 Flash (Medium)",
+   upstreamModelId: "gemini-3.8-flash-tiered(medium)"
+ }, {
+   id: "gemini-3.8-flash-low",
+   name: "Gemini 3.8 Flash (Low)",
+   upstreamModelId: "gemini-3.8-flash-tiered(low)"
+ }, {
+   id: "gemini-3.7-flash-high",
   name: "Gemini 3.7 Flash (High)",
   upstreamModelId: "gemini-3.7-flash-tiered(high)",
   aliases: ["gemini-3.7-flash"]

@@ -14,17 +14,30 @@ export default function MitmLinkCard({ tool }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-8 flex items-center justify-center shrink-0">
-              <Image
-                src={tool.image}
-                alt={tool.name}
-                width={32}
-                height={32}
-                className="size-8 object-contain rounded-lg"
-                sizes="32px"
-                onError={(e) => { e.target.style.display = "none"; }}
-              loading="lazy"
-              decoding="async"
-              />
+              {tool.image ? (
+                <Image
+                  src={tool.image}
+                  alt={tool.name}
+                  width={32}
+                  height={32}
+                  className="size-8 object-contain rounded-lg"
+                  sizes="32px"
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <span
+                  className="material-symbols-outlined text-[26px]"
+                  style={{
+                    color: tool.color || "var(--color-primary)",
+                  }}
+                >
+                  security
+                </span>
+              )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">

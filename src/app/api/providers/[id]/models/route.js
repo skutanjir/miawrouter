@@ -287,46 +287,6 @@ const PROVIDER_MODELS_CONFIG = {
       };
     },
   },
-  freebuff: {
-    customResolver: async (connection) => {
-      const staticModels = getStaticProviderModels("freebuff");
-      const token = connection?.accessToken || connection?.apiKey;
-      if (!token) return { models: staticModels };
-      try {
-        const res = await fetch("https://www.codebuff.com/api/v1/freebuff/session", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "User-Agent": "Freebuff-CLI/0.0.105",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({})
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.rateLimitsByModel) {
-            const activeIds = Object.keys(data.rateLimitsByModel);
-            const liveModels = [];
-            for (const id of activeIds) {
-              const matched = staticModels.find(m => m.id === id);
-              if (matched) {
-                liveModels.push(matched);
-              } else {
-                liveModels.push({ id, name: id });
-              }
-            }
-            for (const sm of staticModels) {
-              if (!liveModels.some(m => m.id === sm.id)) {
-                liveModels.push(sm);
-              }
-            }
-            return { models: liveModels };
-          }
-        }
-      } catch {}
-      return { models: staticModels };
-    },
-  },
 
   // Custom resolvers (non-OpenAI-shaped APIs / token-refresh flows)
   kiro: {

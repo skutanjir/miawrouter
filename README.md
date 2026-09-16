@@ -1,152 +1,210 @@
-# MiawRouter
+<p align="center">
+  <img src="public/miawrouter-banner.png" alt="MiawRouter Banner" width="100%">
+</p>
 
-A local AI routing gateway with a built-in dashboard. It exposes one OpenAI-compatible endpoint (`/v1/*`) and routes traffic across 40+ upstream providers, handling format translation, model-combo fallback, multi-account fallback, OAuth and API-key credential management, token refresh, quota and usage tracking, and optional cloud sync.
+<p align="center">
+  <a href="https://www.npmjs.com/package/miawrouter"><img src="https://img.shields.io/npm/v/miawrouter.svg?style=flat-square&color=38bdf8" alt="npm version"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18.0.0-emerald.svg?style=flat-square" alt="Node version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT"></a>
+  <a href="SECURITY.md"><img src="https://img.shields.io/badge/security-0600%20Zero--Leak-0284c7.svg?style=flat-square" alt="Security Posture"></a>
+  <a href="#mitm-interception-engine"><img src="https://img.shields.io/badge/MITM-Antigravity%20%7C%20Cursor%20%7C%20Copilot-818cf8.svg?style=flat-square" alt="IDE MITM"></a>
+  <a href="#providers-and-routing"><img src="https://img.shields.io/badge/providers-40%2B%20LLMs-cyan.svg?style=flat-square" alt="Supported Providers"></a>
+</p>
 
-MiawRouter runs on your machine. Nothing leaves it unless you point it at a provider.
-
-- **Dashboard**: `http://127.0.0.1:21128/dashboard`
-- **API**: `http://127.0.0.1:21128/v1` (OpenAI-compatible)
-- **Data directory**: `~/.miawrouter` (SQLite database, secrets, logs)
-- **Runtime port**: `21128` (dev `21127`, updater/status `21129`)
+<p align="center">
+  <strong>MiawRouter</strong> is a high-performance local AI gateway, universal model router, and IDE traffic interceptor with a built-in web dashboard. It exposes a single OpenAI-compatible endpoint (<code>/v1/*</code>) and routes across 40+ AI providers with zero key leakage, format transformation, intelligent fallback combos, and multi-tier caching.
+</p>
 
 ---
 
-## Quick start
+## Highlights
 
-### Install globally (CLI)
+- 🐱 **Local-First & Private**: Runs 100% on your machine. Nothing leaves localhost unless explicitly routed to an upstream provider.
+- 🔌 **Universal Compatibility**: One `/v1/*` endpoint for all your tools (Claude Code, Cursor, Codex, Cline, OpenCode, Hermes, etc.).
+- 🎯 **IDE MITM Interceptor**: Transparently intercepts and reroutes network traffic from Google Antigravity IDE, Cursor, GitHub Copilot, and Amazon Q without editing config files.
+- 🛡️ **Zero-Leak Security**: Auto-generated 0600 cryptographic secrets, TCP-socket IP verification, X-Forwarded-For stripping, SSRF protection, and weak-secret rejection gates.
+- 💾 **L0–L3 Token Saver**: Fail-open multi-layer cache (Prompt-cache orchestration, Exact-match LRU, Semantic embeddings, and Context dedup).
+- 🔀 **Fallback Combos & Multi-Account**: Define automatic failover chains (`subscription → cheap → free tier`) and round-robin multi-account pools.
+- 🖥️ **Self-Hosted Integrations**: Native support for local LLMs, embeddings, STT, and TTS (whisper.cpp, llama.cpp, vLLM, Kokoro-FastAPI).
+
+---
+
+## Quick Start
+
+### 1. Install Globally (Recommended)
 
 ```bash
 npm install -g miawrouter
 miawrouter
 ```
 
-The dashboard opens automatically at `http://127.0.0.1:21128/dashboard`.
+The web dashboard opens automatically at `http://127.0.0.1:21128/dashboard`.
 
-### Run from source
+### 2. Run from Source
 
 ```bash
+git clone https://github.com/skutanjir/miawrouter.git
+cd miawrouter
 cp .env.example .env
 npm install
-PORT=21128 NEXT_PUBLIC_BASE_URL=http://127.0.0.1:21128 npm run dev
+PORT=21128 npm run dev
 ```
 
-Production:
-
+For production builds:
 ```bash
 npm run build
-PORT=21128 HOSTNAME=0.0.0.0 NEXT_PUBLIC_BASE_URL=http://127.0.0.1:21128 npm run start
+PORT=21128 HOSTNAME=127.0.0.1 npm run start
 ```
 
-### Docker (local image)
+### 3. Docker Container
 
 ```bash
 docker build -t miawrouter .
-docker run -d --name miawrouter -p 21128:21128 \
-  -v "$HOME/.miawrouter:/app/data" -e DATA_DIR=/app/data miawrouter
+docker run -d --name miawrouter \
+  -p 21128:21128 \
+  -v "$HOME/.miawrouter:/app/data" \
+  -e DATA_DIR=/app/data \
+  miawrouter
 ```
-
-See [DOCKER.md](DOCKER.md) for details. The image is built and run locally under the name `miawrouter`; there is no published remote image.
 
 ---
 
-## First run
+## First Run & Setup
 
-1. Open the dashboard through localhost and create a password. There is **no default password**; `INITIAL_PASSWORD` is an optional local-only bootstrap (see below).
-2. Copy the generated API key from the dashboard.
-3. Connect providers (OAuth subscription providers, API keys, or free providers) in **Dashboard → Providers**.
-4. Point your CLI tool at `http://127.0.0.1:21128/v1` with the dashboard API key.
+1. **Create Dashboard Password**: Open `http://127.0.0.1:21128` from localhost. There is **no default password**; first boot requires setting an 8+ character password over loopback.
+2. **Retrieve Your API Key**: Copy the generated API key from **Dashboard → API Keys**.
+3. **Connect Providers**: Add your API keys, OAuth subscriptions, or free providers in **Dashboard → Providers**.
+4. **Point Your Tools**: Set your CLI or IDE base URL to `http://127.0.0.1:21128/v1` with your MiawRouter API key.
 
-### Configuring a CLI tool
+---
+
+## Configuring CLI Tools & IDEs
+
+| Client Tool | Base URL | API Key | Model Format |
+| --- | --- | --- | --- |
+| **Claude Code** | `http://127.0.0.1:21128/v1` | MiawRouter Key | `claude-3-7-sonnet`, `gemini-2.5-pro`, combos |
+| **Codex CLI** | `http://127.0.0.1:21128/v1` | MiawRouter Key | `o3`, `gpt-4.1`, combo IDs |
+| **Cursor IDE** | `http://127.0.0.1:21128/v1` | MiawRouter Key | Any registered model ID |
+| **Cline / Roo Code** | `http://127.0.0.1:21128/v1` | MiawRouter Key | OpenAI-compatible format |
+| **OpenCode / Hermes** | `http://127.0.0.1:21128/v1` | MiawRouter Key | Any provider model |
+
+---
+
+## MITM Interception Engine
+
+MiawRouter includes a built-in, transparent TLS MITM proxy (`src/mitm/`) designed to intercept, analyze, and reroute traffic directly from desktop coding tools without requiring custom base URL settings.
 
 ```
-Claude Code / Codex / Cursor / Cline / any OpenAI-compatible tool:
-  Base URL:  http://127.0.0.1:21128/v1
-  API Key:   [from dashboard → API Keys]
-  Model:     cc/claude-opus-4-7   (or any model/combo id)
+[ IDE (Antigravity / Cursor / Copilot) ]
+               │
+               ▼ (TLS redirected via local hosts/DNS)
+      [ MiawRouter MITM :443 ]
+               │
+      ├── Decrypt with ephemeral local root CA (0600)
+      ├── Normalize wire protocol (Protobuf / SSE / JSON)
+      ├── Route through Model Synonyms & Fallback Combos
+      └── Forward to chosen provider (OpenAI, Claude, Gemini, Local)
 ```
 
-### Migrating from a legacy installation
+### Supported IDEs & Targets
 
+- **Google Antigravity IDE**:
+  - Intercepts `cloudcode-pa.googleapis.com` and `daily-cloudcode-pa.googleapis.com` (`:generateContent`, `:streamGenerateContent`).
+  - Translates internal models (`gemini-3.8-flash-high`, `gemini-3.7-flash`, `gemini-pro-agent`) to any desired backend model.
+- **Cursor**:
+  - Intercepts `api2.cursor.sh` and `agent*.api5.cursor.sh` (`/BidiAppend`, `/RunSSE`, `/RunPoll`, `/Run`).
+  - Supports byte-transparent Protobuf relay and optional wire capture.
+- **GitHub Copilot**:
+  - Intercepts `api.individual.githubcopilot.com` (`/chat/completions`, `/v1/messages`, `/responses`).
+- **Amazon Q / Kiro**:
+  - Intercepts `q.us-east-1.amazonaws.com`, `codewhisperer.us-east-1.amazonaws.com`, and `runtime.us-east-1.kiro.dev`.
+
+### Wire Capture Mode (Opt-In & Privacy-Bounded)
+
+To inspect raw gRPC/Protobuf and SSE frames for debugging without leaking sensitive prompt context:
 ```bash
-miawrouter migrate --from-9router
+# Metadata-only capture (method, path, byte counts, header names)
+export MITM_CURSOR_CAPTURE=1
+
+# Explicit raw bytes capture (stored strictly under $DATA_DIR/logs/mitm/ mode 0600)
+export MITM_CURSOR_CAPTURE_FULL=1
 ```
 
-Reads providers, keys, and combos from a legacy install through its authenticated export API and imports them into MiawRouter. See `miawrouter migrate --help`.
+---
+
+## Security Architecture
+
+MiawRouter is engineered with a strict defense-in-depth model:
+
+```
+                      INCOMING TRAFFIC
+                             │
+            ┌────────────────┴────────────────┐
+            ▼                                 ▼
+   [ Loopback (127.0.0.1) ]           [ Remote Network ]
+            │                                 │
+     Full Access Permitted          ┌─────────┴─────────┐
+                                    ▼                   ▼
+                            Dashboard (403)     /v1/* (Requires API Key)
+                                                        │
+                                                [ SSRF Guard Check ]
+                                                        │
+                                                [ TCP Socket IP Verified ]
+```
+
+1. **Loopback-Only Binding by Default**: Binds to `127.0.0.1:21128`. Remote requests to dashboard setup routes fail closed with HTTP 403.
+2. **Auto-Generated Mode 0600 Secrets**: `JWT_SECRET`, `API_KEY_SECRET`, and `MACHINE_ID_SALT` are created on first boot as 32-byte cryptographic random values and saved with POSIX mode `0600`.
+3. **Weak Secret Rejection Gate (`secret-policy.cjs`)**: Hardcoded or placeholder secrets (like `change-me`, `123456`, or documented examples) are rejected at startup before the server binds.
+4. **Spoof-Proof Client IP**: `custom-server.js` derives client IP strictly from the underlying TCP socket and strips forged `X-Forwarded-For` headers unless behind a trusted loopback reverse proxy.
+5. **SSRF Guard (`src/shared/utils/ssrfGuard.js`)**: Prohibits outbound requests and webhooks from targeting cloud metadata services (e.g. `169.254.169.254`), private IP ranges, or local loopback addresses.
+6. **Isolated Build Packaging**: CLI packaging runs inside an isolated OS temporary directory with strict exclusion filters, guaranteeing that developer database files (`.db`), JWT tokens, or local credentials can never leak into published npm releases.
+
+See [SECURITY.md](SECURITY.md) for the complete threat model and vulnerability disclosure policy.
 
 ---
 
-## Providers and routing
+## Providers and Routing
 
-- **40+ providers**, one file per provider in `open-sse/providers/registry/`: OpenAI, Anthropic, Gemini, DeepSeek, Groq, xAI, Mistral, OpenRouter, GLM, Kimi, MiniMax, and more, plus subscription OAuth providers (Claude Code, Codex, GitHub Copilot, Cursor) and free providers (Kiro, OpenCode Free, Vertex).
-- **Self-hosted providers**: STT, TTS, and embeddings served from your own machine (whisper.cpp, llama.cpp, vLLM, Kokoro-FastAPI, etc.) via a per-connection `baseUrl`.
-- **Format translation** pivots through OpenAI as the intermediate format, with direct routes for fragile pairs (thinking blocks, tool ids, non-base64 images).
-- **Combos**: ordered fallback chains you define in the dashboard (`subscription → cheap → free`).
-- **Multi-account**: round-robin or priority routing across accounts per provider.
-- **Auto token refresh**: OAuth tokens refresh before expiry.
+MiawRouter provides out-of-the-box drivers for 40+ providers located in `open-sse/providers/registry/`:
 
-### Response caching (L0–L3)
+- **Leading Cloud Providers**: OpenAI, Anthropic, Google Gemini, DeepSeek, xAI, Groq, Mistral, Cohere, Together AI, SiliconFlow, Cerebras, OpenRouter.
+- **Subscription OAuth Extraction**: Connect your active Claude Code, Codex, GitHub Copilot, or Cursor subscriptions. MiawRouter automatically refreshes tokens and maintains authenticated sessions.
+- **Free Tier Catalog**: Built-in free provider models (Kiro, OpenCode Free, Vertex Free, etc.).
+- **Self-Hosted & Local Runtimes**: Connect local speech-to-text (whisper.cpp), text-to-speech (Kokoro-FastAPI), embeddings, and LLMs (vLLM, Ollama, llama.cpp).
 
-MiawRouter includes four fail-open cache layers under `open-sse/cache/`:
+### Intelligent Fallback Combos
 
-- **L0** — prompt-cache orchestration: stable-prefix tracking and breakpoint insertion so token compressors never mutate a prefix a provider has cached.
-- **L1** — exact-match response cache: in-memory TTL + bounded LRU keyed by a SHA-256 hash of the normalized request. Deterministic (`temperature=0`/seed-pinned), non-streaming, tool-free requests only.
-- **L2** — semantic response cache: reuses responses for semantically similar requests using real embeddings (injected `semanticEmbed` callback hitting the local `/v1/embeddings` route) plus cosine similarity.
-- **L3** — content-address dedup: replaces a large block in the mutable last message with a compact reference only when an identical block already exists earlier in the same request context.
-
-Every layer fails open: cache errors never break the request path. Toggle them in Dashboard → Endpoint settings. A request can opt out per call with the `X-Miaw-Token-Saver: off` header.
+Create priority fallback groups directly in the dashboard:
+```
+Primary: Anthropic Claude 3.7 Sonnet (OAuth)
+  ↳ Fallback 1: DeepSeek-V3 via SiliconFlow
+      ↳ Fallback 2: Gemini 2.5 Flash (Free Tier)
+```
 
 ---
 
-## Security
+## L0–L3 Token Saver Cache
 
-Local-first by design. The default posture binds to loopback; only loopback is trusted unless you deliberately expose the service.
+MiawRouter features four fail-open caching layers in `open-sse/cache/` to minimize API latency and token expenses:
 
-- **No default password.** First-run password creation and `INITIAL_PASSWORD` bootstrap both require loopback access.
-- **`REQUIRE_API_KEY` defaults on.** Fresh installs require a valid API key on `/v1/*` and `/v1beta/*`, including model catalogs.
-- **Generated, persisted 0600 secrets.** `JWT_SECRET`, `API_KEY_SECRET`, and `MACHINE_ID_SALT` default to 32-byte random values persisted under `$DATA_DIR` with mode 0600. Known weak supplied values are rejected at startup.
-- **Forwarded-header spoofing blocked.** `custom-server.js` derives the client IP from the TCP socket and strips attacker-controlled `X-Forwarded-For`, trusting forwarding headers only from a loopback reverse proxy.
-- **Retained high-risk features** (MITM proxy, OAuth session extraction/import, codex bulk import, quota auto-ping) are preserved but carry real exposure; see [SECURITY.md](SECURITY.md) before enabling them.
+- **L0 (Prompt Cache Orchestrator)**: Preserves stable request prefixes so provider-side KV prompt caching remains active.
+- **L1 (Exact Match LRU)**: High-speed in-memory cache for deterministic (`temperature=0`), tool-free completions.
+- **L2 (Semantic Vector Cache)**: Identifies semantically identical queries using local vector embeddings and cosine similarity.
+- **L3 (Content Deduplicator)**: Eliminates redundant conversational blocks and context payloads.
 
-See [SECURITY.md](SECURITY.md) for the full threat model.
-
----
-
-## Environment variables
-
-`MIAW_*` names are primary where the runtime defines them; standard `PORT` / `DATA_DIR` / `HOSTNAME` remain as documented. See `.env.example` for the full contract.
-
-| Variable | Default | Description |
-| --- | --- | --- |
-| `PORT` | `21128` | Service port |
-| `DATA_DIR` | `~/.miawrouter` | Main app data location (SQLite at `$DATA_DIR/db/data.sqlite`) |
-| `HOSTNAME` | framework default | Bind host (Docker default `0.0.0.0`) |
-| `JWT_SECRET` | auto-generated 0600 file | Dashboard auth cookie signing secret |
-| `API_KEY_SECRET` | auto-generated 0600 file | HMAC secret for generated API keys |
-| `MACHINE_ID_SALT` | auto-generated 0600 file | Salt for stable machine-ID hashing |
-| `INITIAL_PASSWORD` | unset | Optional local-only first-login bootstrap |
-| `REQUIRE_API_KEY` | `true` (fresh installs) | Gate `/v1/*` behind a valid API key |
-| `BASE_URL` | `http://localhost:21128` | Internal base URL for cloud sync jobs; stays local by default |
-| `CLOUD_URL` | `https://miawrouter.web.id` | Cloud sync endpoint base (config, never a hardcoded remote default for requests) |
-| `ENABLE_REQUEST_LOGS` | `false` | Request/response logs under `logs/` |
-| `MIAW_PROXY_CLIENT_MAX_BODY_SIZE` | `128mb` | Max client body size for the proxy route |
-| `MIAW_API_KEY` | — | API key the CLI uses when talking to the gateway |
+*Note: You can bypass caching on any individual request by passing `X-Miaw-Token-Saver: off`.*
 
 ---
 
-## Performance
+## Contributing
 
-Token-saver and cache features exist and are enabled through the dashboard, but their effect is not yet measured. Published numbers are intentionally absent: **run [docs/BENCHMARKS.md](docs/BENCHMARKS.md) locally to produce results** for your workload before relying on any claimed savings.
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Local development workflow and tests.
+- Step-by-step guide to adding a new provider in `open-sse/providers/registry/`.
+- Conventional commit conventions and pull request checklists.
 
 ---
 
-## Repository layout
+## License
 
-- `src/` — Next.js app: dashboard and `/v1` compat APIs
-- `open-sse/` — provider-agnostic routing/translation engine (usable standalone)
-- `cli/` — the `miawrouter` launcher package (install/start/tray, published separately)
-- `tests/` — independent vitest suite (not wired into root `npm test`; see CLAUDE.md)
-- `docs/` — architecture, audit, security, and migration records
-
-## Origin
-
-This project is a private fork of an upstream open-source routing gateway. The provenance record (source tag, tarball, checksum) lives in [docs/UPSTREAM.md](docs/UPSTREAM.md). License: MIT — see [LICENSE](LICENSE).
+MiawRouter is open-source software licensed under the [MIT License](LICENSE).

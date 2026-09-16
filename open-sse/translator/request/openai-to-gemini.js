@@ -13,7 +13,6 @@ import {
   tryParseJSON,
   generateRequestId,
   generateSessionId,
-  generateProjectId,
   cleanJSONSchemaForAntigravity
 } from "../formats/gemini.js";
 import { deriveSessionId, toNumericSessionId } from "../../utils/sessionManager.js";
@@ -262,7 +261,7 @@ export function openaiToGeminiCLIRequest(model, body, stream) {
 
 // Wrap Gemini CLI format in Cloud Code wrapper
 function wrapInCloudCodeEnvelope(model, geminiCLI, credentials = null, isAntigravity = false) {
-  const projectId = credentials?.projectId || generateProjectId();
+  const projectId = credentials?.projectId || null;
 
   const envelope = {
     project: projectId,
@@ -297,7 +296,7 @@ function wrapInCloudCodeEnvelope(model, geminiCLI, credentials = null, isAntigra
 
 // Wrap Claude format in Cloud Code envelope for Antigravity
 function wrapInCloudCodeEnvelopeForClaude(model, claudeRequest, credentials = null, signature = DEFAULT_THINKING_AG_SIGNATURE) {
-  const projectId = credentials?.projectId || generateProjectId();
+  const projectId = credentials?.projectId || null;
 
   const envelope = {
     project: projectId,

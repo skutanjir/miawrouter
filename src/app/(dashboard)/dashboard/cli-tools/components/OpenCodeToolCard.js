@@ -5,6 +5,7 @@ import { Card, Button, ModelSelectModal, ManualConfigModal } from "@/shared/comp
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
+import ToolSubagentsSection from "./ToolSubagentsSection";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
 export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, apiKeys, activeProviders, cloudEnabled, initialStatus, tunnelEnabled, tunnelPublicUrl, tailscaleEnabled, tailscaleUrl }) {
@@ -16,9 +17,8 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [subagentModel, setSubagentModel] = useState("");
+  const [subagents, setSubagents] = useState({ explorer: "", reviewer: "", planner: "", fast: "" });
   const [modalOpen, setModalOpen] = useState(false);
-  const [subagentModalOpen, setSubagentModalOpen] = useState(false);
   const [modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
@@ -56,9 +56,17 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
       setActiveModel(status.opencode.activeModel);
     }
 
-    // Parse subagent settings from agent.explorer if exists
-    if (status?.config?.agent?.explorer?.model?.startsWith("miawrouter/") || status?.config?.agent?.explorer?.model?.startsWith("9router/")) {
-      setSubagentModel(status.config.agent.explorer.model.replace(/^(miawrouter|9router)\//, ""));
+    // Parse subagent settings
+    if (status?.subagents) {
+      setSubagents((prev) => ({ ...prev, ...status.subagents }));
+    } else if (status?.config?.agent) {
+      const clean = (m) => m?.replace(/^(miawrouter|9router)\//, "") || "";
+      setSubagents({
+        explorer: clean(status.config.agent.explorer?.model),
+        reviewer: clean(status.config.agent.reviewer?.model),
+        planner: clean(status.config.agent.planner?.model),
+        fast: clean(status.config.agent.fast?.model),
+      });
     }
   }, [status]);
 
@@ -86,7 +94,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
           apiKey: keyToUse,
           models,
           activeModel: validActiveModel,
-          subagentModel,
+          subagents,
         }),
       });
     } catch (error) {
@@ -140,7 +148,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
           apiKey: keyToUse,
           models: selectedModels,
           activeModel: activeModel === "" ? "" : (activeModel || selectedModels[0]),
-          subagentModel: subagentModel
+          subagents,
         }),
       });
       const data = await res.json();
@@ -187,7 +195,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
 
     const modelsToShow = selectedModels.length > 0 ? selectedModels : ["provider/model-id"];
     const activeModelToShow = activeModel || selectedModels[0] || modelsToShow[0];
-    const effectiveSubagentModel = subagentModel || activeModelToShow;
+    const effectiveSubagentModel = subagents.explorer || subagents.fast || activeModelToShow;
 
     const modelsObj = {};
     modelsToShow.forEach(m => {
@@ -210,6 +218,21 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
             description: "Fast explorer subagent for codebase exploration",
             mode: "subagent",
             model: `miawrouter/${effectiveSubagentModel}`
+          },
+          reviewer: {
+            description: "Senior code reviewer and auditor",
+            mode: "subagent",
+            model: `miawrouter/${subagents.reviewer || activeModelToShow}`
+          },
+          planner: {
+            description: "Task architect and implementation planner",
+            mode: "subagent",
+            model: `miawrouter/${subagents.planner || activeModelToShow}`
+          },
+          fast: {
+            description: "Ultra-fast low latency helper",
+            mode: "subagent",
+            model: `miawrouter/${subagents.fast || activeModelToShow}`
           }
         }
       }, null, 2),
@@ -221,7 +244,19 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
       <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-8 flex items-center justify-center shrink-0">
-            <Image src="/providers/opencode.png" alt={tool.name} width={32} height={32} className="size-8 object-contain rounded-lg" sizes="32px" onError={(e) => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+            <Image
+              src="/providers/opencode.png"
+              alt={tool.name}
+              width={32}
+              height={32}
+              className="size-8 object-contain rounded-lg"
+              sizes="32px"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+              loading="lazy"
+              decoding="async"
+            />
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -398,34 +433,18 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                   </div>
                 </div>
 
-                {/* Subagent Model */}
-                <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
-                  <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Subagent Model</span>
-                  <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
-                  <input
-                    type="text"
-                    value={subagentModel}
-                    onChange={(e) => setSubagentModel(e.target.value)}
-                    placeholder={selectedModel || "provider/model-id (defaults to main model)"}
-                    className="w-full min-w-0 px-2 py-2 bg-surface rounded border border-border text-xs focus:outline-none focus:ring-1 focus:ring-primary/50 sm:py-1.5"
-                  />
-                  <button
-                    onClick={() => setSubagentModalOpen(true)}
-                    disabled={!activeProviders?.length}
-                    className={`w-full sm:w-auto rounded border px-2 py-2 text-xs transition-colors sm:py-1.5 whitespace-nowrap sm:shrink-0 ${activeProviders?.length ? "bg-surface border-border text-text-main hover:border-primary cursor-pointer" : "opacity-50 cursor-not-allowed border-border"}`}
-                  >
-                    Select Model
-                  </button>
-                  {subagentModel && (
-                    <button
-                      onClick={() => setSubagentModel("")}
-                      className="p-1 text-text-muted hover:text-red-500 rounded transition-colors"
-                      title="Clear (will use main model)"
-                    >
-                      <span className="material-symbols-outlined text-[14px]">close</span>
-                    </button>
-                  )}
-                </div>
+                {/* Subagents Section */}
+                <ToolSubagentsSection
+                  toolName={tool.name}
+                  toolId="opencode"
+                  subagents={subagents}
+                  onChange={setSubagents}
+                  activeProviders={activeProviders}
+                  modelAliases={modelAliases}
+                  hasActiveProviders={activeProviders?.length > 0}
+                  baseUrl={getEffectiveBaseUrl()}
+                  apiKey={selectedApiKey}
+                />
               </div>
 
               {message && (
@@ -477,18 +496,6 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
           addedModelValues={selectedModels}
           closeOnSelect={false}
           title="Add Model for OpenCode"
-        />
-      )}
-
-      {subagentModalOpen && (
-        <ModelSelectModal
-          isOpen={subagentModalOpen}
-          onClose={() => setSubagentModalOpen(false)}
-          onSelect={(model) => { setSubagentModel(model.value); setSubagentModalOpen(false); }}
-          selectedModel={subagentModel}
-          activeProviders={activeProviders}
-          modelAliases={modelAliases}
-          title="Select Subagent Model for OpenCode"
         />
       )}
 

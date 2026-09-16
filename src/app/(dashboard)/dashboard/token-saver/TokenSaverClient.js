@@ -19,6 +19,7 @@ export default function TokenSaverClient() {
   const [rtkEnabled, setRtkEnabledState] = useState(true);
   const [rtkMode, setRtkMode] = useState("standard");
   const [autoTriggerTokens, setAutoTriggerTokens] = useState("4000");
+  const [responseFocus, setResponseFocus] = useState("balanced");
   const [headroomEnabled, setHeadroomEnabled] = useState(false);
   const [headroomUrl, setHeadroomUrl] = useState("http://localhost:8787");
   const [headroomStatus, setHeadroomStatus] = useState({
@@ -125,6 +126,11 @@ export default function TokenSaverClient() {
     const next = Math.max(0, Math.floor(Number(autoTriggerTokens) || 0));
     setAutoTriggerTokens(String(next));
     patchSetting({ tokenSaverAutoTriggerTokens: next });
+  };
+
+  const handleResponseFocus = (value) => {
+    setResponseFocus(value);
+    patchSetting({ responseFocus: value });
   };
 
   const handleHeadroomEnabled = (value) => {
@@ -439,6 +445,9 @@ export default function TokenSaverClient() {
                 : TOKEN_SAVER_GENERAL_SETTINGS.autoTrigger.default
             )
           );
+          setResponseFocus(["balanced", "code", "explanation"].includes(data.responseFocus)
+            ? data.responseFocus
+            : "balanced");
           setHeadroomEnabled(!!data.headroomEnabled);
           setHeadroomUrl(data.headroomUrl || "http://localhost:8787");
           setCodeAware(data.headroomCodeAware === true);
@@ -618,6 +627,129 @@ export default function TokenSaverClient() {
     );
   };
 
+  const PRESETS = [
+    {
+      id: "max_saver",
+      icon: "bolt",
+      name: "Maksimal Hemat",
+      badge: "Hemat Maksimal",
+      badgeColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+      description: "Kompresi agresif untuk tool output, prompt cache L0 aktif, dan respon ringkas code-first tanpa filler.",
+      settings: {
+        rtkEnabled: true,
+        rtkMode: "aggressive",
+        tokenSaverAutoTriggerTokens: 0,
+        responseFocus: "code",
+        ponytailEnabled: true,
+        ponytailLevel: "full",
+        cavemanEnabled: true,
+        cavemanLevel: "lite",
+      },
+    },
+    {
+      id: "balanced",
+      icon: "tune",
+      name: "Seimbang (Rekomendasi)",
+      badge: "Stabil & Aman",
+      badgeColor: "bg-primary/15 text-primary border-primary/30",
+      description: "Kompresi tool output standar tanpa mengubah gaya bahasa maupun respon model bawaan.",
+      settings: {
+        rtkEnabled: true,
+        rtkMode: "standard",
+        tokenSaverAutoTriggerTokens: 2000,
+        responseFocus: "balanced",
+        ponytailEnabled: false,
+        cavemanEnabled: false,
+      },
+    },
+    {
+      id: "developer_pro",
+      icon: "terminal",
+      name: "Developer Pro",
+      badge: "Code-First & YAGNI",
+      badgeColor: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
+      description: "Khusus coding agent (Claude Code, Cursor, Windsurf): patch kode langsung to-the-point dan minim boilerplate.",
+      settings: {
+        rtkEnabled: true,
+        rtkMode: "standard",
+        tokenSaverAutoTriggerTokens: 1000,
+        responseFocus: "code",
+        ponytailEnabled: true,
+        ponytailLevel: "full",
+        cavemanEnabled: false,
+      },
+    },
+    {
+      id: "passthrough",
+      icon: "block",
+      name: "Passthrough (Off)",
+      badge: "Tanpa Filter",
+      badgeColor: "bg-surface-2 text-text-muted border-border",
+      description: "Nonaktifkan semua filter untuk evaluasi mentah atau debugging respon tanpa kompresi.",
+      settings: {
+        rtkEnabled: false,
+        cavemanEnabled: false,
+        ponytailEnabled: false,
+        responseFocus: "balanced",
+        tokenSaverAutoTriggerTokens: 4000,
+      },
+    },
+  ];
+
+  const [appliedPresetId, setAppliedPresetId] = useState(null);
+
+  const applyPreset = async (preset) => {
+    const s = preset.settings;
+    if (s.rtkEnabled !== undefined) setRtkEnabledState(s.rtkEnabled);
+    if (s.rtkMode !== undefined) setRtkMode(s.rtkMode);
+    if (s.tokenSaverAutoTriggerTokens !== undefined) setAutoTriggerTokens(String(s.tokenSaverAutoTriggerTokens));
+    if (s.responseFocus !== undefined) setResponseFocus(s.responseFocus);
+    if (s.ponytailEnabled !== undefined) setPonytailEnabled(s.ponytailEnabled);
+    if (s.ponytailLevel !== undefined) setPonytailLevel(s.ponytailLevel);
+    if (s.cavemanEnabled !== undefined) setCavemanEnabled(s.cavemanEnabled);
+    if (s.cavemanLevel !== undefined) setCavemanLevel(s.cavemanLevel);
+
+    await patchSetting(s);
+    setAppliedPresetId(preset.id);
+    setTimeout(() => setAppliedPresetId(null), 2500);
+  };
+
+  const getActivePresetId = () => {
+    if (!rtkEnabled && !cavemanEnabled && !ponytailEnabled && responseFocus === "balanced") {
+      return "passthrough";
+    }
+    if (
+      rtkEnabled &&
+      rtkMode === "aggressive" &&
+      Number(autoTriggerTokens) === 0 &&
+      responseFocus === "code" &&
+      ponytailEnabled &&
+      cavemanEnabled
+    ) {
+      return "max_saver";
+    }
+    if (
+      rtkEnabled &&
+      rtkMode === "standard" &&
+      responseFocus === "code" &&
+      ponytailEnabled &&
+      !cavemanEnabled
+    ) {
+      return "developer_pro";
+    }
+    if (
+      rtkEnabled &&
+      rtkMode === "standard" &&
+      responseFocus === "balanced" &&
+      !cavemanEnabled &&
+      !ponytailEnabled
+    ) {
+      return "balanced";
+    }
+    return "custom";
+  };
+  const activePresetId = getActivePresetId();
+
   const groups = getTokenSaverGroups();
   const totalEngines = TOKEN_SAVER_TIERS.reduce((n, t) => n + t.engineIds.length, 0);
   const unavailableCount = groups.reduce(
@@ -627,6 +759,123 @@ export default function TokenSaverClient() {
 
   return (
     <div className="space-y-6 p-6">
+      <Card id="quick-presets">
+        <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
+          <div>
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">
+                rocket_launch
+              </span>
+              Profil Penghematan Cepat (Quick Presets)
+            </h2>
+            <p className="text-sm text-text-muted mt-0.5">
+              Pilih strategi siap pakai dengan 1-klik agar performa optimal dan hemat token tanpa bingung konfigurasi manual.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-text-muted">Profil Saat Ini:</span>
+            <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
+              activePresetId === "max_saver"
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                : activePresetId === "developer_pro"
+                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
+                : activePresetId === "balanced"
+                ? "bg-primary/15 text-primary border-primary/30"
+                : activePresetId === "passthrough"
+                ? "bg-surface-2 text-text-muted border-border"
+                : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+            }`}>
+              {activePresetId === "max_saver" ? "⚡ Maksimal Hemat"
+                : activePresetId === "developer_pro" ? "🛠️ Developer Pro"
+                : activePresetId === "balanced" ? "⚖️ Seimbang"
+                : activePresetId === "passthrough" ? "⚪ Passthrough"
+                : "⚙️ Kustom (Custom)"}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4">
+          {PRESETS.map((preset) => {
+            const isActive = activePresetId === preset.id;
+            const isApplied = appliedPresetId === preset.id;
+            return (
+              <div
+                key={preset.id}
+                className={`relative flex flex-col justify-between p-4 rounded-xl border transition-all ${
+                  isActive
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border bg-surface hover:border-text-muted/40 hover:bg-surface-2/40"
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className={`material-symbols-outlined text-xl ${isActive ? "text-primary" : "text-text-muted"}`}>
+                      {preset.icon}
+                    </span>
+                    <span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${preset.badgeColor}`}>
+                      {preset.badge}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-sm text-text mb-1">
+                    {preset.name}
+                  </h3>
+                  <p className="text-xs text-text-muted leading-relaxed mb-4">
+                    {preset.description}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => applyPreset(preset)}
+                  className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
+                    isApplied
+                      ? "bg-emerald-600 text-white shadow"
+                      : isActive
+                      ? "bg-primary text-white shadow-sm"
+                      : "bg-surface-2 hover:bg-primary/10 hover:text-primary text-text-muted border border-border"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    {isApplied ? "check_circle" : isActive ? "check" : "play_arrow"}
+                  </span>
+                  {isApplied ? "Berhasil Diterapkan!" : isActive ? "Profil Aktif" : "Terapkan Profil"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Live Status Highlights Bar */}
+        <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
+            <span className="text-text-muted block text-[11px]">Kompresi Tool (RTK)</span>
+            <span className="font-medium text-text mt-0.5 flex items-center gap-1">
+              <span className={`w-2 h-2 rounded-full ${rtkEnabled ? "bg-emerald-500" : "bg-text-muted/40"}`} />
+              {rtkEnabled ? `Aktif (${rtkMode})` : "Nonaktif"}
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
+            <span className="text-text-muted block text-[11px]">Prompt Caching (L0)</span>
+            <span className="font-medium text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Auto-Breakpoints
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
+            <span className="text-text-muted block text-[11px]">Gaya Respon Model</span>
+            <span className="font-medium text-text mt-0.5 block capitalize">
+              {responseFocus === "code" ? "Code-first" : responseFocus === "explanation" ? "Penjelasan" : "Seimbang"}
+            </span>
+          </div>
+          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
+            <span className="text-text-muted block text-[11px]">Ambang Pemicu</span>
+            <span className="font-medium text-text mt-0.5 block">
+              {Number(autoTriggerTokens) === 0 ? "Segera (0 token)" : `${autoTriggerTokens} token`}
+            </span>
+          </div>
+        </div>
+      </Card>
+
       <Card id="rtk">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -940,33 +1189,43 @@ export default function TokenSaverClient() {
       </Card>
 
       <Card id="token-saver-catalog">
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">
               category
             </span>
             Token Saver Catalog
           </h2>
+          <span className="text-xs px-2.5 py-1 rounded bg-surface-2 border border-border text-text-muted font-mono">
+            {totalEngines - unavailableCount} covered · {unavailableCount} unavailable
+          </span>
         </div>
-        <p className="text-sm text-text-muted pb-4 border-b border-border">
+        <p className="text-sm text-text-muted pb-3 border-b border-border">
           Engines grouped by tier. Entries marked Unavailable have no runtime
           in this build and are never toggleable; covered entries link to or
           toggle their real settings.
         </p>
-        {groups.map((group) => (
-          <div key={group.id} className="py-4 border-b border-border last:border-b-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="font-semibold">{group.label}</h3>
-              {group.heuristic && (
-                <span className={chipCls("warning")}>heuristic availability</span>
-              )}
-            </div>
-            {group.entries.map(renderCatalogEntry)}
+        <details className="group mt-2">
+          <summary className="cursor-pointer text-xs font-medium text-primary hover:underline flex items-center gap-1.5 select-none py-2">
+            <span className="material-symbols-outlined text-base transition-transform group-open:rotate-90">
+              chevron_right
+            </span>
+            Inspect engine catalog ({totalEngines} engines across {groups.length} tiers)
+          </summary>
+          <div className="pt-2 divide-y divide-border">
+            {groups.map((group) => (
+              <div key={group.id} className="py-4 first:pt-2 last:pb-0">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold text-sm">{group.label}</h3>
+                  {group.heuristic && (
+                    <span className={chipCls("warning")}>heuristic availability</span>
+                  )}
+                </div>
+                {group.entries.map(renderCatalogEntry)}
+              </div>
+            ))}
           </div>
-        ))}
-        <p className="text-xs text-text-muted pt-4 border-t border-border">
-          {totalEngines - unavailableCount} covered · {unavailableCount} unavailable in this build
-        </p>
+        </details>
       </Card>
 
       <Card id="token-saver-general">
@@ -998,6 +1257,24 @@ export default function TokenSaverClient() {
                 className="font-mono text-sm"
               />
             </div>
+          </div>
+          <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">Response Focus</p>
+              <p className="text-sm text-text-muted">
+                Choose code-first or explanation-first answers. Balanced adds no extra focus instruction.
+              </p>
+            </div>
+            <select
+              value={responseFocus}
+              onChange={(event) => handleResponseFocus(event.target.value)}
+              className="h-9 min-w-40 rounded-lg border border-border bg-bg px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
+              aria-label="Response focus"
+            >
+              <option value="balanced">Balanced</option>
+              <option value="code">Code-first</option>
+              <option value="explanation">Explanation-first</option>
+            </select>
           </div>
           <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
             <div className="min-w-0 flex-1">

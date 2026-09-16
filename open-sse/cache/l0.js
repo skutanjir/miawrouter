@@ -230,8 +230,12 @@ export function countBreakpoints(body) {
 function insertBreakpoints(body, cap) {
   if (countBreakpoints(body) >= cap) return;
 
-  // 1. Last system block (Claude array form only).
-  if (Array.isArray(body.system) && body.system.length > 0) {
+  // 1. Last system block (support both Claude array form and string form).
+  if (typeof body.system === "string" && body.system.trim().length > 0) {
+    body.system = [
+      { type: CLAUDE_BLOCK.TEXT || "text", text: body.system, cache_control: { ...CACHE_CONTROL_EPHEMERAL } }
+    ];
+  } else if (Array.isArray(body.system) && body.system.length > 0) {
     const last = body.system[body.system.length - 1];
     if (last && typeof last === "object" && !last.cache_control) {
       last.cache_control = { ...CACHE_CONTROL_EPHEMERAL };
@@ -265,6 +269,27 @@ function insertBreakpoints(body, cap) {
     const last = body.tools[body.tools.length - 1];
     if (last && typeof last === "object" && !last.cache_control) {
       last.cache_control = { ...CACHE_CONTROL_EPHEMERAL };
+    }
+  }
+  if (countBreakpoints(body) >= cap) return;
+
+  // 4. Milestone checkpoint in early prefix messages for long multi-turn sessions
+  if (Array.isArray(body.messages) && body.messages.length > 3) {
+    const milestone = body.messages[1];
+    if (milestone) {
+      if (typeof milestone.content === "string" && milestone.content.length > 0) {
+        milestone.content = [
+          { type: CLAUDE_BLOCK.TEXT || "text", text: milestone.content, cache_control: { ...CACHE_CONTROL_EPHEMERAL } }
+        ];
+      } else if (Array.isArray(milestone.content) && milestone.content.length > 0) {
+        for (let j = milestone.content.length - 1; j >= 0; j--) {
+          const b = milestone.content[j];
+          if (!b || typeof b !== "object") continue;
+          if (b.type === CLAUDE_BLOCK.THINKING || b.type === CLAUDE_BLOCK.REDACTED_THINKING) continue;
+          if (!b.cache_control) b.cache_control = { ...CACHE_CONTROL_EPHEMERAL };
+          break;
+        }
+      }
     }
   }
 }

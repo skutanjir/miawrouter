@@ -388,6 +388,23 @@ async function resetCliToolSettings(tool) {
   return makeRequest("DELETE", `/api/cli-tools/${tool}-settings`);
 }
 
+/**
+ * Get Subagents status and optimal role assignments
+ * @returns {Promise<Object>} { success, data }
+ */
+async function getSubagentsStatus() {
+  return makeRequest("GET", "/api/cli-tools/subagents");
+}
+
+/**
+ * Auto-configure subagents across CLI tools
+ * @param {Object} body - { baseUrl, apiKey, targetTools, customRoles }
+ * @returns {Promise<Object>} { success, data }
+ */
+async function autoConfigureSubagents(body = {}) {
+  return makeRequest("POST", "/api/cli-tools/subagents", body);
+}
+
 // ============================================================================
 // SETTINGS API
 // ============================================================================
@@ -531,6 +548,8 @@ module.exports = {
   getCliToolSettings,
   applyCliToolSettings,
   resetCliToolSettings,
+  getSubagentsStatus,
+  autoConfigureSubagents,
 
   // Settings
   getSettings,

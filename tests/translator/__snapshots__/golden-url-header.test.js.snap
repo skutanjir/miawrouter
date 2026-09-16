@@ -305,7 +305,7 @@ exports[`GOLDEN buildHeaders (default executor providers) > claude → headers (
     "Anthropic-Dangerous-Direct-Browser-Access": "true",
     "Anthropic-Version": "2023-06-01",
     "Content-Type": "application/json",
-    "User-Agent": "claude-cli/2.1.92 (external, sdk-cli)",
+    "User-Agent": "claude-cli/2.1.272 (external, sdk-cli)",
     "X-App": "cli",
     "X-Stainless-Arch": "arm64",
     "X-Stainless-Helper-Method": "stream",
@@ -323,7 +323,7 @@ exports[`GOLDEN buildHeaders (default executor providers) > claude → headers (
     "Anthropic-Dangerous-Direct-Browser-Access": "true",
     "Anthropic-Version": "2023-06-01",
     "Content-Type": "application/json",
-    "User-Agent": "claude-cli/2.1.92 (external, sdk-cli)",
+    "User-Agent": "claude-cli/2.1.272 (external, sdk-cli)",
     "X-App": "cli",
     "X-Stainless-Arch": "arm64",
     "X-Stainless-Helper-Method": "stream",
@@ -343,7 +343,7 @@ exports[`GOLDEN buildHeaders (default executor providers) > claude → headers (
     "Anthropic-Version": "2023-06-01",
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
-    "User-Agent": "claude-cli/2.1.92 (external, sdk-cli)",
+    "User-Agent": "claude-cli/2.1.272 (external, sdk-cli)",
     "X-App": "cli",
     "X-Stainless-Arch": "arm64",
     "X-Stainless-Helper-Method": "stream",
@@ -384,26 +384,26 @@ exports[`GOLDEN buildHeaders (default executor providers) > cline → headers (a
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
     "HTTP-Referer": "https://cline.bot",
-    "User-Agent": "9Router/0.1.1",
+    "User-Agent": "9Router/1.0.28",
     "X-CLIENT-TYPE": "9router",
-    "X-CLIENT-VERSION": "0.1.1",
-    "X-CORE-VERSION": "0.1.1",
+    "X-CLIENT-VERSION": "1.0.28",
+    "X-CORE-VERSION": "1.0.28",
     "X-IS-MULTIROOT": "false",
     "X-PLATFORM": "linux",
-    "X-PLATFORM-VERSION": "v26.4.0",
+    "X-PLATFORM-VERSION": "v26.8.1",
     "X-Title": "Cline",
   },
   "nonStream": {
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
     "HTTP-Referer": "https://cline.bot",
-    "User-Agent": "9Router/0.1.1",
+    "User-Agent": "9Router/1.0.28",
     "X-CLIENT-TYPE": "9router",
-    "X-CLIENT-VERSION": "0.1.1",
-    "X-CORE-VERSION": "0.1.1",
+    "X-CLIENT-VERSION": "1.0.28",
+    "X-CORE-VERSION": "1.0.28",
     "X-IS-MULTIROOT": "false",
     "X-PLATFORM": "linux",
-    "X-PLATFORM-VERSION": "v26.4.0",
+    "X-PLATFORM-VERSION": "v26.8.1",
     "X-Title": "Cline",
   },
   "oauth": {
@@ -411,13 +411,13 @@ exports[`GOLDEN buildHeaders (default executor providers) > cline → headers (a
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
     "HTTP-Referer": "https://cline.bot",
-    "User-Agent": "9Router/0.1.1",
+    "User-Agent": "9Router/1.0.28",
     "X-CLIENT-TYPE": "9router",
-    "X-CLIENT-VERSION": "0.1.1",
-    "X-CORE-VERSION": "0.1.1",
+    "X-CLIENT-VERSION": "1.0.28",
+    "X-CORE-VERSION": "1.0.28",
     "X-IS-MULTIROOT": "false",
     "X-PLATFORM": "linux",
-    "X-PLATFORM-VERSION": "v26.4.0",
+    "X-PLATFORM-VERSION": "v26.8.1",
     "X-Title": "Cline",
   },
 }
@@ -430,26 +430,26 @@ exports[`GOLDEN buildHeaders (default executor providers) > clinepass → header
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
     "HTTP-Referer": "https://cline.bot",
-    "User-Agent": "9Router/0.1.1",
+    "User-Agent": "9Router/1.0.28",
     "X-CLIENT-TYPE": "9router",
-    "X-CLIENT-VERSION": "0.1.1",
-    "X-CORE-VERSION": "0.1.1",
+    "X-CLIENT-VERSION": "1.0.28",
+    "X-CORE-VERSION": "1.0.28",
     "X-IS-MULTIROOT": "false",
     "X-PLATFORM": "linux",
-    "X-PLATFORM-VERSION": "v26.4.0",
+    "X-PLATFORM-VERSION": "v26.8.1",
     "X-Title": "Cline",
   },
   "nonStream": {
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
     "HTTP-Referer": "https://cline.bot",
-    "User-Agent": "9Router/0.1.1",
+    "User-Agent": "9Router/1.0.28",
     "X-CLIENT-TYPE": "9router",
-    "X-CLIENT-VERSION": "0.1.1",
-    "X-CORE-VERSION": "0.1.1",
+    "X-CLIENT-VERSION": "1.0.28",
+    "X-CORE-VERSION": "1.0.28",
     "X-IS-MULTIROOT": "false",
     "X-PLATFORM": "linux",
-    "X-PLATFORM-VERSION": "v26.4.0",
+    "X-PLATFORM-VERSION": "v26.8.1",
     "X-Title": "Cline",
   },
   "oauth": {
@@ -457,13 +457,13 @@ exports[`GOLDEN buildHeaders (default executor providers) > clinepass → header
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
     "HTTP-Referer": "https://cline.bot",
-    "User-Agent": "9Router/0.1.1",
+    "User-Agent": "9Router/1.0.28",
     "X-CLIENT-TYPE": "9router",
-    "X-CLIENT-VERSION": "0.1.1",
-    "X-CORE-VERSION": "0.1.1",
+    "X-CLIENT-VERSION": "1.0.28",
+    "X-CORE-VERSION": "1.0.28",
     "X-IS-MULTIROOT": "false",
     "X-PLATFORM": "linux",
-    "X-PLATFORM-VERSION": "v26.4.0",
+    "X-PLATFORM-VERSION": "v26.8.1",
     "X-Title": "Cline",
   },
 }
@@ -691,31 +691,6 @@ exports[`GOLDEN buildHeaders (default executor providers) > fireworks → header
     "Accept": "text/event-stream",
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
-  },
-}
-`;
-
-exports[`GOLDEN buildHeaders (default executor providers) > freebuff → headers (apiKey / oauth) 1`] = `
-{
-  "apiKey": {
-    "Accept": "text/event-stream",
-    "Authorization": "Bearer <TOK>",
-    "Content-Type": "application/json",
-    "HTTP-Referer": "https://freebuff.com",
-    "X-Title": "Freebuff Proxy",
-  },
-  "nonStream": {
-    "Authorization": "Bearer <TOK>",
-    "Content-Type": "application/json",
-    "HTTP-Referer": "https://freebuff.com",
-    "X-Title": "Freebuff Proxy",
-  },
-  "oauth": {
-    "Accept": "text/event-stream",
-    "Authorization": "Bearer <TOK>",
-    "Content-Type": "application/json",
-    "HTTP-Referer": "https://freebuff.com",
-    "X-Title": "Freebuff Proxy",
   },
 }
 `;
@@ -1076,7 +1051,7 @@ exports[`GOLDEN buildHeaders (default executor providers) > kimi → headers (ap
     "X-Msh-Device-Model": "Linux x64",
     "X-Msh-Device-Name": "miaw",
     "X-Msh-Platform": "9router",
-    "X-Msh-Version": "0.1.1",
+    "X-Msh-Version": "1.0.28",
     "x-api-key": "<CRED>",
   },
   "nonStream": {
@@ -1087,7 +1062,7 @@ exports[`GOLDEN buildHeaders (default executor providers) > kimi → headers (ap
     "X-Msh-Device-Model": "Linux x64",
     "X-Msh-Device-Name": "miaw",
     "X-Msh-Platform": "9router",
-    "X-Msh-Version": "0.1.1",
+    "X-Msh-Version": "1.0.28",
     "x-api-key": "<CRED>",
   },
   "oauth": {
@@ -1099,7 +1074,7 @@ exports[`GOLDEN buildHeaders (default executor providers) > kimi → headers (ap
     "X-Msh-Device-Model": "Linux x64",
     "X-Msh-Device-Name": "miaw",
     "X-Msh-Platform": "9router",
-    "X-Msh-Version": "0.1.1",
+    "X-Msh-Version": "1.0.28",
     "x-api-key": "<CRED>",
   },
 }
@@ -1484,15 +1459,18 @@ exports[`GOLDEN buildHeaders (default executor providers) > opencode-zen → hea
     "Accept": "text/event-stream",
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
+    "x-opencode-client": "desktop",
   },
   "nonStream": {
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
+    "x-opencode-client": "desktop",
   },
   "oauth": {
     "Accept": "text/event-stream",
     "Authorization": "Bearer <TOK>",
     "Content-Type": "application/json",
+    "x-opencode-client": "desktop",
   },
 }
 `;
@@ -2184,13 +2162,6 @@ exports[`GOLDEN buildUrl (default executor providers) > fireworks → url (strea
 {
   "nonStream": "https://api.fireworks.ai/inference/v1/chat/completions",
   "stream": "https://api.fireworks.ai/inference/v1/chat/completions",
-}
-`;
-
-exports[`GOLDEN buildUrl (default executor providers) > freebuff → url (stream + non-stream) 1`] = `
-{
-  "nonStream": "https://www.codebuff.com/api/v1/chat/completions",
-  "stream": "https://www.codebuff.com/api/v1/chat/completions",
 }
 `;
 

@@ -1,6 +1,14 @@
 import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
-import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
+import {
+  formatRetryAfter,
+  checkFallbackError,
+  isModelLockActive,
+  buildModelLockUpdate,
+  getEarliestModelLockUntil,
+  getModelRotationState,
+  buildModelRotationUpdate,
+} from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
 import { isCircuitBlocked, admitProbe, recordFailure, recordSuccess, releaseProbe } from "open-sse/services/circuitBreaker.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
@@ -66,6 +74,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
           connectionProxyEnabled: resolvedProxy.connectionProxyEnabled,
           connectionProxyUrl: resolvedProxy.connectionProxyUrl,
           connectionNoProxy: resolvedProxy.connectionNoProxy,
+          strictProxy: resolvedProxy.strictProxy === true,
           connectionProxyPoolId: resolvedProxy.proxyPoolId || null,
           vercelRelayUrl: resolvedProxy.vercelRelayUrl || "",
         },
@@ -136,42 +145,51 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       // skip strategy
     } else if (strategy === "round-robin") {
       const stickyLimit = providerOverride.stickyRoundRobinLimit || settings.stickyRoundRobinLimit || 3;
+      const useModelRotation = (providerId === "antigravity" || providerId === "gemini-cli") && Boolean(model);
+      const rotationState = (candidate) => useModelRotation
+        ? getModelRotationState(candidate, model)
+        : { lastUsedAt: candidate?.lastUsedAt || null, consecutiveUseCount: candidate?.consecutiveUseCount || 0 };
 
       // Sort by lastUsed (most recent first) to find current candidate
       const byRecency = [...availableConnections].sort((a, b) => {
-        if (!a.lastUsedAt && !b.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
-        if (!a.lastUsedAt) return 1;
-        if (!b.lastUsedAt) return -1;
-        return new Date(b.lastUsedAt) - new Date(a.lastUsedAt);
+        const aState = rotationState(a);
+        const bState = rotationState(b);
+        if (!aState.lastUsedAt && !bState.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
+        if (!aState.lastUsedAt) return 1;
+        if (!bState.lastUsedAt) return -1;
+        return new Date(bState.lastUsedAt) - new Date(aState.lastUsedAt);
       });
 
       const current = byRecency[0];
-      const currentCount = current?.consecutiveUseCount || 0;
+      const currentState = rotationState(current);
+      const currentCount = currentState.consecutiveUseCount;
 
-      if (current && current.lastUsedAt && currentCount < stickyLimit) {
+      if (current && currentState.lastUsedAt && currentCount < stickyLimit) {
         // Stay with current account
         connection = current;
         // Update lastUsedAt and increment count (await to ensure persistence)
-        await updateProviderConnection(connection.id, {
-          lastUsedAt: new Date().toISOString(),
-          consecutiveUseCount: (connection.consecutiveUseCount || 0) + 1
-        });
+        const nextState = { lastUsedAt: new Date().toISOString(), consecutiveUseCount: currentCount + 1 };
+        await updateProviderConnection(connection.id, useModelRotation
+          ? buildModelRotationUpdate(connection, model, nextState)
+          : nextState);
       } else {
         // Pick the least recently used (excluding current if possible)
         const sortedByOldest = [...availableConnections].sort((a, b) => {
-          if (!a.lastUsedAt && !b.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
-          if (!a.lastUsedAt) return -1;
-          if (!b.lastUsedAt) return 1;
-          return new Date(a.lastUsedAt) - new Date(b.lastUsedAt);
+          const aState = rotationState(a);
+          const bState = rotationState(b);
+          if (!aState.lastUsedAt && !bState.lastUsedAt) return (a.priority || 999) - (b.priority || 999);
+          if (!aState.lastUsedAt) return -1;
+          if (!bState.lastUsedAt) return 1;
+          return new Date(aState.lastUsedAt) - new Date(bState.lastUsedAt);
         });
 
         connection = sortedByOldest[0];
 
         // Update lastUsedAt and reset count to 1 (await to ensure persistence)
-        await updateProviderConnection(connection.id, {
-          lastUsedAt: new Date().toISOString(),
-          consecutiveUseCount: 1
-        });
+        const nextState = { lastUsedAt: new Date().toISOString(), consecutiveUseCount: 1 };
+        await updateProviderConnection(connection.id, useModelRotation
+          ? buildModelRotationUpdate(connection, model, nextState)
+          : nextState);
       }
     } else {
       // Default: fill-first (already sorted by priority in getProviderConnections)
@@ -201,6 +219,7 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
         connectionProxyEnabled: resolvedProxy.connectionProxyEnabled,
         connectionProxyUrl: resolvedProxy.connectionProxyUrl,
         connectionNoProxy: resolvedProxy.connectionNoProxy,
+        strictProxy: resolvedProxy.strictProxy === true,
         connectionProxyPoolId: resolvedProxy.proxyPoolId || null,
         vercelRelayUrl: resolvedProxy.vercelRelayUrl || "",
       },

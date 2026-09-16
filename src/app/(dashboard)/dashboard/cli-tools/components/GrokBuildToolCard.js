@@ -93,7 +93,29 @@ export default function GrokBuildToolCard({
   const [modelAliases, setModelAliases] = useState({});
   const [showManualConfigModal, setShowManualConfigModal] = useState(false);
   const [customBaseUrl, setCustomBaseUrl] = useState("");
+  const [autoDetecting, setAutoDetecting] = useState(false);
   const hasFetchedStatus = useRef(Boolean(initialStatus));
+
+  const handleAutoDetectSubagents = async () => {
+    setAutoDetecting(true);
+    try {
+      const res = await fetch("/api/cli-tools/subagents");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.recommendedRoles) {
+          setSubagentModels({
+            "general-purpose": data.recommendedRoles.reviewer || data.recommendedRoles.fast || "",
+            explore: data.recommendedRoles.explorer || "",
+            plan: data.recommendedRoles.planner || "",
+          });
+        }
+      }
+    } catch (err) {
+      console.log("Error auto-detecting Grok Build subagents:", err);
+    } finally {
+      setAutoDetecting(false);
+    }
+  };
 
   const configuredModel = grokStatus?.settings?.model;
   const configStatus = !grokStatus?.installed
@@ -330,12 +352,26 @@ export default function GrokBuildToolCard({
                 <ModelField label="Main Model" value={selectedModel} onChange={setSelectedModel} placeholder="provider/model-id" onSelect={() => setModelTarget("main")} disabled={!hasActiveProviders} />
 
                 <div className="my-1 border-t border-border pt-3">
-                  <div className="mb-2 flex items-start gap-2">
-                    <span className="material-symbols-outlined text-primary text-[16px]">account_tree</span>
-                    <div>
-                      <p className="text-xs font-semibold text-text-main">Subagent model overrides</p>
-                      <p className="text-[10px] text-text-muted">Leave blank to inherit Main Model. Each override keeps its own context window.</p>
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-start gap-2">
+                      <span className="material-symbols-outlined text-primary text-[16px]">account_tree</span>
+                      <div>
+                        <p className="text-xs font-semibold text-text-main">Subagent model overrides</p>
+                        <p className="text-[10px] text-text-muted">Leave blank to inherit Main Model. Each override keeps its own context window.</p>
+                      </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleAutoDetectSubagents}
+                      disabled={autoDetecting}
+                      className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-surface border border-border text-text-muted hover:text-text-main hover:border-primary transition-colors cursor-pointer"
+                      title="Auto-select optimal models from active providers"
+                    >
+                      <span className={`material-symbols-outlined text-[13px] ${autoDetecting ? "animate-spin" : ""}`}>
+                        {autoDetecting ? "progress_activity" : "tune"}
+                      </span>
+                      <span>Auto-Detect</span>
+                    </button>
                   </div>
                 </div>
 

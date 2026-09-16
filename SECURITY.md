@@ -1,13 +1,13 @@
 # Security Policy
 
-Security policy for the MiawRouter local AI routing gateway and dashboard. This document covers the current state of the project (version 0.5.50). Claims here are backed by `docs/AUDIT.md` (the governing audit for this tree) and by the current source where follow-up fixes landed after that audit.
+Security policy for the MiawRouter local AI routing gateway and dashboard. This document covers the current production state of the project (version 1.0.x / 1.0.29). Claims here are backed by project audits, static analysis gates, and real-time security guards in the current source.
 
 ## Supported version
 
 | Version | Supported |
 | --- | --- |
-| 0.5.50 (current, root and `cli/` packages) | Yes |
-| Earlier versions | No |
+| 1.0.x (current release, root and `cli/` packages) | Yes |
+| < 1.0.0 | No |
 
 ## Reporting a vulnerability
 
@@ -41,10 +41,12 @@ The audit fixes of 2026-08-08 and 2026-08-09 are in place in this tree:
 - **`REQUIRE_API_KEY` defaults on.** Fresh installs require a valid API key on `/v1/*` and `/v1beta/*`, including the model catalogs. `true` forces enforcement on, `false` explicitly opts out, and any other value falls back to the persisted setting. This closed the previously public model catalog.
 - **No default password.** The shared `123456` fallback was removed. With no saved hash, every bootstrap path is local-only: an explicit `INITIAL_PASSWORD` is bcrypt-persisted on first successful local login, or the dashboard presents a localhost-only create-password form with an 8-character minimum. Remote no-hash requests return 403. Password reset clears the hash back to setup-required.
 - **Localhost-only setup posture.** First-run password creation and `INITIAL_PASSWORD` bootstrap both require loopback access.
-- **Hardcoded-JWT flaw fixed.** CVE-2026-49352 (hardcoded default JWT secret) is fixed in 0.5.50; the signing secret now resolves through the generated-secret mechanism above.
+- **Hardcoded-JWT flaw fixed.** CVE-2026-49352 (hardcoded default JWT secret) is fixed; the signing secret now resolves through the generated-secret mechanism above.
 - **Forwarded-header spoofing blocked.** `custom-server.js` derives the client IP from the TCP socket and strips attacker-controlled `X-Forwarded-For`, trusting forwarding headers only from a loopback reverse proxy.
+- **SSRF Guard on upstream and webhook endpoints.** Outbound requests through proxy and webhook pipelines validate destination IPs and hostnames (`src/shared/utils/ssrfGuard.js`), preventing Server-Side Request Forgery against private cloud metadata services (e.g. 169.254.169.254) and internal subnet targets.
+- **Isolated tmpdir packaging.** CLI packaging and builds run inside an isolated OS temporary directory (`miaw-cli-build-home`) with strict exclusion filters to prevent local developer credentials, databases, or runtime JWT secrets from ever leaking into published npm bundles.
 
-Follow-up fixes landed after the audit and are reflected here:
+Follow-up fixes landed and are reflected here:
 
 - **Lockfile retained.** `package-lock.json` is now intentionally kept in the tree, so reproducible installs are possible from the root package.
 - **Health endpoint emits no wildcard CORS.** `GET /api/health` returns `{ok:true}` with no `Access-Control-Allow-Origin` header; `OPTIONS` returns 204.

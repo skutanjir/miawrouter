@@ -2,12 +2,22 @@
  * Project ID Service - Fetch and cache real Project IDs from Google Cloud Code API
  *
  *
- * Instead of generating random project IDs (e.g. "useful-spark-a1b2c"),
- * this service fetches the real Project ID bound to the authenticated user's account.
- * This significantly reduces the risk of being flagged by Google's anti-abuse systems.
+ * Instead of generating a new project ID for every request, this service fetches
+ * the real Project ID bound to the authenticated user's account. Keeping that
+ * account-bound context can reduce false-positive validation/abuse flags compared
+ * with synthetic per-request identities. If lookup is unavailable, callers fail
+ * fast and can retry after account onboarding completes.
  */
 
-import { CLOUD_CODE_API, LOAD_CODE_ASSIST_HEADERS, ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS, LOAD_CODE_ASSIST_METADATA } from "../config/appConstants.js";
+import {
+    CLOUD_CODE_API,
+    LOAD_CODE_ASSIST_HEADERS,
+    ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS,
+    LOAD_CODE_ASSIST_METADATA,
+    GEMINI_CLI_API_CLIENT,
+    geminiCLIUserAgent,
+} from "../config/appConstants.js";
+import { proxyAwareFetch } from "../utils/proxyFetch.js";
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 // connectionId -> { projectId: string|null, fetchedAt: number }
@@ -16,6 +26,42 @@ const projectIdCache = new Map();
 /** How long a cached project ID is considered fresh (1 hour). */
 const CACHE_TTL_MS = 60 * 60 * 1000;
 const FAILED_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Compatibility fallback is deliberately narrow: retry only client/profile
+// statuses, never auth, quota, or transient server failures.
+const COMPATIBILITY_RESPONSE_STATUSES = new Set([400, 403, 404]);
+
+const DISCOVERY_PROFILES = {
+    "gemini-cli": [
+        {
+            name: "gemini-cli-native",
+            headers: {
+                "Content-Type": "application/json",
+                "User-Agent": geminiCLIUserAgent(),
+                "X-Goog-Api-Client": GEMINI_CLI_API_CLIENT,
+                "Client-Metadata": JSON.stringify(LOAD_CODE_ASSIST_METADATA),
+            },
+            buildBody: (metadata, extra = {}) => ({ metadata, mode: 1, ...extra }),
+        },
+        {
+            name: "cloud-code-legacy",
+            headers: LOAD_CODE_ASSIST_HEADERS,
+            buildBody: (metadata, extra = {}) => ({ metadata, mode: 1, ...extra }),
+        },
+    ],
+    antigravity: [
+        {
+            name: "antigravity-ide",
+            headers: ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS,
+            buildBody: (metadata, extra = {}) => ({ metadata, ...extra }),
+        },
+        {
+            name: "cloud-code-legacy",
+            headers: LOAD_CODE_ASSIST_HEADERS,
+            buildBody: (metadata, extra = {}) => ({ metadata, ...extra }),
+        },
+    ],
+};
 
 // ─── Pending-fetch deduplication ─────────────────────────────────────────────
 // connectionId -> { promise: Promise<string|null>, controller: AbortController, startedAt: number }
@@ -78,7 +124,7 @@ startCacheCleanup();
 
 /**
  * Get the Project ID for a connection, with caching.
- * Returns null on failure (callers should fall back to random generation).
+ * Returns null on failure so callers can surface an onboarding error.
  *
  * @param {string} connectionId - The connection identifier for cache keying
  * @param {string} accessToken  - Valid OAuth access token
@@ -86,7 +132,9 @@ startCacheCleanup();
  * @param {object} [options]    - Behavior options
  * @param {boolean} [options.allowOnboarding=true] - When false, skip the onboardUser
  *        polling fallback and return null if loadCodeAssist yields no project (fast
- *        request path; callers fall back to executor-side project generation).
+ *        request path; callers can fail fast and trigger background onboarding).
+ * @param {number} [options.timeoutMs] - Abort the lookup after this many milliseconds.
+ * @param {object} [options.proxyOptions] - Connection-scoped proxy routing options.
  * @returns {Promise<string|null>} Real project ID or null
  */
 export async function getProjectIdForConnection(connectionId, accessToken, provider = "gemini-cli", options = {}) {
@@ -106,6 +154,10 @@ export async function getProjectIdForConnection(connectionId, accessToken, provi
 
     // Each fetch gets its own AbortController so it can be canceled via removeConnection()
     const controller = new AbortController();
+    const timeoutMs = Number.isFinite(options.timeoutMs)
+        ? Math.max(1, options.timeoutMs)
+        : (options.allowOnboarding === false ? 8_000 : 60_000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const promise = (async () => {
         try {
@@ -122,12 +174,56 @@ export async function getProjectIdForConnection(connectionId, accessToken, provi
             projectIdCache.set(connectionId, {projectId: null, fetchedAt: Date.now()});
             return null;
         } finally {
+            clearTimeout(timeoutId);
             pendingFetches.delete(connectionId);
         }
     })();
 
     pendingFetches.set(connectionId, {promise, controller, startedAt: Date.now()});
     return promise;
+}
+
+/**
+ * Force a real project lookup with onboarding enabled.
+ * Used by first-request recovery and the manual connection action.
+ */
+export async function onboardProjectForConnection(connectionId, accessToken, provider = "gemini-cli", options = {}) {
+    if (!connectionId || !accessToken) return null;
+    invalidateProjectId(connectionId);
+    return getProjectIdForConnection(connectionId, accessToken, provider, {
+        ...options,
+        allowOnboarding: true,
+    });
+}
+
+/**
+ * Warm a newly-created Google connection without blocking the OAuth response.
+ * The caller owns persistence so this service stays independent from the DB.
+ */
+export async function warmProjectIdForConnection({ connection, proxyOptions = null, persist } = {}) {
+    if (!connection?.id || !connection?.accessToken) return null;
+    if (connection.projectId) return connection.projectId;
+    if (connection.provider !== "antigravity" && connection.provider !== "gemini-cli") return null;
+
+    const projectId = await onboardProjectForConnection(
+        connection.id,
+        connection.accessToken,
+        connection.provider,
+        { timeoutMs: 60_000, proxyOptions },
+    );
+    if (projectId && typeof persist === "function") await persist(projectId);
+    return projectId;
+}
+
+/**
+ * Return the official CLI recovery step when Cloud Code onboarding is refused.
+ */
+export function getManualOnboardingInstructions(provider = "antigravity") {
+    if (provider !== "antigravity" && provider !== "gemini-cli") return null;
+    return {
+        command: provider === "antigravity" ? "agy login" : "gemini auth login",
+        retryAction: "Run the command, then click Onboard again.",
+    };
 }
 
 /**
@@ -170,43 +266,52 @@ export function removeConnection(connectionId) {
  */
 async function fetchProjectId(accessToken, signal, provider, options = {}) {
     const endpoints = CLOUD_CODE_API[provider] || CLOUD_CODE_API["gemini-cli"];
-    const headers = provider === "antigravity" ? ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS : LOAD_CODE_ASSIST_HEADERS;
-    const response = await fetch(endpoints.loadCodeAssist, {
-        method: "POST",
-        headers: { ...headers, "Authorization": `Bearer ${accessToken}` },
-        body: JSON.stringify({ metadata: LOAD_CODE_ASSIST_METADATA }),
-        signal
-    });
+    const profiles = DISCOVERY_PROFILES[provider] || DISCOVERY_PROFILES["gemini-cli"];
+    let lastCompatibilityError = null;
 
-    if (!response.ok) {
-        const errorText = await response.text().catch(() => "");
-        throw new Error(`loadCodeAssist failed: HTTP ${response.status} ${errorText.slice(0, 200)}`);
-    }
+    for (const profile of profiles) {
+        const response = await projectFetch(endpoints.loadCodeAssist, {
+            method: "POST",
+            headers: { ...profile.headers, "Authorization": `Bearer ${accessToken}` },
+            body: JSON.stringify(profile.buildBody(LOAD_CODE_ASSIST_METADATA)),
+            signal
+        }, options.proxyOptions);
 
-    const data = await response.json();
-    const projectId = extractProjectId(data);
-    if (projectId) return projectId;
-
-    // Fast request path: no onboardUser polling on the hot chat path — let the
-    // executor fall back to its own project generation instead of blocking.
-    if (options.allowOnboarding === false) {
-        return null;
-    }
-
-    // Determine the tier to use for onboarding
-    let tierID = "legacy-tier";
-    if (Array.isArray(data.allowedTiers)) {
-        for (const tier of data.allowedTiers) {
-            if (tier && typeof tier === "object" && tier.isDefault === true) {
-                if (tier.id && typeof tier.id === "string" && tier.id.trim()) {
-                    tierID = tier.id.trim();
-                    break;
-                }
+        if (!response.ok) {
+            const errorText = await response.text().catch(() => "");
+            const message = `loadCodeAssist failed: HTTP ${response.status} ${errorText.slice(0, 200)}`;
+            if (COMPATIBILITY_RESPONSE_STATUSES.has(response.status) && profile !== profiles[profiles.length - 1]) {
+                lastCompatibilityError = message;
+                console.warn(`[ProjectId] ${profile.name} rejected discovery profile; trying compatibility fallback`);
+                continue;
             }
+            throw new Error(lastCompatibilityError ? `${lastCompatibilityError}; ${message}` : message);
         }
+
+        const data = await response.json();
+        const projectId = extractProjectId(data);
+        if (projectId) return projectId;
+
+        if (options.allowOnboarding === false) {
+            return null;
+        }
+
+        const onboardedProjectId = await onboardUser(
+            accessToken,
+            extractTierIds(data),
+            signal,
+            endpoints,
+            provider,
+            options.proxyOptions,
+            profile,
+        );
+        if (onboardedProjectId) return onboardedProjectId;
+
+        if (profile === profiles[profiles.length - 1]) return null;
+        console.warn(`[ProjectId] ${profile.name} returned no project after onboarding; trying compatibility fallback`);
     }
 
-    return onboardUser(accessToken, tierID, signal, endpoints, provider);
+    return null;
 }
 
 /**
@@ -217,75 +322,87 @@ async function fetchProjectId(accessToken, signal, provider, options = {}) {
  * @param {AbortSignal} externalSignal  – propagated from the connection's AbortController
  * @returns {Promise<string|null>}
  */
-async function onboardUser(accessToken, tierID, externalSignal, endpoints, provider) {
-    console.log(`[ProjectId] Onboarding user with tier: ${tierID}`);
-
-    const reqBody = { tierId: tierID, metadata: LOAD_CODE_ASSIST_METADATA };
-    const headers = provider === "antigravity" ? ANTIGRAVITY_LOAD_CODE_ASSIST_HEADERS : LOAD_CODE_ASSIST_HEADERS;
+async function onboardUser(accessToken, tierIDs, externalSignal, endpoints, provider, proxyOptions = null, profile) {
+    const tiers = Array.isArray(tierIDs) && tierIDs.length > 0 ? tierIDs : ["legacy-tier"];
     const MAX_ATTEMPTS = 5;
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        // Bail out immediately if the connection was removed
-        if (externalSignal?.aborted) return null;
+    for (const tierID of tiers) {
+        console.log(`[ProjectId] Onboarding user with tier: ${tierID}`);
 
-        // Per-attempt timeout controller; forwards external abort as well
-        const localCtrl = new AbortController();
-        const timeoutId = setTimeout(() => localCtrl.abort(), 30_000);
-        const forwardAbort = () => localCtrl.abort();
-        externalSignal?.addEventListener("abort", forwardAbort);
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            // Bail out immediately if the connection was removed
+            if (externalSignal?.aborted) return null;
 
-        try {
-            const response = await fetch(endpoints.onboardUser, {
-                method: "POST",
-                headers: { ...headers, "Authorization": `Bearer ${accessToken}` },
-                body: JSON.stringify(reqBody),
-                signal: localCtrl.signal
-            });
+            // Per-attempt timeout controller; forwards external abort as well
+            const localCtrl = new AbortController();
+            const timeoutId = setTimeout(() => localCtrl.abort(), 30_000);
+            const forwardAbort = () => localCtrl.abort();
+            externalSignal?.addEventListener("abort", forwardAbort);
 
-            clearTimeout(timeoutId);
+            try {
+                const response = await projectFetch(endpoints.onboardUser, {
+                    method: "POST",
+                    headers: { ...profile.headers, "Authorization": `Bearer ${accessToken}` },
+                    body: JSON.stringify(profile.buildBody(LOAD_CODE_ASSIST_METADATA, { tierId: tierID })),
+                    signal: localCtrl.signal
+                }, proxyOptions);
 
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => "");
-                throw new Error(`onboardUser HTTP ${response.status}: ${errorText.slice(0, 200)}`);
-            }
+                clearTimeout(timeoutId);
 
-            const data = await response.json();
-
-            if (data.done === true) {
-                const projectId = extractProjectIdFromOnboard(data);
-                if (projectId) {
-                    console.log(`[ProjectId] Successfully onboarded, project ID: ${projectId}`);
-                    return projectId;
+                if (!response.ok) {
+                    const errorText = await response.text().catch(() => "");
+                    if (COMPATIBILITY_RESPONSE_STATUSES.has(response.status)) {
+                        console.warn(`[ProjectId] tier ${tierID} rejected: HTTP ${response.status}; trying next tier`);
+                        break;
+                    }
+                    throw new Error(`onboardUser HTTP ${response.status}: ${errorText.slice(0, 200)}`);
                 }
-                console.warn("[ProjectId] onboardUser completed without project_id");
-                return null;
-            }
 
-            // Server not done yet – wait and retry
-            console.log(`[ProjectId] Onboard attempt ${attempt}/${MAX_ATTEMPTS}: not done yet, waiting...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
+                const data = await response.json();
 
-        } catch (error) {
-            clearTimeout(timeoutId);
-            if (error.name === "AbortError") {
-                console.warn(`[ProjectId] onboardUser attempt ${attempt} aborted (timeout or connection removed)`);
-                if (externalSignal?.aborted) return null;   // connection gone – stop retrying
-                continue;
+                if (data.done === true || data.done === "true") {
+                    const projectId = extractProjectIdFromOnboard(data);
+                    if (projectId) {
+                        console.log(`[ProjectId] Successfully onboarded, project ID: ${projectId}`);
+                        return projectId;
+                    }
+                    console.warn("[ProjectId] onboardUser completed without project_id; trying next tier");
+                    break;
+                }
+
+                // Server not done yet – wait and retry
+                console.log(`[ProjectId] Onboard attempt ${attempt}/${MAX_ATTEMPTS}: not done yet, waiting...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === "AbortError") {
+                    console.warn(`[ProjectId] onboardUser attempt ${attempt} aborted (timeout or connection removed)`);
+                    if (externalSignal?.aborted) return null;   // connection gone – stop retrying
+                    continue;
+                }
+                if (attempt === MAX_ATTEMPTS) {
+                    console.warn(`[ProjectId] onboardUser failed after ${MAX_ATTEMPTS} attempts: ${error.message}`);
+                    break;
+                }
+                // Continue to next attempt instead of throwing (which would skip remaining retries)
+                console.warn(`[ProjectId] onboardUser attempt ${attempt} failed: ${error.message}, retrying...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            } finally {
+                clearTimeout(timeoutId);
+                externalSignal?.removeEventListener("abort", forwardAbort);
             }
-            if (attempt === MAX_ATTEMPTS) {
-                console.warn(`[ProjectId] onboardUser failed after ${MAX_ATTEMPTS} attempts: ${error.message}`);
-                return null;
-            }
-            // Continue to next attempt instead of throwing (which would skip remaining retries)
-            console.warn(`[ProjectId] onboardUser attempt ${attempt} failed: ${error.message}, retrying...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        } finally {
-            clearTimeout(timeoutId);
-            externalSignal?.removeEventListener("abort", forwardAbort);
         }
     }
 
     return null;
+}
+
+function projectFetch(url, init, proxyOptions = null) {
+    const useProxy = proxyOptions?.connectionProxyEnabled === true ||
+        Boolean(proxyOptions?.vercelRelayUrl) ||
+        proxyOptions?.strictProxy === true;
+    return useProxy ? proxyAwareFetch(url, init, proxyOptions) : fetch(url, init);
 }
 
 /**
@@ -294,14 +411,19 @@ async function onboardUser(accessToken, tierID, externalSignal, endpoints, provi
 function extractProjectId(data) {
     if (!data) return null;
 
-    if (typeof data.cloudaicompanionProject === "string") {
-        const id = data.cloudaicompanionProject.trim();
-        if (id) return id;
-    }
+    const candidates = [
+        data.cloudaicompanionProject,
+        data.projectId,
+        data.project,
+        data.response?.cloudaicompanionProject,
+        data.response?.projectId,
+        data.response?.project,
+        data.session?.projectId,
+    ];
 
-    if (data.cloudaicompanionProject && typeof data.cloudaicompanionProject === "object") {
-        const id = data.cloudaicompanionProject.id;
-        if (typeof id === "string" && id.trim()) return id.trim();
+    for (const candidate of candidates) {
+        const id = normalizeProjectId(candidate);
+        if (id) return id;
     }
 
     return null;
@@ -311,19 +433,33 @@ function extractProjectId(data) {
  * Extract project ID from onboardUser response.
  */
 function extractProjectIdFromOnboard(data) {
-    if (!data?.response) return null;
+    return extractProjectId(data);
+}
 
-    const project = data.response.cloudaicompanionProject;
+function extractTierIds(data) {
+    const tiers = [];
+    const add = (value) => {
+        const id = typeof value === "string" ? value.trim() : value?.id?.trim?.();
+        if (id && !tiers.includes(id)) tiers.push(id);
+    };
 
-    if (typeof project === "string") {
-        const id = project.trim();
-        if (id) return id;
+    const allowedTiers = Array.isArray(data?.allowedTiers) ? [...data.allowedTiers] : [];
+    allowedTiers.sort((a, b) => Number(b?.isDefault === true) - Number(a?.isDefault === true));
+    allowedTiers.forEach(add);
+    add(data?.currentTier);
+    add(data?.tierId);
+    add(data?.response?.tierId);
+    add("legacy-tier");
+    return tiers;
+}
+
+function normalizeProjectId(value) {
+    if (value && typeof value === "object") {
+        return normalizeProjectId(value.id || value.projectId || value.project || value.name);
     }
-
-    if (project && typeof project === "object") {
-        const id = project.id;
-        if (typeof id === "string" && id.trim()) return id.trim();
-    }
-
-    return null;
+    if (typeof value !== "string") return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const resourceMatch = trimmed.match(/(?:^|\/)projects\/([^/]+)/);
+    return resourceMatch ? resourceMatch[1] : trimmed;
 }

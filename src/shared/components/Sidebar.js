@@ -10,6 +10,7 @@ import { MEDIA_PROVIDER_KINDS } from "@/shared/constants/providers";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import Button from "./Button";
 import { ConfirmModal } from "./Modal";
+import BrandAsset from "./BrandAsset";
 
 
 // const VISIBLE_MEDIA_KINDS = ["embedding", "image", "imageToText", "tts", "stt", "webSearch", "webFetch", "video", "music"];
@@ -28,9 +29,7 @@ const coreItems = [
   { href: "/dashboard/runtime", label: "Runtime", icon: "memory" },
 ];
 
-// Sidebar-only version label (product decision; intentionally independent of
-// the package.json version shown by /api/version).
-const SIDEBAR_VERSION = "V1.0.14";
+const SIDEBAR_VERSION = `V${APP_CONFIG.version}`;
 
 const analyticsItems = [
   { href: "/dashboard/usage", label: "Usage + Cache", icon: "bar_chart" },
@@ -227,8 +226,8 @@ export default function Sidebar({ onClose }) {
         {/* Logo */}
         <div className="px-5 py-5 flex flex-col gap-2">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-8 rounded-[var(--radius-brand)] bg-gradient-to-br from-brand-500 to-brand-700 shadow-[var(--shadow-warm)]">
-              <span className="material-symbols-outlined text-white text-[18px]">hub</span>
+            <div className="flex items-center justify-center size-8 overflow-hidden rounded-[var(--radius-brand)] shadow-[var(--shadow-warm)]">
+              <BrandAsset kind="icon" className="size-full object-cover" />
             </div>
             <div className="flex flex-col">
               <h1 className="text-base font-semibold tracking-tight text-text-main">

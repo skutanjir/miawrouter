@@ -20,12 +20,16 @@ export const metadata = {
   title: "MiawRouter - AI Infrastructure Management",
   description: "One endpoint for all your AI providers. Manage keys, monitor usage, and scale effortlessly.",
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/miawrouter-favicon-16.png", sizes: "16x16" },
+      { url: "/miawrouter-favicon-32.png", sizes: "32x32" },
+      { url: "/miawrouter-favicon-48.png", sizes: "48x48" },
+    ],
   },
 };
 
 export const viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#0C1524",
 };
 
 export default function RootLayout({ children }) {

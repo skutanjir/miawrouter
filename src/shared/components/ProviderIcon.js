@@ -7,7 +7,7 @@ import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/prov
 function resolveSrc(src, providerId) {
   if (providerId) return getProviderIconSrc(providerId);
   if (!src) return null;
-  const m = String(src).match(/^\/providers\/([^/]+)\.png$/i);
+  const m = String(src).match(/^\/providers\/([^/]+)\.(?:png|svg|ico)$/i);
   if (m) return getProviderIconSrc(m[1]);
   return src;
 }
@@ -66,7 +66,7 @@ export default function ProviderIcon({
       loading="lazy"
       decoding="async"
       onError={() => {
-        const m = effectiveSrc.match(/^\/providers\/([^/]+)\.png$/i);
+        const m = effectiveSrc.match(/^\/providers\/([^/]+)\.(?:png|svg|ico)$/i);
         if (m) markProviderIconMissing(m[1]);
         if (providerId) markProviderIconMissing(providerId);
         setErrored(true);

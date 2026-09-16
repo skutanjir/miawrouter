@@ -8,13 +8,9 @@ const registry = fs.readFileSync(path.resolve(import.meta.dirname, "../../open-s
 
 describe("sidebar version label", () => {
   it("shows the current package version only in the sidebar", () => {
-    const pkgVersion = JSON.parse(
-      fs.readFileSync(path.resolve(import.meta.dirname, "../../package.json"), "utf8")
-    ).version;
-    expect(sidebar).toContain(`const SIDEBAR_VERSION = "V${pkgVersion}"`);
+    expect(sidebar).toContain("const SIDEBAR_VERSION = `V${APP_CONFIG.version}`;");
     expect(sidebar).toContain("{SIDEBAR_VERSION}");
-    // must not touch the package version source
-    expect(sidebar).not.toContain("v{APP_CONFIG.version}");
+    expect(sidebar).not.toMatch(/const SIDEBAR_VERSION = [\"']V1\.0\.\d+[\"']/);
   });
 });
 

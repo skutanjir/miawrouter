@@ -18,14 +18,14 @@ import {
 const CONFIG = { id: "all-on", stream: true, settings: { rtkEnabled: true } };
 
 // A minimal cache-integrity-shaped fixture: stable system/tools/spec, tail churns.
-function makeFixture({ turns }) {
+function makeFixture({ turns, turnWithFullStablePrefix }) {
   return {
     schema: "miaw-bench-fixture/1",
     id: "cache-integrity",
     expect: {
       byteIdenticalPrefix: true,
       stableRegions: ["system", "tools", "t1 spec document"],
-      turnWithFullStablePrefix: ["t2", "t3"],
+      turnWithFullStablePrefix: turnWithFullStablePrefix || (turns.length > 2 ? ["t2", "t3"] : turns.map((t) => t.id)),
     },
     turns,
   };

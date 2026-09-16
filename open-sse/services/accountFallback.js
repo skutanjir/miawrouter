@@ -32,7 +32,7 @@ export function checkFallbackError(status, errorText, backoffLevel = 0) {
         const newLevel = Math.min(backoffLevel + 1, BACKOFF_CONFIG.maxLevel);
         return { shouldFallback: true, cooldownMs: getQuotaCooldown(newLevel), newBackoffLevel: newLevel };
       }
-      return { shouldFallback: true, cooldownMs: rule.cooldownMs };
+      return { shouldFallback: (rule.cooldownMs ?? 0) > 0, cooldownMs: rule.cooldownMs };
     }
 
     // Status-based rule: match HTTP status code
@@ -41,7 +41,7 @@ export function checkFallbackError(status, errorText, backoffLevel = 0) {
         const newLevel = Math.min(backoffLevel + 1, BACKOFF_CONFIG.maxLevel);
         return { shouldFallback: true, cooldownMs: getQuotaCooldown(newLevel), newBackoffLevel: newLevel };
       }
-      return { shouldFallback: true, cooldownMs: rule.cooldownMs };
+      return { shouldFallback: (rule.cooldownMs ?? 0) > 0, cooldownMs: rule.cooldownMs };
     }
   }
 
@@ -111,6 +111,36 @@ export const MODEL_LOCK_ALL = `${MODEL_LOCK_PREFIX}__all`;
 /** Build the flat field key for a model lock */
 export function getModelLockKey(model) {
   return model ? `${MODEL_LOCK_PREFIX}${model}` : MODEL_LOCK_ALL;
+}
+
+/** Return the round-robin cursor scoped to a model when available. */
+export function getModelRotationState(connection, model) {
+  const scoped = model && connection?.modelRotation?.[model];
+  return {
+    lastUsedAt: scoped?.lastUsedAt || connection?.lastUsedAt || null,
+    consecutiveUseCount: Number.isFinite(Number(scoped?.consecutiveUseCount))
+      ? Number(scoped.consecutiveUseCount)
+      : Number(connection?.consecutiveUseCount) || 0,
+  };
+}
+
+/** Store a model-scoped cursor while preserving existing model cursors. */
+export function buildModelRotationUpdate(connection, model, state) {
+  if (!model) {
+    return {
+      lastUsedAt: state?.lastUsedAt || null,
+      consecutiveUseCount: Number(state?.consecutiveUseCount) || 0,
+    };
+  }
+  return {
+    modelRotation: {
+      ...(connection?.modelRotation || {}),
+      [model]: {
+        lastUsedAt: state?.lastUsedAt || null,
+        consecutiveUseCount: Number(state?.consecutiveUseCount) || 0,
+      },
+    },
+  };
 }
 
 /**

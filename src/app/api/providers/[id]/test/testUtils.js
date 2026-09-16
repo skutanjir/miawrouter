@@ -126,19 +126,6 @@ const OAUTH_TEST_CONFIG = {
       402: "Connected, but Grok Build credits are exhausted (spending limit). Add credits or upgrade SuperGrok.",
     },
   },
-  freebuff: {
-    url: "https://www.codebuff.com/api/v1/freebuff/session",
-    method: "POST",
-    authHeader: "Authorization",
-    authPrefix: "Bearer ",
-    extraHeaders: {
-      "Content-Type": "application/json",
-      "User-Agent": "Freebuff-CLI/0.0.105",
-    },
-    body: JSON.stringify({}),
-    acceptStatuses: [200, 400],
-    refreshable: false,
-  },
 };
 
 /**
@@ -819,20 +806,6 @@ export async function testApiKeyConnection(connection, effectiveProxy = null) {
           effectiveProxy,
         );
         return { valid: exRes.ok, error: exRes.ok ? null : "Invalid Personal Access Token" };
-      }
-      case "freebuff": {
-        const token = connection.apiKey || connection.accessToken || "";
-        const res = await fetchWithConnectionProxy("https://www.codebuff.com/api/v1/freebuff/session", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${token}`,
-            "User-Agent": "Freebuff-CLI/0.0.105",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({}),
-        }, effectiveProxy);
-        const valid = res.status !== 401 && res.status !== 403;
-        return { valid, error: valid ? null : "Invalid Freebuff token" };
       }
       case "opencode": {
         const res = await fetchWithConnectionProxy("https://opencode.ai/zen/v1/models", {

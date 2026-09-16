@@ -140,7 +140,6 @@ import p136 from "./github-models.js";
 import p137 from "./inception.js";
 import p138 from "./nous-research.js";
 import p139 from "./reka.js";
-import p140 from "./freebuff.js";
 import p141 from "./gorouter.js";
 import p142 from "./tabitoken.js";
 import p143 from "./unikey.js";
@@ -295,7 +294,6 @@ export default [
   p137,
   p138,
   p139,
-  p140,
   p141,
   p142,
   p143,

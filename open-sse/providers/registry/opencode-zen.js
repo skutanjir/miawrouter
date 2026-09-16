@@ -59,8 +59,8 @@ export default {
       isFreeTier: true
     },
     {
-      id: "hy3-free",
-      name: "HY3 (Free)",
+      id: "ling-3.0-flash-fin-free",
+      name: "Ling 3.0 Flash Fin (Free)",
       contextLength: 131072,
       isFreeTier: true
     },
@@ -82,7 +82,104 @@ export default {
       contextLength: 131072,
       isFreeTier: true
     },
+    {
+      id: "muse-spark-1.3-contributor-free",
+      name: "Muse Spark 1.3 Contributor (Free)",
+      contextLength: 1048576,
+      isFreeTier: true
+    },
+    {
+      id: "longcat-2.0-free",
+      name: "LongCat 2.0 (Free)",
+      contextLength: 1000000,
+      isFreeTier: true
+    },
+    {
+      id: "hy3-free",
+      name: "Hy3 (Free)",
+      contextLength: 190000,
+      isFreeTier: true
+    },
+    {
+      id: "hy3-preview-free",
+      name: "Hy3 Preview (Free)",
+      contextLength: 256000,
+      isFreeTier: true
+    },
+    {
+      id: "minimax-m3-free",
+      name: "MiniMax M3 (Free)",
+      contextLength: 200000,
+      isFreeTier: true
+    },
+    {
+      id: "minimax-m2.1-free",
+      name: "MiniMax M2.1 (Free)",
+      contextLength: 204800,
+      isFreeTier: true
+    },
+    {
+      id: "minimax-m2.5-free",
+      name: "MiniMax M2.5 (Free)",
+      contextLength: 204800,
+      isFreeTier: true
+    },
+    {
+      id: "glm-5-free",
+      name: "GLM 5 (Free)",
+      contextLength: 204800,
+      isFreeTier: true
+    },
+    {
+      id: "glm-4.7-free",
+      name: "GLM 4.7 (Free)",
+      contextLength: 204800,
+      isFreeTier: true
+    },
+    {
+      id: "mimo-v2-flash-free",
+      name: "MiMo V2 Flash (Free)",
+      contextLength: 262144,
+      isFreeTier: true
+    },
+    {
+      id: "mimo-v2-omni-free",
+      name: "MiMo V2 Omni (Free)",
+      contextLength: 262144,
+      isFreeTier: true
+    },
+    {
+      id: "mimo-v2-pro-free",
+      name: "MiMo V2 Pro (Free)",
+      contextLength: 1048576,
+      isFreeTier: true
+    },
+    {
+      id: "qwen3.6-plus-free",
+      name: "Qwen 3.6 Plus (Free)",
+      contextLength: 262144,
+      isFreeTier: true
+    },
+    {
+      id: "ling-3.0-flash-free",
+      name: "Ling 3.0 Flash (Free)",
+      contextLength: 262144,
+      isFreeTier: true
+    },
+    {
+      id: "x-preview-f-free",
+      name: "Ox Alpha (Free Unlimited)",
+      contextLength: 1000000,
+      isFreeTier: true
+    },
+    {
+      id: "kimi-k2.5-free",
+      name: "Kimi K2.5 (Free)",
+      contextLength: 262144,
+      isFreeTier: true
+    },
     // Curated Zen Models
+    { id: "claude-fable-5-1", name: "Claude Fable 5.1", contextLength: 1000000 },
     { id: "claude-fable-5", name: "Claude Fable 5", contextLength: 1000000 },
     { id: "claude-opus-5", name: "Claude Opus 5", contextLength: 1000000 },
     { id: "claude-opus-4-8", name: "Claude Opus 4.8", contextLength: 1000000 },
@@ -94,12 +191,14 @@ export default {
     { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", contextLength: 1000000 },
     { id: "claude-sonnet-4", name: "Claude Sonnet 4", contextLength: 1000000 },
     { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", contextLength: 200000 },
+    { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", contextLength: 1048576 },
     { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash", contextLength: 1048576 },
     { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash", contextLength: 1048576 },
     { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", contextLength: 1048576 },
     { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite", contextLength: 1048576 },
     { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", contextLength: 1048576 },
     { id: "gemini-3-flash", name: "Gemini 3 Flash", contextLength: 1048576 },
+    { id: "gpt-6-astra", name: "GPT-6 Astra", contextLength: 1050000 },
     { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", contextLength: 1050000 },
     { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", contextLength: 1050000 },
     { id: "gpt-5.6-luna", name: "GPT-5.6 Luna", contextLength: 1050000 },
@@ -123,9 +222,13 @@ export default {
     { id: "grok-build-0.1", name: "Grok Build 0.1", contextLength: 500000 },
     { id: "grok-4.6", name: "Grok 4.6", contextLength: 500000 },
     { id: "grok-4.5", name: "Grok 4.5", contextLength: 500000 },
+    { id: "muse-spark-1.3", name: "Muse Spark 1.3", contextLength: 1048576 },
     { id: "muse-spark-1.2", name: "Muse Spark 1.2", contextLength: 1048576 },
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", contextLength: 1000000 },
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", contextLength: 1000000 },
+    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp", contextLength: 1000000, supportsVision: true },
+    { id: "glm-5.3", name: "GLM 5.3", contextLength: 1000000 },
+    { id: "glm-5.3-flash", name: "GLM 5.3 Flash", contextLength: 1000000 },
     { id: "glm-5.2", name: "GLM 5.2", contextLength: 1000000 },
     { id: "glm-5.1", name: "GLM 5.1", contextLength: 204800 },
     { id: "glm-5", name: "GLM 5", contextLength: 204800 },

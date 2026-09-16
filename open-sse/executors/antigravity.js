@@ -134,7 +134,12 @@ export class AntigravityExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream, credentials) {
-    const projectId = credentials?.projectId || this.generateProjectId();
+    const projectId = credentials?.projectId;
+    if (!projectId) {
+      const error = new Error("Antigravity requires a real Google Cloud Code project ID; complete account onboarding and retry");
+      error.status = 422;
+      throw error;
+    }
 
     // OpenAI clients may include stream_options even for non-streaming calls.
     // Google generateContent rejects that combination before processing the request.
@@ -306,12 +311,6 @@ export class AntigravityExecutor extends BaseExecutor {
       log?.error?.("TOKEN", `Antigravity refresh error: ${error.message}`);
       return null;
     }
-  }
-
-  generateProjectId() {
-    const adj = ["useful", "bright", "swift", "calm", "bold"][Math.floor(Math.random() * 5)];
-    const noun = ["fuze", "wave", "spark", "flow", "core"][Math.floor(Math.random() * 5)];
-    return `${adj}-${noun}-${crypto.randomUUID().slice(0, 5)}`;
   }
 
   generateSessionId() {

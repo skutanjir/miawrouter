@@ -45,6 +45,14 @@ export default {
     },
   },
   models: [{
+  id: "gpt-6-astra",
+  name: "GPT 6 Astra"
+}, {
+  id: "gpt-6-astra-review",
+  name: "GPT 6 Astra Review",
+  upstreamModelId: "gpt-6-astra",
+  quotaFamily: "review"
+}, {
   id: "gpt-5.6-sol",
   name: "GPT 5.6 Sol"
 }, {
@@ -134,6 +142,74 @@ export default {
   capabilities: ["text2img", "edit"],
   params: ["size", "quality", "background", "image_detail", "output_format"],
   kind: "image"
+}, {
+  "id": "gpt-6-astra-ultra",
+  "name": "GPT 6 Astra (Ultra)",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
+  "maxOutputTokens": 128000
+}, {
+  "id": "gpt-6-astra-max",
+  "name": "GPT 6 Astra (Max)",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
+  "maxOutputTokens": 128000
+}, {
+  "id": "gpt-6-astra-xhigh",
+  "name": "GPT 6 Astra (xHigh)",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
+  "maxOutputTokens": 128000,
+  "timeoutMs": 1200000
+}, {
+  "id": "gpt-6-astra-high",
+  "name": "GPT 6 Astra (High)",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
+  "maxOutputTokens": 128000,
+  "timeoutMs": 1200000
+}, {
+  "id": "gpt-6-astra-medium",
+  "name": "GPT 6 Astra (Medium)",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
+  "maxOutputTokens": 128000
+}, {
+  "id": "gpt-6-astra-low",
+  "name": "GPT 6 Astra (Low)",
+  "targetFormat": "openai-responses",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "supportsXHighEffort": true,
+  "contextLength": 872000,
+  "maxInputTokens": 872000,
+  "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-sol-ultra",
   "name": "GPT 5.6 Sol (Ultra)",

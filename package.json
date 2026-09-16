@@ -1,8 +1,9 @@
 {
-  "name": "miawrouter-app",
-  "version": "1.0.14",
+  "name": "miawrouter",
+  "version": "1.0.29",
   "description": "MiawRouter web dashboard",
-  "private": true,
+  "private": false,
+  "bin": "./cli/cli.js",
   "scripts": {
     "dev": "next dev --port 21127",
     "dev:webpack": "next dev --webpack --port 21127",

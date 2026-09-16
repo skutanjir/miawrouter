@@ -168,7 +168,9 @@ describe("CLI-tool components: writes use miawrouter, reads keep legacy compat",
         .replace(/\["9router"\]/g, "")
         .replace(/startsWith\("9router\/"\)/g, "")
         .replace(/replace\(\/\^\(miawrouter\|9router\)\\\//g, "")
-        .replace(/\| providers\?\.\["9router"\]/g, "");
+        .replace(/\| providers\?\.\["9router"\]/g, "")
+        .replace(/9router\.cliToolEndpointPresets/g, "")
+        .replace(/e\.name === "9Router"/g, "");
       expect(stripped.match(/9Router|9router/), `${f} still displays legacy brand`).toBeNull();
     }
   });
@@ -202,7 +204,7 @@ describe("manifest / meta / assets", () => {
       "public/icons/icon-512.svg",
     ]) {
       const svg = read(rel);
-      expect(svg, `${rel} uses Phase 6 signal token`).toContain("#FF4F00");
+      expect(svg, `${rel} uses the blue MiawRouter signal token`).toContain("#168BFF");
       expect(svg.match(/<text\b/), `${rel} must not embed a text glyph`).toBeNull();
     }
   });

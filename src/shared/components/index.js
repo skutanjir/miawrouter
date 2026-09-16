@@ -27,7 +27,6 @@ export { default as KiroAuthModal } from "./KiroAuthModal";
 export { default as KiroOAuthWrapper } from "./KiroOAuthWrapper";
 export { default as KiroSocialOAuthModal } from "./KiroSocialOAuthModal";
 export { default as CursorAuthModal } from "./CursorAuthModal";
-export { default as FreebuffAuthModal } from "./FreebuffAuthModal";
 export { default as IFlowCookieModal } from "./IFlowCookieModal";
 export { default as GitLabAuthModal } from "./GitLabAuthModal";
 export { default as EditConnectionModal } from "./EditConnectionModal";
@@ -37,6 +36,8 @@ export { default as SegmentedControl } from "./SegmentedControl";
 export { default as Tooltip } from "./Tooltip";
 export { default as ProviderInfoCard } from "./ProviderInfoCard";
 export { default as CapacityBadges } from "./CapacityBadges";
+export { default as ProviderIcon } from "./ProviderIcon";
+export { default as BrandAsset } from "./BrandAsset";
 
 // Layouts
 export * from "./layouts";

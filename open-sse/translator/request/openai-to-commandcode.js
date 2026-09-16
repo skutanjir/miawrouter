@@ -61,6 +61,18 @@ function safeParseJson(s) {
 function convertMessages(messages = []) {
   const out = [];
   const systemTexts = [];
+  const toolCallIdToName = new Map();
+
+  // First pass: collect tool call id -> tool name mappings from assistant tool_calls
+  for (const m of messages) {
+    if (m?.role === ROLE.ASSISTANT && Array.isArray(m.tool_calls)) {
+      for (const tc of m.tool_calls) {
+        const id = tc?.id;
+        const name = tc?.function?.name || tc?.name;
+        if (id && name) toolCallIdToName.set(id, name);
+      }
+    }
+  }
 
   for (const m of messages) {
     if (!m) continue;
@@ -73,14 +85,17 @@ function convertMessages(messages = []) {
     }
 
     if (role === ROLE.TOOL) {
+      const callId = m.tool_call_id || "";
+      const toolName = m.name || toolCallIdToName.get(callId) || "";
       const value = typeof m.content === "string" ? m.content : flattenText(m.content);
       out.push({
         role: ROLE.TOOL,
         content: [{
           type: "tool-result",
-          toolCallId: m.tool_call_id || "",
-          toolName: m.name || "",
+          toolCallId: callId,
+          toolName,
           output: { type: "text", value },
+          result: value,
         }],
       });
       continue;
@@ -93,15 +108,50 @@ function convertMessages(messages = []) {
       if (Array.isArray(m.tool_calls)) {
         for (const tc of m.tool_calls) {
           const fn = tc.function || {};
+          const callId = tc.id || "";
+          const name = fn.name || tc.name || "";
+          if (callId && name) toolCallIdToName.set(callId, name);
           blocks.push({
             type: "tool-call",
-            toolCallId: tc.id || "",
-            toolName: fn.name || "",
-            input: safeParseJson(fn.arguments),
+            toolCallId: callId,
+            toolName: name,
+            input: safeParseJson(fn.arguments ?? tc.arguments),
           });
         }
       }
       out.push({ role: ROLE.ASSISTANT, content: blocks.length ? blocks : [{ type: OPENAI_BLOCK.TEXT, text: "" }] });
+      continue;
+    }
+
+    // Role user: support Anthropic/AI SDK tool_result blocks embedded in content array
+    if (role === ROLE.USER && Array.isArray(m.content)) {
+      const blocks = [];
+      for (const part of m.content) {
+        if (!part) continue;
+        if (typeof part === "string") {
+          blocks.push({ type: OPENAI_BLOCK.TEXT, text: part });
+        } else if (typeof part === "object") {
+          if (part.type === "tool_result" || part.type === "tool-result") {
+            const callId = part.tool_use_id || part.toolCallId || part.tool_call_id || "";
+            const toolName = part.toolName || toolCallIdToName.get(callId) || "";
+            const val = typeof part.content === "string" ? part.content : (part.output?.value ?? flattenText(part.content));
+            blocks.push({
+              type: "tool-result",
+              toolCallId: callId,
+              toolName,
+              output: { type: "text", value: val },
+              result: val,
+            });
+          } else if (part.type === OPENAI_BLOCK.TEXT && typeof part.text === "string") {
+            blocks.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
+          } else if (part.type === OPENAI_BLOCK.IMAGE_URL || part.type === OPENAI_BLOCK.IMAGE) {
+            blocks.push({ type: OPENAI_BLOCK.TEXT, text: "[image omitted]" });
+          } else if (typeof part.text === "string") {
+            blocks.push({ type: OPENAI_BLOCK.TEXT, text: part.text });
+          }
+        }
+      }
+      out.push({ role: ROLE.USER, content: blocks.length ? blocks : [{ type: OPENAI_BLOCK.TEXT, text: "" }] });
       continue;
     }
 
@@ -117,16 +167,20 @@ function convertTools(tools) {
   for (const t of tools) {
     if (!t) continue;
     if (t.type === OPENAI_BLOCK.FUNCTION && t.function) {
+      const schema = t.function.parameters || { type: "object" };
       result.push({
         name: t.function.name,
         description: t.function.description,
-        input_schema: t.function.parameters || { type: "object" },
+        parameters: schema,
+        input_schema: schema,
       });
     } else if (t.name && (t.input_schema || t.parameters)) {
+      const schema = t.input_schema || t.parameters || { type: "object" };
       result.push({
         name: t.name,
         description: t.description,
-        input_schema: t.input_schema || t.parameters,
+        parameters: schema,
+        input_schema: schema,
       });
     }
   }

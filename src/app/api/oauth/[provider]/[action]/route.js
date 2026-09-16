@@ -36,6 +36,30 @@ import {
 } from "@/lib/oauth/utils/server";
 import { detectIdeInstalled } from "@/lib/oauth/utils/ideDetect";
 import { ZED_HOSTED_CONFIG } from "@/lib/oauth/constants/oauth";
+import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
+import { updateProviderConnection } from "@/lib/localDb";
+import { warmProjectIdForConnection } from "open-sse/services/projectId.js";
+
+function warmGoogleProjectInBackground(connection) {
+  if (!connection || !["antigravity", "gemini-cli"].includes(connection.provider)) return;
+
+  void (async () => {
+    const proxy = await resolveConnectionProxyConfig(connection.providerSpecificData || {});
+    await warmProjectIdForConnection({
+      connection,
+      proxyOptions: {
+        connectionProxyEnabled: proxy.connectionProxyEnabled === true,
+        connectionProxyUrl: proxy.connectionProxyUrl || "",
+        connectionNoProxy: proxy.connectionNoProxy || "",
+        vercelRelayUrl: proxy.vercelRelayUrl || "",
+        strictProxy: proxy.strictProxy === true,
+      },
+      persist: (projectId) => updateProviderConnection(connection.id, { projectId }),
+    });
+  })().catch((error) => {
+    console.warn(`[OAuth] ${connection.provider} project warm-up failed:`, error?.message || error);
+  });
+}
 
 async function completeXaiManualCode(code, state) {
   const session = state ? getXaiSessionStatus(state) : null;
@@ -361,6 +385,7 @@ export async function POST(request, { params }) {
           : null,
         testStatus: "active",
       });
+      warmGoogleProjectInBackground(connection);
 
       return NextResponse.json({ 
         success: true, 
@@ -417,6 +442,7 @@ export async function POST(request, { params }) {
             : null,
           testStatus: "active",
         });
+        warmGoogleProjectInBackground(connection);
 
         return NextResponse.json({ 
           success: true, 

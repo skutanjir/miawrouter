@@ -26,7 +26,7 @@ import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
-import { getProjectIdForConnection } from "open-sse/services/projectId.js";
+import { onboardProjectForConnection } from "open-sse/services/projectId.js";
 import { enforceLlmApiKeyGuardrail } from "@/lib/guardrails/runtime.js";
 
 /**
@@ -297,16 +297,34 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     // Account selection shown in the unified "▶" line (acc:...)
     const refreshedCredentials = await checkAndRefreshToken(provider, credentials);
 
-    // Ensure real project ID is available for providers that need it (P0 fix: cold miss).
-    // Fast lookup on the hot path: cached value or one loadCodeAssist call, no
-    // onboardUser polling (up to 5 attempts / 2s sleeps) — the executor falls back
-    // to generated project IDs when null.
+    // Ensure a real project ID is available before sending account-bound Google traffic.
+    // The first request performs bounded onboarding so a newly connected account works
+    // immediately when Google can provision it.
     if ((provider === "antigravity" || provider === "gemini-cli") && !refreshedCredentials.projectId) {
-      const pid = await getProjectIdForConnection(credentials.connectionId, refreshedCredentials.accessToken, provider, { allowOnboarding: false });
+      const projectProxyOptions = {
+        connectionProxyEnabled: refreshedCredentials.providerSpecificData?.connectionProxyEnabled === true,
+        connectionProxyUrl: refreshedCredentials.providerSpecificData?.connectionProxyUrl || "",
+        connectionNoProxy: refreshedCredentials.providerSpecificData?.connectionNoProxy || "",
+        vercelRelayUrl: refreshedCredentials.providerSpecificData?.vercelRelayUrl || "",
+        strictProxy: refreshedCredentials.providerSpecificData?.strictProxy === true,
+      };
+      const pid = await onboardProjectForConnection(
+        credentials.connectionId,
+        refreshedCredentials.accessToken,
+        provider,
+        { timeoutMs: 60_000, proxyOptions: projectProxyOptions }
+      );
       if (pid) {
         refreshedCredentials.projectId = pid;
         // Persist to DB in background so subsequent requests have it immediately
         updateProviderCredentials(credentials.connectionId, { projectId: pid }).catch(() => { });
+      } else {
+        const providerLabel = provider === "antigravity" ? "Antigravity" : "Gemini CLI";
+        log.warn("AUTH", `${providerLabel} connection is missing its Google Cloud Code project ID`);
+        return errorResponse(
+          HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          `${providerLabel} onboarding could not complete. Check Google account region/eligibility, quota, or token status, then use the connection's Onboard action and retry.`
+        );
       }
     }
 
@@ -325,6 +343,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       rtkEnabled: !!chatSettings.rtkEnabled,
       rtkMode: chatSettings.rtkMode,
       tokenSaverAutoTriggerTokens: chatSettings.tokenSaverAutoTriggerTokens,
+      responseFocus: chatSettings.responseFocus || "balanced",
       headroomEnabled: effective.headroomEnabled,
       headroomUrl: chatSettings.headroomUrl || DEFAULT_HEADROOM_URL,
       headroomCompressUserMessages: !!chatSettings.headroomCompressUserMessages,

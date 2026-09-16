@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Spinner } from "@/shared/components";
 
 /**
@@ -29,8 +29,6 @@ export default function UpstreamModelsSection({
   const [status, setStatus] = useState("loading"); // loading | ready | error | empty
   const [importing, setImporting] = useState(false);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
-  const abortRef = useRef(null);
-  const fetchedRef = useRef(false);
 
   const addedSet = new Set([
     ...Object.values(modelAliases),
@@ -39,18 +37,52 @@ export default function UpstreamModelsSection({
       .map((e) => `${e.providerAlias || providerStorageAlias}/${e.id}`),
   ]);
 
-  const fetchModels = useCallback(async (bypassCache = false) => {
-    // Cancel any in-flight request
-    if (abortRef.current) abortRef.current.abort();
+  useEffect(() => {
+    let mounted = true;
     const controller = new AbortController();
-    abortRef.current = controller;
 
+    async function load() {
+      setStatus("loading");
+      try {
+        const params = new URLSearchParams({ provider: providerId });
+        const res = await fetch(`/api/providers/suggested-models?${params}`, {
+          signal: controller.signal,
+        });
+        if (!mounted) return;
+        if (!res.ok) {
+          setStatus("error");
+          return;
+        }
+        const json = await res.json();
+        if (!mounted) return;
+        const data = json.data ?? [];
+        setModels(data);
+        if (data.length > 0) {
+          setStatus("ready");
+        } else if (json.authRequired) {
+          setStatus("auth_required");
+        } else {
+          setStatus("empty");
+        }
+      } catch (err) {
+        if (err.name === "AbortError" || !mounted) return;
+        setStatus("error");
+      }
+    }
+
+    load();
+
+    return () => {
+      mounted = false;
+      controller.abort();
+    };
+  }, [providerId]);
+
+  const handleRefresh = async () => {
+    setStatus("loading");
     try {
-      const params = new URLSearchParams({ provider: providerId });
-      if (bypassCache) params.set("t", String(Date.now()));
-      const res = await fetch(`/api/providers/suggested-models?${params}`, {
-        signal: controller.signal,
-      });
+      const params = new URLSearchParams({ provider: providerId, t: String(Date.now()) });
+      const res = await fetch(`/api/providers/suggested-models?${params}`);
       if (!res.ok) {
         setStatus("error");
         return;
@@ -65,24 +97,9 @@ export default function UpstreamModelsSection({
       } else {
         setStatus("empty");
       }
-    } catch (err) {
-      if (err.name === "AbortError") return;
+    } catch {
       setStatus("error");
     }
-  }, [providerId]);
-
-  // Initial fetch — use ref to avoid calling setState in effect body
-  useEffect(() => {
-    if (!fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchModels(false);
-    }
-    return () => { if (abortRef.current) abortRef.current.abort(); };
-  }, [fetchModels]);
-
-  const handleRefresh = () => {
-    setStatus("loading");
-    fetchModels(true);
   };
 
   const handleImportAll = async () => {
@@ -170,12 +187,7 @@ export default function UpstreamModelsSection({
   }
 
   if (status === "empty") {
-    return (
-      <div className="w-full mt-2 flex items-center gap-2 rounded-lg border border-black/[0.06] dark:border-white/[0.06] px-3 py-2">
-        <span className="material-symbols-outlined text-[16px] text-text-muted shrink-0">info</span>
-        <span className="text-xs text-text-muted">No public upstream models endpoint for this provider</span>
-      </div>
-    );
+    return null;
   }
 
   if (status !== "ready" || models.length === 0) return null;

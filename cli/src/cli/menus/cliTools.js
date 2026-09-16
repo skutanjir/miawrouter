@@ -575,6 +575,118 @@ async function showHermesMenu(port, breadcrumb = []) {
   });
 }
 
+// ─── Grok Build ───────────────────────────────────────────────────────────────
+
+async function buildGrokBuildHeader() {
+  const result = await api.getCliToolSettings("grok-build");
+  if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
+
+  const { installed, has9Router, settings } = result.data;
+  if (!installed) return `Status:   ${COLORS.red}✗ Grok Build not installed${COLORS.reset}`;
+
+  if (!has9Router) {
+    return [
+      `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
+      `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
+    ].join("\n");
+  }
+
+  const model = settings?.model || {};
+  const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];
+  if (model.base_url) lines.push(`Endpoint: ${COLORS.cyan}${model.base_url}${COLORS.reset}`);
+  if (model.model)    lines.push(`Model:    ${COLORS.dim}${model.model}${COLORS.reset}`);
+  return lines.join("\n");
+}
+
+async function grokBuildQuickSetup(port) {
+  const { endpoint } = await getEndpoint(port);
+  const apiKey = await getFirstApiKey();
+
+  if (!apiKey) {
+    showStatus("No API keys found. Create one in API Keys menu first.", "error");
+    await pause();
+    return;
+  }
+
+  const model = await selectModelFromList("Select Grok Build Model", "", { excludeCombos: true });
+  if (!model) return;
+
+  const result = await api.applyCliToolSettings("grok-build", { baseUrl: endpoint, apiKey, model });
+  showStatus(result.success ? "Grok Build setup completed!" : `Failed: ${result.error}`, result.success ? "success" : "error");
+  await pause();
+}
+
+async function grokBuildReset() {
+  const result = await api.resetCliToolSettings("grok-build");
+  showStatus(result.success ? "Grok Build settings reset!" : `Failed: ${result.error}`, result.success ? "success" : "error");
+  await pause();
+}
+
+async function showGrokBuildMenu(port, breadcrumb = []) {
+  await showMenuWithBack({
+    title: "⚡ Grok Build Settings",
+    breadcrumb,
+    headerContent: buildGrokBuildHeader,
+    refresh: async () => ({}),
+    items: [
+      { label: "⚡ Quick Setup", action: async () => { await grokBuildQuickSetup(port); return true; } },
+      { label: "Reset to Default", action: async () => { await grokBuildReset(); return true; } }
+    ]
+  });
+}
+
+// ─── Subagent Automator ───────────────────────────────────────────────────────
+
+async function autoConfigureSubagentsMenu(port) {
+  const { endpoint } = await getEndpoint(port);
+  const apiKey = await getFirstApiKey();
+
+  if (!apiKey) {
+    showStatus("No API keys found. Create one in API Keys menu first.", "error");
+    await pause();
+    return;
+  }
+
+  showStatus("Scanning installed tools and optimal provider models...", "info");
+  const result = await api.getSubagentsStatus();
+  if (!result.success) {
+    showStatus(`Failed to fetch subagent status: ${result.error}`, "error");
+    await pause();
+    return;
+  }
+
+  const { installedTools = {}, recommendedRoles = {} } = result.data || {};
+  const detectedNames = Object.entries(installedTools).filter(([, inst]) => inst).map(([k]) => k);
+
+  console.log(`\n${COLORS.cyan}=== AI Subagent Automator ===${COLORS.reset}`);
+  console.log(`Detected tools: ${COLORS.green}${detectedNames.length > 0 ? detectedNames.join(", ") : "None detected locally"}${COLORS.reset}`);
+  console.log(`Hermes Desktop: ${COLORS.green}Native Desktop Supported${COLORS.reset}\n`);
+  console.log(`Recommended Role Mappings:`);
+  console.log(`  • Explorer (Search): ${COLORS.dim}${recommendedRoles.explorer || "auto"}${COLORS.reset}`);
+  console.log(`  • Reviewer (Audit):  ${COLORS.dim}${recommendedRoles.reviewer || "auto"}${COLORS.reset}`);
+  console.log(`  • Planner (Arch):    ${COLORS.dim}${recommendedRoles.planner || "auto"}${COLORS.reset}`);
+  console.log(`  • Fast (Helper):     ${COLORS.dim}${recommendedRoles.fast || "auto"}${COLORS.reset}`);
+  console.log(`  • General (Coding):  ${COLORS.dim}${recommendedRoles.general || "auto"}${COLORS.reset}\n`);
+
+  const ok = await confirm("Apply subagent configuration across all installed tools and desktop apps?");
+  if (!ok) return;
+
+  showStatus("Applying subagent configurations...", "info");
+  const applyRes = await api.autoConfigureSubagents({
+    baseUrl: endpoint,
+    apiKey,
+    targetTools: "all",
+  });
+
+  if (applyRes.success) {
+    const configured = applyRes.data?.configured || [];
+    showStatus(`Success! Configured subagents for: ${configured.join(", ")}`, "success");
+  } else {
+    showStatus(`Failed: ${applyRes.error || "Unknown error"}`, "error");
+  }
+  await pause();
+}
+
 // ─── Main CLI Tools Menu ──────────────────────────────────────────────────────
 
 /**
@@ -587,8 +699,12 @@ async function showCliToolsMenu(port, breadcrumb = []) {
   await showMenuWithBack({
     title: "🔧 CLI Tools",
     breadcrumb,
-    headerContent: `Configure CLI tools to use 9Router\nEndpoint: ${endpoint}`,
+    headerContent: `Configure CLI tools to use MiawRouter\nEndpoint: ${endpoint}`,
     items: [
+      {
+        label: "🤖 Auto-Configure Subagents (All Tools)",
+        action: async () => { await autoConfigureSubagentsMenu(port); return true; }
+      },
       {
         label: "Claude Code",
         action: async () => { await showClaudeCodeMenu(port, [...breadcrumb, "Claude Code"]); return true; }
@@ -610,11 +726,16 @@ async function showCliToolsMenu(port, breadcrumb = []) {
         action: async () => { await showOpenCodeMenu(port, [...breadcrumb, "OpenCode"]); return true; }
       },
       {
-        label: "Hermes",
-        action: async () => { await showHermesMenu(port, [...breadcrumb, "Hermes"]); return true; }
+        label: "Hermes Agent & Desktop",
+        action: async () => { await showHermesMenu(port, [...breadcrumb, "Hermes Agent & Desktop"]); return true; }
+      },
+      {
+        label: "Grok Build",
+        action: async () => { await showGrokBuildMenu(port, [...breadcrumb, "Grok Build"]); return true; }
       }
     ]
   });
 }
 
 module.exports = { showCliToolsMenu };
+

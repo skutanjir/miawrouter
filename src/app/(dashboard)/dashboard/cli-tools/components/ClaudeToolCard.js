@@ -5,6 +5,7 @@ import { Card, Button, ModelSelectModal, ManualConfigModal, Tooltip } from "@/sh
 import Image from "next/image";
 import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
+import ToolSubagentsSection from "./ToolSubagentsSection";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
 const CLOUD_URL = process.env.NEXT_PUBLIC_CLOUD_URL;
@@ -51,6 +52,7 @@ export default function ClaudeToolCard({
   const [ccFilterNaming, setCcFilterNaming] = useState(false);
   const [exaMcpEnabled, setExaMcpEnabled] = useState(false);
   const [maxContextTokens, setMaxContextTokens] = useState("");
+  const [subagents, setSubagents] = useState({ explorer: "", reviewer: "", planner: "", fast: "" });
   const hasInitializedModels = useRef(false);
 
   const getConfigStatus = () => {
@@ -80,6 +82,12 @@ export default function ClaudeToolCard({
     const v = claudeStatus?.settings?.env?.CLAUDE_CODE_MAX_CONTEXT_TOKENS;
     setMaxContextTokens(v || "");
   }, [claudeStatus?.settings?.env?.CLAUDE_CODE_MAX_CONTEXT_TOKENS]);
+
+  useEffect(() => {
+    if (claudeStatus?.subagents) {
+      setSubagents((prev) => ({ ...prev, ...claudeStatus.subagents }));
+    }
+  }, [claudeStatus?.subagents]);
 
   useEffect(() => {
     if (isExpanded) {
@@ -185,7 +193,7 @@ export default function ClaudeToolCard({
       const res = await fetch("/api/cli-tools/claude-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ env, exaMcpEnabled, maxContextTokens }),
+        body: JSON.stringify({ env, exaMcpEnabled, maxContextTokens, subagents }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -220,6 +228,30 @@ export default function ClaudeToolCard({
       setMessage({ type: "error", text: error.message });
     } finally {
       setRestoring(false);
+    }
+  };
+
+  const [configuringSubagents, setConfiguringSubagents] = useState(false);
+
+  const handleConfigureSubagents = async () => {
+    setConfiguringSubagents(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/cli-tools/subagents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetTools: "claude" }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: "success", text: "Subagents generated in ~/.claude/agents/ (explorer, reviewer, planner, fast)!" });
+      } else {
+        setMessage({ type: "error", text: data.error || "Failed to configure subagents" });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: error.message });
+    } finally {
+      setConfiguringSubagents(false);
     }
   };
 
@@ -404,6 +436,18 @@ export default function ClaudeToolCard({
                     </Tooltip>
                   </label>
                 </div>
+                {/* Subagents Section */}
+                <ToolSubagentsSection
+                  toolName={tool.name}
+                  toolId="claude"
+                  subagents={subagents}
+                  onChange={setSubagents}
+                  activeProviders={activeProviders}
+                  modelAliases={modelAliases}
+                  hasActiveProviders={hasActiveProviders}
+                  baseUrl={getEffectiveBaseUrl()}
+                  apiKey={selectedApiKey}
+                />
               </div>
 
               {message && (

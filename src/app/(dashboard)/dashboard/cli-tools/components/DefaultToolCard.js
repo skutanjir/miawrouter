@@ -1,35 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, ModelSelectModal } from "@/shared/components";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import Image from "next/image";
 import ApiKeySelect from "./ApiKeySelect";
+import ToolSubagentsSection from "./ToolSubagentsSection";
 
 export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, baseUrl, apiKeys, activeProviders = [], cloudEnabled = false, tunnelEnabled = false }) {
   const [copiedField, setCopiedField] = useState(null);
   const [showModelModal, setShowModelModal] = useState(false);
   const [modelValue, setModelValue] = useState("");
+  const [subagents, setSubagents] = useState({ explorer: "", reviewer: "", planner: "", fast: "" });
+  const [autoConfigStatus, setAutoConfigStatus] = useState(null);
+  const [autoConfiguring, setAutoConfiguring] = useState(false);
+  const [autoConfigMessage, setAutoConfigMessage] = useState(null);
   
   // Initialize state directly with computed value - no need for useEffect
   const [selectedApiKey, setSelectedApiKey] = useState(() => 
     apiKeys?.length > 0 ? apiKeys[0].key : ""
   );
 
+  useEffect(() => {
+    if (apiKeys?.length > 0 && !selectedApiKey) setSelectedApiKey(apiKeys[0].key);
+  }, [apiKeys, selectedApiKey]);
+
+  useEffect(() => {
+    if (!tool.autoConfig || !isExpanded || autoConfigStatus) return;
+    fetch(tool.autoConfig.endpoint)
+      .then((res) => res.json())
+      .then(setAutoConfigStatus)
+      .catch((error) => setAutoConfigStatus({ error: error.message }));
+  }, [tool.autoConfig, isExpanded, autoConfigStatus]);
+
+  const getBaseUrlWithV1 = () => {
+    const normalizedBaseUrl = (baseUrl || "http://localhost:21128").replace(/\/+$/, "");
+    return normalizedBaseUrl.endsWith("/v1") ? normalizedBaseUrl : `${normalizedBaseUrl}/v1`;
+  };
+
   const replaceVars = (text) => {
     const keyToUse = (selectedApiKey && selectedApiKey.trim()) 
       ? selectedApiKey 
       : (!cloudEnabled ? "sk_miawrouter" : "your-api-key");
     
-    // Add /v1 suffix only if not already present (DRY - avoid duplicate)
-    const normalizedBaseUrl = baseUrl || "http://localhost:21128";
-    const baseUrlWithV1 = normalizedBaseUrl.endsWith("/v1") 
-      ? normalizedBaseUrl 
-      : `${normalizedBaseUrl}/v1`;
-    
     return text
-      .replace(/\{\{baseUrl\}\}/g, baseUrlWithV1)
+      .replace(/\{\{baseUrl\}\}/g, getBaseUrlWithV1())
       .replace(/\{\{apiKey\}\}/g, keyToUse)
       .replace(/\{\{model\}\}/g, modelValue || "provider/model-id");
   };
@@ -44,6 +60,30 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
 
   const handleSelectModel = (model) => {
     setModelValue(model.value);
+  };
+
+  const handleAutoConfig = async () => {
+    if (!tool.autoConfig || !modelValue) return;
+    setAutoConfiguring(true);
+    setAutoConfigMessage(null);
+    try {
+      const keyToUse = (selectedApiKey && selectedApiKey.trim())
+        ? selectedApiKey
+        : (!cloudEnabled ? "sk_miawrouter" : "");
+      const res = await fetch(tool.autoConfig.endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ baseUrl: getBaseUrlWithV1(), apiKey: keyToUse, model: modelValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to apply configuration");
+      setAutoConfigStatus((current) => ({ ...current, ...data, has9Router: true }));
+      setAutoConfigMessage({ type: "success", text: `Saved to ${data.configPath || tool.autoConfig.configPath}` });
+    } catch (error) {
+      setAutoConfigMessage({ type: "error", text: error.message });
+    } finally {
+      setAutoConfiguring(false);
+    }
   };
 
   const hasActiveProviders = activeProviders.length > 0;
@@ -138,6 +178,39 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
     );
   };
 
+  const renderAutoConfig = () => {
+    if (!tool.autoConfig) return null;
+    const configured = autoConfigStatus?.has9Router;
+    return (
+      <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-text-main">Automatic configuration</p>
+            <p className="text-xs text-text-muted">
+              {configured ? "MiawRouter is configured for this CLI." : "Choose a model, then write the config automatically."}
+            </p>
+          </div>
+          <button
+            onClick={handleAutoConfig}
+            disabled={!modelValue || autoConfiguring}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-[17px] ${autoConfiguring ? "animate-spin" : ""}`}>
+              {autoConfiguring ? "progress_activity" : "auto_fix_high"}
+            </span>
+            {autoConfiguring ? "Saving..." : configured ? "Update Config" : "Auto-configure"}
+          </button>
+        </div>
+        <p className="mt-2 break-all text-[11px] text-text-muted">{autoConfigStatus?.configPath || tool.autoConfig.configPath}</p>
+        {autoConfigMessage && (
+          <p className={`mt-2 text-xs ${autoConfigMessage.type === "success" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+            {autoConfigMessage.text}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   const canShowGuide = () => {
     if (tool.requiresExternalUrl && !cloudEnabled && !tunnelEnabled) return false;
     if (tool.requiresCloud && !cloudEnabled) return false;
@@ -150,6 +223,7 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
     return (
       <div className="flex flex-col gap-4">
         {renderNotes()}
+        {renderAutoConfig()}
         {canShowGuide() && tool.guideSteps.map((item) => (
           <div key={item.step} className="flex items-start gap-4">
             <div 
@@ -217,34 +291,18 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
           height={32}
           className="size-8 object-contain rounded-lg"
           sizes="32px"
-          onError={(e) => { e.target.style.display = "none"; }}
-        loading="lazy"
-        decoding="async"
+          onError={(e) => {
+            e.target.style.display = "none";
+          }}
+          loading="lazy"
+          decoding="async"
         />
       );
     }
-    if (tool.icon) {
-      return <span className="material-symbols-outlined text-xl" style={{ color: tool.color }}>{tool.icon}</span>;
-    }
-    const iconSrc = getProviderIconSrc(toolId);
-    if (!iconSrc) {
-      return <span className="text-xs font-bold" style={{ color: tool.color }}>{(toolId || "?").slice(0, 2).toUpperCase()}</span>;
-    }
     return (
-      <Image
-        src={iconSrc}
-        alt={tool.name}
-        width={32}
-        height={32}
-        className="size-8 object-contain rounded-lg"
-        sizes="32px"
-        onError={(e) => {
-          markProviderIconMissing(toolId);
-          e.target.style.display = "none";
-        }}
-      loading="lazy"
-      decoding="async"
-      />
+      <span className="material-symbols-outlined text-xl" style={{ color: tool.color || "currentColor" }}>
+        {tool.icon || "terminal"}
+      </span>
     );
   };
 
@@ -264,8 +322,20 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
       </div>
 
       {isExpanded && (
-        <div className="mt-6 pt-6 border-t border-border">
+        <div className="mt-6 pt-6 border-t border-border flex flex-col gap-4">
           {renderGuideSteps()}
+
+          {/* Subagents Section */}
+          <ToolSubagentsSection
+            toolName={tool.name}
+            toolId={toolId}
+            subagents={subagents}
+            onChange={setSubagents}
+            activeProviders={activeProviders}
+            hasActiveProviders={hasActiveProviders}
+            baseUrl={getBaseUrlWithV1()}
+            apiKey={selectedApiKey}
+          />
         </div>
       )}
 
@@ -282,4 +352,3 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
     </Card>
   );
 }
-

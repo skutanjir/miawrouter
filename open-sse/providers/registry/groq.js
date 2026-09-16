@@ -42,7 +42,11 @@ export default {
   kind: "stt"
 },
   { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", supportsReasoning: false, isFreeTier: true },
+  { id: "llama-3.1-8b-instant", name: "Llama 3.1 8B Instant", supportsReasoning: false, isFreeTier: true },
+  { id: "qwen/qwen3.8-27b", name: "Qwen 3.8 27B" },
   { id: "qwen/qwen3-32b", name: "Qwen3 32B", isFreeTier: true },
+  { id: "groq/compound", name: "Groq Compound" },
+  { id: "groq/compound-mini", name: "Groq Compound Mini" },
   { id: "meta-llama/llama-4-scout-17b-16e-instruct", name: "Llama 4 Scout", supportsReasoning: false },
   { id: "openai/gpt-oss-safeguard-20b", name: "GPT-OSS Safeguard 20B" }
 ],

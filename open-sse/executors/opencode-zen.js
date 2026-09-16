@@ -2,6 +2,8 @@ import { BaseExecutor } from "./base.js";
 import { PROVIDERS } from "../config/providers.js";
 import { injectReasoningContent } from "../utils/reasoningContentInjector.js";
 import { ANTHROPIC_API_VERSION } from "../providers/shared.js";
+import { resolveSessionId } from "../utils/sessionManager.js";
+import crypto from "crypto";
 
 const BASE_URL = "https://opencode.ai/zen/v1";
 
@@ -52,11 +54,25 @@ export class OpenCodeZenExecutor extends BaseExecutor {
       }
     }
 
+    const clientSession = credentials?.rawHeaders?.["x-opencode-session"]
+      || credentials?.rawHeaders?.["x-opencode-session-id"]
+      || credentials?.rawHeaders?.["x-session-id"];
+
+    const sessionId = clientSession || resolveSessionId({
+      headers: credentials?.rawHeaders,
+      body: this._lastBody,
+      connectionId: credentials?.connectionId,
+      scope: "opencode-zen",
+    }) || crypto.randomUUID();
+
+    headers["x-opencode-session"] = sessionId;
+
     if (stream) headers["Accept"] = "text/event-stream";
     return headers;
   }
 
   transformRequest(model, body) {
+    this._lastBody = body;
     const cleanModel = (model || body?.model || "").replace(/^(opencode-zen|opencode|zen)\//, "");
     const cleanBody = body ? { ...body, model: cleanModel } : body;
     return injectReasoningContent({ provider: this.provider, model: cleanModel, body: cleanBody });

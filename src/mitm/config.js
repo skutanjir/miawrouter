@@ -39,7 +39,11 @@ const URL_PATTERNS = {
 // Synonym map: rawModel from request → canonical alias key in mitmAlias DB
 const MODEL_SYNONYMS = {
   antigravity: {
-    "gemini-default": "gemini-3.5-flash-low",
+    "gemini-default": "gemini-3.8-flash-medium",
+    "gemini-3.8-flash": "gemini-3.8-flash-high",
+    "gemini-3.8-flash-high": "gemini-3.8-flash-high",
+    "gemini-3.8-flash-medium": "gemini-3.8-flash-medium",
+    "gemini-3.8-flash-low": "gemini-3.8-flash-low",
     "gemini-3.7-flash": "gemini-3.7-flash-high",
     "gemini-3.7-flash-high": "gemini-3.7-flash-high",
     "gemini-3.7-flash-medium": "gemini-3.7-flash-medium",
@@ -57,6 +61,10 @@ const MODEL_SYNONYMS = {
 // Order matters: more specific patterns first. Catches AG renamed variants (e.g. gemini-pro-agent)
 const MODEL_PATTERNS = {
   antigravity: [
+    { match: /^gemini-3\.8-flash-tiered\(medium\)$/i,               alias: "gemini-3.8-flash-medium" },
+    { match: /^gemini-3\.8-flash-tiered\(low\)$/i,                  alias: "gemini-3.8-flash-low" },
+    { match: /^gemini-3\.8-flash-tiered\(high\)$/i,                 alias: "gemini-3.8-flash-high" },
+    { match: /gemini-3\.8/i,                                        alias: "gemini-3.8-flash-high" },
     { match: /^gemini-3\.7-flash-tiered\(medium\)$/i,               alias: "gemini-3.7-flash-medium" },
     { match: /^gemini-3\.7-flash-tiered\(low\)$/i,                  alias: "gemini-3.7-flash-low" },
     { match: /^gemini-3\.7-flash-tiered\(high\)$/i,                 alias: "gemini-3.7-flash-high" },
@@ -130,7 +138,7 @@ function extractModel(url, body) {
     // Gemini 3.6/3.7 Flash share a single bare "tiered" wire id; the concrete tier
     // is selected by the request's thinking level. Derive it so mapping routes to
     // the correct high/medium/low slot instead of a generic catch-all.
-    const tieredMatch = String(model).replace(/^models\//, "").match(/^gemini-(3\.6|3\.7)-flash-tiered$/);
+    const tieredMatch = String(model).replace(/^models\//, "").match(/^gemini-(3\.6|3\.7|3\.8)-flash-tiered$/);
     if (tieredMatch) {
       const rawLevel = parsed.request?.generationConfig?.thinkingConfig?.thinkingLevel
         || parsed.generationConfig?.thinkingConfig?.thinkingLevel;

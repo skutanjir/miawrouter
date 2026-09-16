@@ -71,6 +71,12 @@ export function capabilitiesFromServiceKind(kind) {
  * otherwise mis-match. Only declare deltas vs DEFAULT.
  */
 export const MODEL_CAPABILITIES = {
+  "deepseek-flash": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
+  "deepseek-v4-flash": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
+  "deepseek-v4-flash-vision-exp": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
+  "deepseek-v4-flash-fast": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
+  "deepseek-v4.1-flash": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
+  "claude-fable-5-1": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 },
   // Claude Opus 5, 4.6/4.7/4.8, and Kiro Sonnet 5 have 1M context + adaptive thinking (override generic claude pattern)
   "claude-opus-5":     { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 },
   "claude-opus-5-thinking": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 },
@@ -114,6 +120,7 @@ const KIRO_GPT_5_6_CAPABILITIES = { vision: true, reasoning: true, search: true,
 
 // Codex OAuth (ChatGPT backend) — per-model context window reported by upstream
 // (lower than OpenAI API's 1.05M). Sol differs from Terra/Luna. #2720
+const CODEX_GPT_6_ASTRA_CAPS = { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 872000, maxOutput: 128000 };
 const CODEX_GPT_56_SOL_CAPS  = { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 372000, maxOutput: 128000 };
 const CODEX_GPT_56_DEFAULT_CAPS = { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 272000, maxOutput: 128000 };
 
@@ -131,6 +138,8 @@ export const PROVIDER_CAPABILITIES = {
     "deepseek-ai/deepseek-v4-flash": { reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 65536 },
   },
   "codex": {
+    "gpt-6-astra":               CODEX_GPT_6_ASTRA_CAPS,
+    "gpt-6-astra-review":        CODEX_GPT_6_ASTRA_CAPS,
     "gpt-5.6-sol":               CODEX_GPT_56_SOL_CAPS,
     "gpt-5.6-sol-review":        CODEX_GPT_56_SOL_CAPS,
     "gpt-5.6-terra":             CODEX_GPT_56_DEFAULT_CAPS,
@@ -171,7 +180,7 @@ export const PROVIDER_CAPABILITIES = {
     "kimi-k2.5":          { vision: true, reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 164000, maxOutput: 32000 },
     "hy3-preview":        { vision: true, reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 192000, maxOutput: 64000 },
     "deepseek-v4-pro":    { vision: true, reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 50000 },
-    "deepseek-v4-flash":  { vision: true, reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 50000 },
+    "deepseek-v4-flash":  { reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 50000 },
     "deepseek-v3-2-volc": { reasoning: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 96000, maxOutput: 32000 },
   },
   // Poolside Laguna — OpenAI-compatible, all reasoning-capable (32K max output).
@@ -249,6 +258,7 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*qwen3.5*",       caps: { vision: true, videoInput: true, reasoning: true, thinkingFormat: "qwen", contextWindow: 1000000, maxOutput: 65536 } },
   { pattern: "*qwen3.6*",       caps: { vision: true, videoInput: true, reasoning: true, thinkingFormat: "qwen", contextWindow: 1000000, maxOutput: 65536 } },
   { pattern: "*qwen3.7*",       caps: { vision: true, videoInput: true, reasoning: true, thinkingFormat: "qwen", contextWindow: 1000000, maxOutput: 65536 } },
+  { pattern: "*qwen3.8*",       caps: { vision: true, videoInput: true, reasoning: true, thinkingFormat: "qwen", contextWindow: 1000000, maxOutput: 131072 } },
   { pattern: "*qwen*plus*",     caps: { vision: true, reasoning: true, thinkingFormat: "qwen", contextWindow: 1000000, maxOutput: 65536 } },
   { pattern: "*qwen*235b*",     caps: { reasoning: true, thinkingFormat: "qwen", contextWindow: 262144 } },
   { pattern: "*qwq*",           caps: { reasoning: true, thinkingFormat: "qwen", thinkingCanDisable: false, contextWindow: 131072 } },
@@ -262,6 +272,7 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*kimi*",          caps: { reasoning: true, thinkingFormat: "kimi", contextWindow: 262144 } },
 
   // ── GLM / Z.ai (thinking.enabled; disable via enable_thinking:false) ─
+  { pattern: "*glm-5.3*",       caps: { reasoning: true, thinkingFormat: "zai", contextWindow: 1000000, maxOutput: 131072 } },
   { pattern: "*glm-5*",         caps: { reasoning: true, thinkingFormat: "zai", contextWindow: 200000, maxOutput: 128000 } },
   { pattern: "*glm-4.7*",       caps: { reasoning: true, thinkingFormat: "zai", contextWindow: 200000, maxOutput: 128000 } },
   { pattern: "*glm-4*",         caps: { reasoning: true, thinkingFormat: "zai", contextWindow: 200000 } },
@@ -280,10 +291,10 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*minimax-m2.7*",  caps: { reasoning: true, thinkingFormat: "minimax", thinkingCanDisable: false, contextWindow: 204800, maxOutput: 131072 } },
   { pattern: "*minimax*",       caps: { reasoning: true, thinkingFormat: "minimax", thinkingCanDisable: false, contextWindow: 200000, maxOutput: 131072 } },
 
-  // ── Xiaomi MiMo (vision, 1M / 262K ctx) ──────────────────────────
-  { pattern: "*mimo*v2.5*",     caps: { vision: true, audioInput: true, videoInput: true, contextWindow: 1048576, maxOutput: 131072 } },
+  // ── Xiaomi MiMo (vision, reasoning, 1M / 262K ctx) ──────────────
+  { pattern: "*mimo*v2.5*",     caps: { vision: true, audioInput: true, videoInput: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1048576, maxOutput: 131072 } },
   { pattern: "*mimo*omni*",     caps: { vision: true, audioInput: true, contextWindow: 262144, maxOutput: 131072 } },
-  { pattern: "*mimo*",          caps: { vision: true, contextWindow: 262144, maxOutput: 131072 } },
+  { pattern: "*mimo*",          caps: { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 262144, maxOutput: 131072 } },
 
   // ── Llama (4 = vision/1M; 3.x = text-only/128K) ──────────────────
   { pattern: "*llama-4*",       caps: { vision: true, contextWindow: 1000000 } },
@@ -311,6 +322,11 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*laguna*",        caps: { reasoning: true, thinkingFormat: "openai", contextWindow: 200000, maxOutput: 32000 } },
 
   // ── Others ───────────────────────────────────────────────────────
+  { pattern: "*hy4*",           caps: { reasoning: true, thinkingFormat: "hunyuan", contextWindow: 1024000, maxOutput: 64000 } },
+  { pattern: "*longcat*",       caps: { reasoning: true, contextWindow: 1000000, maxOutput: 131072 } },
+  { pattern: "*omen*",          caps: { vision: true, reasoning: true, contextWindow: 500000, maxOutput: 128000 } },
+  { pattern: "*ox-alpha*",      caps: { vision: true, videoInput: true, reasoning: true, contextWindow: 1000000, maxOutput: 131072 } },
+  { pattern: "*muse*",          caps: { vision: true, reasoning: true, contextWindow: 1048576, maxOutput: 131072 } },
   { pattern: "*hunyuan*",       caps: { reasoning: true, thinkingFormat: "hunyuan", contextWindow: 262144, maxOutput: 262144 } },
   { pattern: "hy3*",            caps: { reasoning: true, thinkingFormat: "hunyuan", contextWindow: 262144, maxOutput: 262144 } },
   { pattern: "*step-*",         caps: { reasoning: true, thinkingFormat: "step", contextWindow: 128000 } },

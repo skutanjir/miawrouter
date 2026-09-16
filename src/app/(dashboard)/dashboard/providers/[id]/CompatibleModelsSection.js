@@ -2,29 +2,24 @@
 
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { Button } from "@/shared/components";
+import { Button, ProviderIcon } from "@/shared/components";
 import { getProviderCustomModelRows } from "@/shared/utils/providerCustomModels";
-function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias, onTest, testStatus, isTesting }) {
+function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias, onTest, testStatus, isTesting, providerId }) {
   const borderColor = testStatus === "ok"
     ? "border-green-500/40"
     : testStatus === "error"
     ? "border-red-500/40"
     : "border-border";
 
-  const iconColor = testStatus === "ok"
-    ? "#22c55e"
-    : testStatus === "error"
-    ? "#ef4444"
-    : undefined;
-
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg border ${borderColor} hover:bg-sidebar/50`}>
-      <span
-        className="material-symbols-outlined text-base text-text-muted"
-        style={iconColor ? { color: iconColor } : undefined}
-      >
-        {testStatus === "ok" ? "check_circle" : testStatus === "error" ? "cancel" : "smart_toy"}
-      </span>
+      {testStatus === "ok" ? (
+        <span className="material-symbols-outlined text-base text-green-500 shrink-0">check_circle</span>
+      ) : testStatus === "error" ? (
+        <span className="material-symbols-outlined text-base text-red-500 shrink-0">cancel</span>
+      ) : (
+        <ProviderIcon providerId={providerId} size={18} fallbackIcon="smart_toy" className="shrink-0" />
+      )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{modelId}</p>
         <div className="flex items-center gap-1 mt-1">
@@ -71,7 +66,7 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
   );
 }
 
-export default function CompatibleModelsSection({ providerStorageAlias, providerDisplayAlias, modelAliases, customModels, copied, onCopy, onDeleteAlias, onAddCustomModel, onDeleteCustomModel, connections, isAnthropic }) {
+export default function CompatibleModelsSection({ providerId, providerStorageAlias, providerDisplayAlias, modelAliases, customModels, copied, onCopy, onDeleteAlias, onAddCustomModel, onDeleteCustomModel, connections, isAnthropic }) {
   const [newModel, setNewModel] = useState("");
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -199,6 +194,7 @@ export default function CompatibleModelsSection({ providerStorageAlias, provider
             <CompatibleModelRow
               key={`${source}-${providerStorageAlias}/${id}`}
               modelId={id}
+              providerId={providerId}
               fullModel={`${providerDisplayAlias}/${id}`}
               copied={copied}
               onCopy={onCopy}
@@ -215,6 +211,7 @@ export default function CompatibleModelsSection({ providerStorageAlias, provider
 }
 
 CompatibleModelsSection.propTypes = {
+  providerId: PropTypes.string,
   providerStorageAlias: PropTypes.string.isRequired,
   providerDisplayAlias: PropTypes.string.isRequired,
   modelAliases: PropTypes.object.isRequired,

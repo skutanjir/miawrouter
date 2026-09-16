@@ -48,10 +48,12 @@ export default {
   passthroughModels: true,
   models: [
     { id: "glm-5.3", name: "GLM 5.3", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
+    { id: "glm-5.3-flash", name: "GLM 5.3 Flash", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
     { id: "glm-5.3-turbo", name: "GLM 5.3 Turbo", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
     { id: "glm-5.3-high", name: "GLM 5.3 High", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
     { id: "glm-5.3-max", name: "GLM 5.3 Max", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
     { id: "glm-5.3-coder", name: "GLM 5.3 Coder", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
+    { id: "glm-5v-turbo", name: "GLM 5V Turbo", contextLength: 200000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true, supportsVision: true },
     { id: "glm-5.2", name: "GLM 5.2" },
     { id: "glm-5.1", name: "GLM 5.1" },
     { id: "glm-5", name: "GLM 5" },

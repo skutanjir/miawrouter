@@ -85,6 +85,24 @@ export const ERROR_RULES = [
   { text: "token limit",               cooldownMs: TRANSIENT_COOLDOWN_MS },
   { text: "too many tokens",           cooldownMs: TRANSIENT_COOLDOWN_MS },
 
+  // Model-level errors (client/request-level — no account cooldown)
+  { text: "model not supported",       cooldownMs: 0 },
+  { text: "model_not_supported",       cooldownMs: 0 },
+  { text: "modelerror",                cooldownMs: 0 },
+  { text: "is not supported",          cooldownMs: 0 },
+  { text: "model not found",           cooldownMs: 0 },
+  { text: "model_not_found",           cooldownMs: 0 },
+
+  // Region / terms policy errors (opt-in / terms agreement required — no account cooldown)
+  { text: "regionerror",               cooldownMs: 0 },
+  { text: "region not supported",      cooldownMs: 0 },
+  { text: "cross-border",              cooldownMs: 0 },
+  { text: "geographic restriction",    cooldownMs: 0 },
+
+  // Session / routing errors (request-level — no account cooldown)
+  { text: "missingsessionid",          cooldownMs: 0 },
+  { text: "x-opencode-session",        cooldownMs: 0 },
+
   // Existing text rules
   { text: "request not allowed",       cooldownMs: COOLDOWN.short },
   { text: "improperly formed request", cooldownMs: COOLDOWN.long },

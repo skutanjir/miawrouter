@@ -36,7 +36,7 @@ const PASTE_TOKEN_PROVIDERS = {
  * - Remote: Manual paste callback URL
  */
 export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, onClose, oauthMeta, idcConfig }) {
-  const [step, setStep] = useState("waiting"); // waiting | input | success | error
+  const [step, setStep] = useState("waiting"); // select_mode | waiting | input | success | error
   const [authData, setAuthData] = useState(null);
   const [callbackUrl, setCallbackUrl] = useState("");
   const [error, setError] = useState(null);
@@ -435,6 +435,7 @@ export default function OAuthModal({ isOpen, provider, providerInfo, onSuccess, 
           .then((data) => setIdeStatus(data))
           .catch(() => setIdeStatus({ installed: false, path: null }));
       }
+      setStep("waiting");
       startOAuthFlow();
     } else if (!isOpen) {
       // Abort polling and cleanup proxy when modal closes

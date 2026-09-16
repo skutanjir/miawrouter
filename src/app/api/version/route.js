@@ -1,4 +1,6 @@
 import https from "https";
+import fs from "fs";
+import path from "path";
 import pkg from "../../../../package.json" with { type: "json" };
 
 const NPM_PACKAGE_NAME = "miawrouter";
@@ -52,9 +54,25 @@ async function getLatestVersionCached() {
   return latest;
 }
 
+function resolveCurrentVersion() {
+  try {
+    const candidates = [
+      path.join(process.cwd(), "package.json"),
+      path.join(process.cwd(), "..", "package.json"),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        const data = JSON.parse(fs.readFileSync(p, "utf8"));
+        if (data.version) return data.version;
+      }
+    }
+  } catch {}
+  return pkg.version;
+}
+
 export async function GET() {
   const latestVersion = await getLatestVersionCached();
-  const currentVersion = pkg.version;
+  const currentVersion = resolveCurrentVersion();
   const hasUpdate = latestVersion ? compareVersions(latestVersion, currentVersion) > 0 : false;
 
   return Response.json({ currentVersion, latestVersion, hasUpdate });

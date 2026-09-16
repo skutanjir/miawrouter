@@ -145,7 +145,16 @@ function compressText(text, stats, shape, minCompressSize) {
 
   const cleanText = stripVTControlCharacters(text);
   const fn = autoDetectFilter(cleanText);
-  const out = fn ? safeApply(fn, cleanText) : cleanText;
+  let out = fn ? safeApply(fn, cleanText) : cleanText;
+
+  if (!fn || out === cleanText) {
+    const compacted = cleanText
+      .replace(/[ \t]+$/gm, "")
+      .replace(/\n{3,}/g, "\n\n");
+    if (compacted.length < out.length) {
+      out = compacted;
+    }
+  }
 
   // Safety: never return empty, never grow the input
   if (!out || out.length === 0 || out.length >= bytesIn) {

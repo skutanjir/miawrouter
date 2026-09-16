@@ -156,7 +156,10 @@ export function commandCodeToOpenAIResponse(chunk, state) {
       break;
     }
     case "finish": {
-      const finishReason = state.finishReason || mapFinishReason(event.finishReason || "stop");
+      let finishReason = state.finishReason || mapFinishReason(event.finishReason || "stop");
+      if ((state.openTools?.size > 0 || state.toolIndex > 0) && (finishReason === OPENAI_FINISH.STOP || !finishReason)) {
+        finishReason = OPENAI_FINISH.TOOL_CALLS;
+      }
       const finalChunk = makeChunk(state, {}, finishReason);
       const totalUsage = event.totalUsage || state.usage;
       const usage = toOpenAIUsage(totalUsage, "commandcode");

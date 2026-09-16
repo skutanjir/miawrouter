@@ -22,6 +22,7 @@ import { detectClientTool, isNativePassthrough } from "../utils/clientDetector.j
 import { dedupeTools } from "../utils/toolDeduper.js";
 import { injectCaveman } from "../rtk/caveman.js";
 import { injectPonytail } from "../rtk/ponytail.js";
+import { injectResponseFocus } from "../rtk/responseFocus.js";
 import { injectAntiSlop } from "../rtk/antislop.js";
 import { injectHermes } from "../rtk/hermes.js";
 import { compressMessages, formatRtkLog, estimateRequestTokens } from "../rtk/index.js";
@@ -66,7 +67,16 @@ export function stripContinuityFields(body) {
   return body;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, antiSlopEnabled, antiSlopLevel, hermesAutonomyEnabled, hermesAutonomyMode, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled, aiMemoryCapture, aiMemoryRecall, aiMemoryMaxTokens }) {
+export function canAttemptTokenRefresh(provider, credentials, executor) {
+  if (!executor || executor.noAuth) return false;
+  if (PROVIDERS[provider]?.category === "apikey") return false;
+  if (!credentials) return false;
+  if (credentials.refreshToken || credentials.serviceAccount) return true;
+  if (["zed", "trae", "cursor", "windsurf", "qoder"].includes(provider)) return true;
+  return false;
+}
+
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, responseFocus, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, antiSlopEnabled, antiSlopLevel, hermesAutonomyEnabled, hermesAutonomyMode, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled, aiMemoryCapture, aiMemoryRecall, aiMemoryMaxTokens }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Stable per-session color so all lines of one CLI conversation share a tag
@@ -245,6 +255,8 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
         };
         delete translatedBody.reasoning_effort;
       }
+    } else if (typeof upstreamModel === "string" && upstreamModel.includes("(") && upstreamModel.endsWith(")")) {
+      applyThinking(sourceFormat, upstreamModel, translatedBody, provider);
     }
     // Normalize newer Cowork/CC beta shapes (adaptive thinking, mid-conversation system) the API rejects
     if (clientTool === "claude") normalizeClaudePassthrough(translatedBody, translatedBody.model);
@@ -321,6 +333,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     } catch { /* telemetry must never break requests */ }
   };
   const telemetryNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : undefined;
+
+  if (tokenSaverEnabled && responseFocus && responseFocus !== "balanced") {
+    if (injectResponseFocus(translatedBody, finalFormat, responseFocus)) {
+      xf.push(`FOCUS:${responseFocus}`);
+      saverEmit({ stage: "response-focus", applied: true, focus: responseFocus });
+    }
+  }
 
   // Caveman/Ponytail inject system prompts. They run BEFORE the L0 snapshot so
   // their injected system text is captured as part of the protected cached
@@ -582,6 +601,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     connectionProxyUrl: credentials?.providerSpecificData?.connectionProxyUrl || "",
     connectionNoProxy: credentials?.providerSpecificData?.connectionNoProxy || "",
     vercelRelayUrl: credentials?.providerSpecificData?.vercelRelayUrl || "",
+    strictProxy: credentials?.providerSpecificData?.strictProxy === true,
   };
 
   if (proxyOptions.vercelRelayUrl) {
@@ -651,40 +671,60 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(dispatchStatus, errMsg);
   }
 
-  // Handle 401/403 - try token refresh (skip for noAuth providers)
-  if (!executor.noAuth && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
+  // Handle 401/403 - try token refresh (skip for API-key providers or non-auth errors)
+  if (canAttemptTokenRefresh(provider, credentials, executor) && (providerResponse.status === HTTP_STATUS.UNAUTHORIZED || providerResponse.status === HTTP_STATUS.FORBIDDEN)) {
+    let shouldSkipRefresh = false;
     try {
-      // Mutate credentials after each successful refresh: rotating refresh_token
-      // providers (xAI/grok-cli) issue a new RT on every refresh; without this,
-      // refreshWithRetry's 2nd/3rd attempt reuses the already-consumed RT →
-      // invalid_grant → auth_failed retryable=false.
-      const newCredentials = await refreshWithRetry(async () => {
-        const result = await executor.refreshCredentials(credentials, log);
-        if (result?.refreshToken && result.refreshToken !== credentials.refreshToken) {
-          if (result.accessToken) credentials.accessToken = result.accessToken;
-          credentials.refreshToken = result.refreshToken;
+      if (typeof providerResponse.clone === "function") {
+        const preview = await providerResponse.clone().text().catch(() => "");
+        const lower = preview.toLowerCase();
+        if (
+          lower.includes("model not supported") ||
+          lower.includes("modelerror") ||
+          lower.includes("is not supported") ||
+          lower.includes("model not found") ||
+          lower.includes("regionerror") ||
+          lower.includes("cross-border")
+        ) {
+          shouldSkipRefresh = true;
         }
-        return result;
-      }, 3, log);
-      if (newCredentials?.accessToken || newCredentials?.copilotToken) {
-        if (log?.line) log.line(reqTag, "🔑", `TOKEN REFRESHED · ${provider}/${model}`);
-        Object.assign(credentials, newCredentials);
-        if (onCredentialsRefreshed) {
-          try { await onCredentialsRefreshed(newCredentials); } catch (e) { log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`); }
-        }
-        try {
-          const retryResult = await executor.execute({ model, body: translatedBody, stream, credentials, signal: streamController.signal, log, proxyOptions });
-          if (retryResult.response.ok) {
-            providerResponse = retryResult.response;
-            providerUrl = retryResult.url;
-            providerResponseFormat = retryResult.responseFormat || targetFormat;
-          }
-        } catch { log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`); }
-      } else {
-        log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh failed`);
       }
-    } catch (e) {
-      log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh threw: ${e.message}`);
+    } catch { /* proceed with refresh if inspection fails */ }
+
+    if (!shouldSkipRefresh) {
+      try {
+        // Mutate credentials after each successful refresh: rotating refresh_token
+        // providers (xAI/grok-cli) issue a new RT on every refresh; without this,
+        // refreshWithRetry's 2nd/3rd attempt reuses the already-consumed RT →
+        // invalid_grant → auth_failed retryable=false.
+        const newCredentials = await refreshWithRetry(async () => {
+          const result = await executor.refreshCredentials(credentials, log, proxyOptions);
+          if (result?.refreshToken && result.refreshToken !== credentials.refreshToken) {
+            if (result.accessToken) credentials.accessToken = result.accessToken;
+            credentials.refreshToken = result.refreshToken;
+          }
+          return result;
+        }, 3, log);
+        if (newCredentials?.accessToken || newCredentials?.copilotToken) {
+          if (log?.line) log.line(reqTag, "🔑", `TOKEN REFRESHED · ${provider}/${model}`);
+          Object.assign(credentials, newCredentials);
+          if (onCredentialsRefreshed) {
+            try { await onCredentialsRefreshed(newCredentials); } catch (e) { log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`); }
+          }
+          try {
+            const retryResult = await executor.execute({ model, body: translatedBody, stream, credentials, signal: streamController.signal, log, proxyOptions });
+            if (retryResult.response.ok) {
+              providerResponse = retryResult.response;
+              providerUrl = retryResult.url;
+              providerResponseFormat = retryResult.responseFormat || targetFormat;
+            }
+          } catch { log?.warn?.("TOKEN", `${provider.toUpperCase()} | retry after refresh failed`); }
+        } else {
+          log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh failed`);
+        }
+      } catch (e) {
+        log?.warn?.("TOKEN", `${provider.toUpperCase()} | refresh threw: ${e.message}`);
+      }
     }
   }
 

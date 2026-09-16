@@ -152,11 +152,11 @@ export async function refreshClaudeOAuthToken(refreshToken, log) {
   return refreshAccessToken("claude", refreshToken, {}, log);
 }
 
-export async function refreshGoogleToken(refreshToken, clientId, clientSecret, log) {
+export async function refreshGoogleToken(refreshToken, clientId, clientSecret, log, proxyOptions = null) {
   if (!refreshToken) return null;
   return dedupRefresh(`google:${clientId}`, refreshToken, async () => {
   try {
-    const response = await fetch(OAUTH_ENDPOINTS.google.token, {
+    const request = {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -168,7 +168,13 @@ export async function refreshGoogleToken(refreshToken, clientId, clientSecret, l
         client_id: clientId,
         client_secret: clientSecret,
       }),
-    });
+    };
+    const useProxy = proxyOptions?.connectionProxyEnabled === true ||
+      Boolean(proxyOptions?.vercelRelayUrl) ||
+      proxyOptions?.strictProxy === true;
+    const response = useProxy
+      ? await proxyAwareFetch(OAUTH_ENDPOINTS.google.token, request, proxyOptions)
+      : await fetch(OAUTH_ENDPOINTS.google.token, request);
 
     if (!response.ok) {
       const errorText = await response.text();

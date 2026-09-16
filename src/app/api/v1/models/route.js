@@ -136,38 +136,6 @@ const LIVE_MODEL_RESOLVERS = {
     const models = list.freeOnlyEnabled && list.freeModels.length ? list.freeModels : list.models;
     return { models, freeIds: list.freeOnlyEnabled ? list.freeIds : null };
   },
-  freebuff: async (conn) => {
-    const staticModels = (PROVIDER_MODELS["freebuff"] || []).map(m => ({ id: m.id, name: m.name }));
-    const token = conn?.accessToken || conn?.apiKey;
-    if (!token) return { models: staticModels };
-    try {
-      const res = await fetch("https://www.codebuff.com/api/v1/freebuff/session", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "User-Agent": "Freebuff-CLI/0.0.105",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({})
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.rateLimitsByModel) {
-          const activeIds = Object.keys(data.rateLimitsByModel);
-          const liveModels = [];
-          for (const id of activeIds) {
-            const matched = staticModels.find(m => m.id === id);
-            liveModels.push(matched || { id, name: id });
-          }
-          for (const sm of staticModels) {
-            if (!liveModels.some(m => m.id === sm.id)) liveModels.push(sm);
-          }
-          return { models: liveModels };
-        }
-      }
-    } catch {}
-    return { models: staticModels };
-  },
 };
 
 const parseOpenAIStyleModels = (data) => {

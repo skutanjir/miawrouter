@@ -18,6 +18,9 @@ export default {
     validateUrl: "https://api.cohere.ai/v1/models",
   },
   models: [{
+  id: "command-a-plus-05-2026",
+  name: "Command A+ (May 2026)"
+}, {
   id: "command-r-plus-08-2024",
   name: "Command R+ (Aug 2024)"
 }, {
@@ -32,6 +35,16 @@ export default {
 }, {
   "id": "command-a-vision-07-2025",
   "name": "Command A Vision (Jul 2025)"
+}, {
+  "id": "north-mini-code-1-0",
+  "name": "North Mini Code 1.0"
+}, {
+  "id": "c4ai-aya-vision-32b",
+  "name": "C4AI Aya Vision 32B",
+  "supportsVision": true
+}, {
+  "id": "c4ai-aya-expanse-32b",
+  "name": "C4AI Aya Expanse 32B"
 }, {
   "id": "command-r7b-12-2024",
   "name": "Command R7B (Dec 2024)"

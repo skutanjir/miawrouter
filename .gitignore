@@ -91,3 +91,7 @@ graphify-out/*
 .bench-data/
 .serena/
 bench/out/
+*.tgz
+*.db
+*.db-journal
+.playwright-mcp/

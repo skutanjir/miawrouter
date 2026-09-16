@@ -30,6 +30,11 @@ export default {
   id: "moonshotai/Kimi-K2.6",
   name: "Kimi K2.6"
 }, {
+  id: "deepseek-ai/DeepSeek-V4.1-Flash",
+  name: "DeepSeek V4.1 Flash",
+  supportsVision: true,
+  supportsReasoning: true
+}, {
   id: "deepseek-ai/DeepSeek-V4-Pro-0813",
   name: "DeepSeek V4 Pro 0813"
 }, {
@@ -41,6 +46,14 @@ export default {
 }, {
   id: "deepseek-ai/DeepSeek-R1",
   name: "DeepSeek R1"
+}, {
+  id: "zai-org/GLM-5.3",
+  name: "GLM-5.3",
+  supportsReasoning: true
+}, {
+  id: "zai-org/GLM-5.3-Flash",
+  name: "GLM-5.3 Flash",
+  supportsReasoning: true
 }, {
   id: "zai-org/GLM-5.2",
   name: "GLM-5.2"

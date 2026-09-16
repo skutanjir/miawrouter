@@ -12,8 +12,9 @@ import { GET as deepseekTui } from "@/app/api/cli-tools/deepseek-tui-settings/ro
 import { GET as jcode } from "@/app/api/cli-tools/jcode-settings/route";
 import { GET as grokBuild } from "@/app/api/cli-tools/grok-build-settings/route";
 import { GET as devin } from "@/app/api/cli-tools/devin-settings/route";
+import { GET as ohMyPi } from "@/app/api/cli-tools/oh-my-pi-settings/route";
 
-const getters = { claude, codex, opencode, droid, openclaw, hermes, cowork, copilot, cline, kilo, "deepseek-tui": deepseekTui, jcode, "grok-build": grokBuild, devin };
+const getters = { claude, codex, opencode, droid, openclaw, hermes, cowork, copilot, cline, kilo, "deepseek-tui": deepseekTui, jcode, "grok-build": grokBuild, devin, "oh-my-pi": ohMyPi };
 
 export const agentStatusChecks = Object.fromEntries(Object.entries(getters).map(([id, getter]) => [id, async () => {
   const response = await getter();

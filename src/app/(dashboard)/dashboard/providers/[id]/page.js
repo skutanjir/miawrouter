@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
-import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, FreebuffAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal } from "@/shared/components";
+import { getProviderIconSrc } from "@/shared/utils/providerIcon";
+import { Card, Button, Badge, Input, Modal, CardSkeleton, OAuthModal, KiroOAuthWrapper, CursorAuthModal, IFlowCookieModal, GitLabAuthModal, Toggle, Select, EditConnectionModal, NoAuthProxyCard, ConfirmModal, ProviderIcon } from "@/shared/components";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, WEB_COOKIE_PROVIDERS, getProviderAlias, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, AI_PROVIDERS } from "@/shared/constants/providers";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
@@ -85,11 +85,13 @@ export default function ProviderDetailPage() {
   const [oneByOneCurrentConnectionId, setOneByOneCurrentConnectionId] = useState(null);
   const [oneByOneResults, setOneByOneResults] = useState({});
   const [oneByOneSummary, setOneByOneSummary] = useState(null);
+  const [onboardingConnectionId, setOnboardingConnectionId] = useState(null);
   const stopOneByOneRef = useRef(false);
   const [importingQoderModels, setImportingQoderModels] = useState(false);
   const { copied, copy } = useCopyToClipboard();
 
   const AG_RISK_STORAGE_KEY = "ag_risk_confirmed";
+  const supportsCloudCodeOnboarding = providerId === "antigravity" || providerId === "gemini-cli";
 
   const openOAuthConnection = () => {
     setShowOAuthModal(true);
@@ -820,6 +822,29 @@ export default function ProviderDetailPage() {
     }
   };
 
+  const handleOnboardConnection = async (id) => {
+    if (onboardingConnectionId) return;
+    setOnboardingConnectionId(id);
+    try {
+      const res = await fetch(`/api/providers/${id}/onboard`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const recovery = data.manualRecovery?.command
+          ? `\n\nManual recovery: ${data.manualRecovery.command}\n${data.manualRecovery.retryAction || "Then retry onboarding."}`
+          : "";
+        alert(`${data.error || "Google Cloud Code onboarding failed"}${recovery}`);
+        return;
+      }
+      await fetchConnections();
+      alert("Google Cloud Code is ready for this connection.");
+    } catch (error) {
+      console.log("Error onboarding connection:", error);
+      alert("Google Cloud Code onboarding failed. Reconnect the account and retry.");
+    } finally {
+      setOnboardingConnectionId(null);
+    }
+  };
+
   const handleSwapPriority = async (index1, index2) => {
     // Optimistic update state
     const newConnections = [...connections];
@@ -994,6 +1019,8 @@ export default function ProviderDetailPage() {
                   setShowEditModal(true);
                 }}
                 onDelete={() => handleDelete(conn.id)}
+                onOnboard={supportsCloudCodeOnboarding ? () => handleOnboardConnection(conn.id) : null}
+                onboarding={onboardingConnectionId === conn.id}
                 oneByOneStatus={oneByOneResults[conn.id] || null}
               />
             </div>
@@ -1077,6 +1104,7 @@ export default function ProviderDetailPage() {
     if (isCompatible) {
       return (
         <CompatibleModelsSection
+          providerId={providerId}
           providerStorageAlias={providerStorageAlias}
           providerDisplayAlias={providerDisplayAlias}
           modelAliases={modelAliases}
@@ -1116,6 +1144,7 @@ export default function ProviderDetailPage() {
           <ModelRow
             key={`${model.source}-${model.fullModel}`}
             model={{ id: model.id, name: model.name }}
+            providerId={providerId}
             fullModel={`${providerDisplayAlias}/${model.id}`}
             alias={model.alias}
             copied={copied}
@@ -1148,6 +1177,7 @@ export default function ProviderDetailPage() {
             <ModelRow
               key={model.id}
               model={model}
+              providerId={providerId}
               fullModel={`${providerDisplayAlias}/${model.id}`}
               alias={existingAlias}
               copied={copied}
@@ -1269,26 +1299,16 @@ export default function ProviderDetailPage() {
             className="flex size-12 shrink-0 items-center justify-center rounded-lg"
             style={{ backgroundColor: `${providerInfo.color}15` }}
           >
-            {headerImgError || !getHeaderIconPath() ? (
-              <span className="text-sm font-bold" style={{ color: providerInfo.color }}>
-                {providerInfo.textIcon || providerInfo.id.slice(0, 2).toUpperCase()}
-              </span>
-            ) : (
-              <Image
-                src={getHeaderIconPath()}
-                alt={providerInfo.name}
-                width={48}
-                height={48}
-                className="max-h-12 max-w-12 rounded-lg object-contain"
-                sizes="48px"
-                onError={() => {
-                  markProviderIconMissing(providerInfo.id);
-                  setHeaderImgError(true);
-                }}
-              loading="lazy"
-              decoding="async"
-              />
-            )}
+            <ProviderIcon
+              src={getHeaderIconPath()}
+              providerId={providerInfo.id}
+              alt={providerInfo.name}
+              size={44}
+              className="max-h-11 max-w-11 rounded-lg object-contain"
+              fallbackIcon={providerInfo.icon}
+              fallbackText={providerInfo.textIcon || providerInfo.id.slice(0, 2).toUpperCase()}
+              fallbackColor={providerInfo.color}
+            />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
@@ -1676,12 +1696,6 @@ export default function ProviderDetailPage() {
         />
       ) : providerId === "cursor" ? (
         <CursorAuthModal
-          isOpen={showOAuthModal}
-          onSuccess={handleOAuthSuccess}
-          onClose={() => setShowOAuthModal(false)}
-        />
-      ) : providerId === "freebuff" ? (
-        <FreebuffAuthModal
           isOpen={showOAuthModal}
           onSuccess={handleOAuthSuccess}
           onClose={() => setShowOAuthModal(false)}
