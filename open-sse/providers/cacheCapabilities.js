@@ -133,10 +133,13 @@ const BY_PROVIDER = Object.freeze({
     mode: CACHE_MODE.IMPLICIT,
     marker: CACHE_MARKER.NONE,
     usage: USAGE_OPENAI,
-    evidence: "test",
-    // tests/unit/provider-contract.test.js declares openrouter as cache-usage
-    // reporting; the router only mirrors whatever the upstream reports.
-    note: "Aggregator: cache reporting is whatever the routed upstream returns.",
+    // Inferred, not verified: openrouter is an aggregator, so cache reporting is
+    // whatever the routed upstream returns. The contract fixture declares cache
+    // usage for it, which is a declaration and not evidence about any upstream.
+    // Mode stays implicit because the router only mirrors upstream-reported usage
+    // and never injects a marker — that holds whatever the routed provider does.
+    evidence: "inferred",
+    note: "Aggregator: cache reporting mirrors whichever upstream was routed.",
   },
   alicode: {
     mode: CACHE_MODE.EXPLICIT,

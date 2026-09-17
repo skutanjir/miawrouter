@@ -91,7 +91,7 @@ Generated from the live registry + `open-sse/providers/cacheCapabilities.js`. 11
 | opencode | openai | unknown | — | no | — | — | unknown |
 | opencode-go | openai | unknown | — | no | — | — | unknown |
 | opencode-zen | openai | unknown | — | no | — | — | unknown |
-| openrouter | openai | implicit | — | no | prompt_tokens_details.cached_tokens, input_tokens_details.cached_tokens | — | test |
+| openrouter | openai | implicit | — | no | prompt_tokens_details.cached_tokens, input_tokens_details.cached_tokens | — | inferred |
 | ovh-ai-endpoints | openai | unknown | — | no | — | — | unknown |
 | perplexity | openai | unknown | — | no | — | — | unknown |
 | perplexity-agent | openai-responses | implicit | — | no | prompt_tokens_details.cached_tokens, input_tokens_details.cached_tokens | — | code |
@@ -134,7 +134,7 @@ Generated from the live registry + `open-sse/providers/cacheCapabilities.js`. 11
 | openai-responses | format | implicit | — | code | OpenAI automatic caching; cached tokens are a subset of input tokens. |
 | openai | provider | implicit | — | code | Automatic prompt caching; reports prompt_tokens_details.cached_tokens. |
 | deepseek | provider | implicit | — | code | Context caching; reports prompt_cache_hit_tokens / prompt_cache_miss_tokens. |
-| openrouter | provider | implicit | — | test | Aggregator: cache reporting is whatever the routed upstream returns. |
+| openrouter | provider | implicit | — | inferred | Aggregator: cache reporting mirrors whichever upstream was routed. |
 | alicode | provider | explicit | cache_control | code | DashScope-compatible; accepts cache_control markers. |
 | alicode-intl | provider | explicit | cache_control | code | DashScope-compatible; accepts cache_control markers. |
 | alims-intl | provider | explicit | cache_control | code | DashScope-compatible; accepts cache_control markers. |
