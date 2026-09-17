@@ -5,6 +5,51 @@ import { dbg } from "../utils/debugLog.js";
 import { ANTHROPIC_API_VERSION, OPENAI_COMPAT_BASE, ANTHROPIC_COMPAT_BASE } from "../providers/shared.js";
 import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { isCircuitBlocked, admitProbe, recordFailure, recordSuccess, releaseProbe } from "../services/circuitBreaker.js";
+import { acquireSlot } from "../services/concurrencyLimiter.js";
+
+function wrapStreamingResponse(response, release) {
+  if (!response || !response.body) {
+    release();
+    return response;
+  }
+  let releasedOnce = false;
+  const safeRelease = () => {
+    if (!releasedOnce) {
+      releasedOnce = true;
+      release();
+    }
+  };
+
+  const transform = new TransformStream({
+    transform(chunk, controller) {
+      controller.enqueue(chunk);
+    },
+    flush() {
+      safeRelease();
+    },
+    cancel() {
+      safeRelease();
+    }
+  });
+
+  const wrappedStream = response.body.pipeThrough(transform);
+  if (typeof Response !== "undefined" && response instanceof Response) {
+    try {
+      return new Response(wrappedStream, response);
+    } catch {
+      // Fall through to Proxy if Response constructor fails
+    }
+  }
+
+  return new Proxy(response, {
+    get(target, prop, receiver) {
+      if (prop === "body") return wrappedStream;
+      const val = Reflect.get(target, prop, receiver);
+      if (typeof val === "function") return val.bind(target);
+      return val;
+    }
+  });
+}
 
 /**
  * BaseExecutor - Base class for provider executors
@@ -147,65 +192,98 @@ export class BaseExecutor {
 
       if (!retryAttemptsByUrl[urlIndex]) retryAttemptsByUrl[urlIndex] = 0;
 
-      // Abort if upstream doesn't return response headers within connection timeout
-      const connectCtrl = new AbortController();
-      const timeoutMs = this.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
-      const connectTimer = setTimeout(() => connectCtrl.abort(new Error("fetch connect timeout")), timeoutMs);
-      const mergedSignal = signal ? AbortSignal.any([signal, connectCtrl.signal]) : connectCtrl.signal;
-
+      let releaseSlot = null;
       try {
         const bodyStr = JSON.stringify(transformedBody);
-        const fetchT0 = Date.now();
-        dbg("FETCH", `${this.provider.toUpperCase()} → ${url} | body=${bodyStr.length}B | connectTimeout=${timeoutMs}ms`);
-        const response = await proxyAwareFetch(url, {
-          method: "POST",
-          headers,
-          body: bodyStr,
-          signal: mergedSignal
-        }, proxyOptions);
-        clearTimeout(connectTimer);
-        const ct = response.headers?.get?.("content-type") || "";
-        const cl = response.headers?.get?.("content-length") || "?";
-        dbg("FETCH", `${this.provider.toUpperCase()} ← ${response.status} | ttft=${Date.now() - fetchT0}ms | ct=${ct} | cl=${cl}`);
-
-        if (await tryRetry(urlIndex, response.status, `status ${response.status}`, response)) { urlIndex--; continue; }
-
-        if (this.shouldRetry(response.status, urlIndex)) {
-          log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
-          lastStatus = response.status;
-          // 5xx = provider-side health problem → feed the circuit breaker.
-          // 429 (quota) is account-scoped and already cooled down elsewhere.
-          if (response.status >= 500) recordFailure(this.provider, connectionId);
-          continue;
+        // Acquire backpressure BEFORE arming the connect timer: time spent
+        // waiting for a slot is router queueing, not upstream latency, and must
+        // not be attributed to the provider (nor burn its connect budget).
+        // A ConcurrencyLimitError propagates untouched — shedding load must not
+        // retry, penalise the provider, or fall back to another account.
+        try {
+          releaseSlot = await acquireSlot({ provider: this.provider, connectionId, signal });
+        } catch (slotError) {
+          // We were shed before ever contacting upstream, so the half-open probe
+          // this request claimed must be handed back — otherwise it would stay
+          // "in flight" for its full self-heal window.
+          releaseProbe(this.provider, connectionId);
+          throw slotError;
         }
 
-        // Only a healthy response closes the breaker; 4xx (auth/bad request)
-        // is not evidence of provider health either way.
-        if (response.ok) recordSuccess(this.provider, connectionId);
-        return { response, url, headers, transformedBody };
-      } catch (error) {
-        clearTimeout(connectTimer);
-        lastError = error;
-        const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
-        dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
-        // Connect timeout is internal — convert to retryable network error, don't propagate AbortError
-        if (error.name === "AbortError" && !isConnectTimeout) {
-          // Client abort is not a provider-health signal; release the half-open probe.
-          releaseProbe(this.provider, connectionId);
+        // Abort if upstream doesn't return response headers within connection timeout
+        const connectCtrl = new AbortController();
+        const timeoutMs = this.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
+        const connectTimer = setTimeout(() => connectCtrl.abort(new Error("fetch connect timeout")), timeoutMs);
+        const mergedSignal = signal ? AbortSignal.any([signal, connectCtrl.signal]) : connectCtrl.signal;
+
+        try {
+          const fetchT0 = Date.now();
+          dbg("FETCH", `${this.provider.toUpperCase()} → ${url} | body=${bodyStr.length}B | connectTimeout=${timeoutMs}ms`);
+          const response = await proxyAwareFetch(url, {
+            method: "POST",
+            headers,
+            body: bodyStr,
+            signal: mergedSignal
+          }, proxyOptions);
+          clearTimeout(connectTimer);
+          const ct = response.headers?.get?.("content-type") || "";
+          const cl = response.headers?.get?.("content-length") || "?";
+          dbg("FETCH", `${this.provider.toUpperCase()} ← ${response.status} | ttft=${Date.now() - fetchT0}ms | ct=${ct} | cl=${cl}`);
+
+          if (await tryRetry(urlIndex, response.status, `status ${response.status}`, response)) {
+            urlIndex--;
+            continue;
+          }
+
+          if (this.shouldRetry(response.status, urlIndex)) {
+            log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
+            lastStatus = response.status;
+            // 5xx = provider-side health problem → feed the circuit breaker.
+            // 429 (quota) is account-scoped and already cooled down elsewhere.
+            if (response.status >= 500) recordFailure(this.provider, connectionId);
+            continue;
+          }
+
+          // Only a healthy response closes the breaker; 4xx (auth/bad request)
+          // is not evidence of provider health either way.
+          if (response.ok) recordSuccess(this.provider, connectionId);
+
+          if (stream) {
+            const wrappedResponse = wrapStreamingResponse(response, releaseSlot);
+            releaseSlot = null; // Ownership transferred to wrapped response body lifecycle
+            return { response: wrappedResponse, url, headers, transformedBody };
+          }
+
+          return { response, url, headers, transformedBody };
+        } catch (error) {
+          clearTimeout(connectTimer);
+          lastError = error;
+          const isConnectTimeout = connectCtrl.signal.aborted && error.name === "AbortError";
+          dbg("FETCH", `${this.provider.toUpperCase()} ✖ ${error.name}: ${error.message}${isConnectTimeout ? " (connect timeout)" : ""}`);
+          // Connect timeout is internal — convert to retryable network error, don't propagate AbortError
+          if (error.name === "AbortError" && !isConnectTimeout) {
+            // Client abort is not a provider-health signal; release the half-open probe.
+            releaseProbe(this.provider, connectionId);
+            throw error;
+          }
+
+          // Network-level failure (DNS/TCP/TLS/timeout) = provider health problem.
+          recordFailure(this.provider, connectionId);
+
+          // Map network/fetch exceptions to 502 retry config
+          if (await tryRetry(urlIndex, HTTP_STATUS.BAD_GATEWAY, `network "${error.message}"`)) { urlIndex--; continue; }
+
+          if (urlIndex + 1 < fallbackCount) {
+            log?.debug?.("RETRY", `Error on ${url}, trying fallback ${urlIndex + 1}`);
+            continue;
+          }
           throw error;
         }
-
-        // Network-level failure (DNS/TCP/TLS/timeout) = provider health problem.
-        recordFailure(this.provider, connectionId);
-
-        // Map network/fetch exceptions to 502 retry config
-        if (await tryRetry(urlIndex, HTTP_STATUS.BAD_GATEWAY, `network "${error.message}"`)) { urlIndex--; continue; }
-
-        if (urlIndex + 1 < fallbackCount) {
-          log?.debug?.("RETRY", `Error on ${url}, trying fallback ${urlIndex + 1}`);
-          continue;
+      } finally {
+        if (releaseSlot) {
+          releaseSlot();
+          releaseSlot = null;
         }
-        throw error;
       }
     }
 
