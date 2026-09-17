@@ -77,7 +77,7 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to apply configuration");
-      setAutoConfigStatus((current) => ({ ...current, ...data, has9Router: true }));
+      setAutoConfigStatus((current) => ({ ...current, ...data, hasMiawRouter: true, has9Router: true }));
       setAutoConfigMessage({ type: "success", text: `Saved to ${data.configPath || tool.autoConfig.configPath}` });
     } catch (error) {
       setAutoConfigMessage({ type: "error", text: error.message });
@@ -180,7 +180,7 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
 
   const renderAutoConfig = () => {
     if (!tool.autoConfig) return null;
-    const configured = autoConfigStatus?.has9Router;
+    const configured = autoConfigStatus?.hasMiawRouter ?? autoConfigStatus?.has9Router;
     return (
       <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

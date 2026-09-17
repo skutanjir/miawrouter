@@ -78,6 +78,7 @@ export const COMPAT_ALIASES = {
   "open-sse/config/runtimeConfig.js": ["X-9Router", "9router"],
   // §5: chatCore reads both headers (new wins).
   "open-sse/handlers/chatCore.js": ["X-9Router", "9router"],
+  "open-sse/services/model.js": ["9router"],
   // §4 pinned upstream contract (line 224): outbound "X-Msh-Platform": "9router" required by the msh upstream.
   "open-sse/config/appConstants.js": ["9router"],
   // §4: external provider contracts — Cline's upstream expects X-CLIENT-TYPE "9router"
@@ -124,6 +125,7 @@ export const COMPAT_ALIASES = {
   "src/app/api/cli-tools/jcode-settings/route.js": ["9router", "20128"],
   "src/app/api/cli-tools/kilo-settings/route.js": ["9router"],
   "src/app/api/cli-tools/cline-settings/route.js": ["9router"],
+  "src/app/api/cli-tools/oh-my-pi-settings/route.js": ["9router"],
   // §5: legacy CN deleted on install so a previous 9Router CA doesn't linger in stores.
   "src/mitm/cert/install.js": ["9router"],
   // §5: API response field has9Router is the client contract (kept as-is across routes).
@@ -133,6 +135,8 @@ export const COMPAT_ALIASES = {
   "src/app/api/cli-tools/copilot-settings/route.js": ["9router", "9router"],
   "src/app/api/cli-tools/droid-settings/route.js": ["9router", "9router"],
   "src/app/api/cli-tools/deepseek-tui-settings/route.js": ["9router", "9router"],
+  "src/lib/agents/registry.js": ["9router"],
+  "src/lib/agents/subagentAutomator.js": ["9router"],
   // §5: localStorage preset keys — new writes miawrouter, legacy 9router read.
   "src/app/(dashboard)/dashboard/cli-tools/components/BaseUrlSelect.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/EndpointPresetControl.js": ["9router"],
@@ -152,6 +156,7 @@ export const COMPAT_ALIASES = {
   "src/app/(dashboard)/dashboard/cli-tools/components/OpenCodeToolCard.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/OpenClawToolCard.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/JcodeToolCard.js": ["9router"],
+  "src/app/(dashboard)/dashboard/cli-tools/components/DefaultToolCard.js": ["9router"],
   // §5: upstream-diff reverse-map legitimately names every old identifier it displays.
   "scripts/upstream-diff.mjs": ["9router", "9r_", "NINEROUTER", "X-9Router", "20127", "20128", "20129", "9router.com"],
   // §5 migration implementation: `miawrouter migrate --from-9router` reads the
@@ -178,6 +183,7 @@ export const COMPAT_ALIASES = {
   "tests/translator/__snapshots__/golden-url-header.test.js.snap": ["9router"],
   "tests/unit/kimi-usage.test.js": ["9router"],
   "tests/unit/cursor-agent-proto.test.js": ["9router"],
+  "tests/unit/agent-registry-core.test.js": ["9router"],
 };
 
 /** Directory basenames excluded at any depth (docs/REBRAND.md §1). */

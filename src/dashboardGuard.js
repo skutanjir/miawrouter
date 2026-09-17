@@ -189,7 +189,14 @@ export async function canAccessLocalOnlyRoute(request) {
 }
 
 async function hasValidToken(request) {
-  const token = request.cookies.get("auth_token")?.value;
+  let token = request.cookies?.get?.("auth_token")?.value;
+  if (!token) {
+    const cookieHeader = request.headers?.get?.("cookie");
+    if (cookieHeader) {
+      const match = cookieHeader.split(";").map((s) => s.trim()).find((s) => s.startsWith("auth_token="));
+      if (match) token = decodeURIComponent(match.slice(11));
+    }
+  }
   return await verifyDashboardAuthToken(token);
 }
 
