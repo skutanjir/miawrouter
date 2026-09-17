@@ -85,6 +85,7 @@ export async function GET() {
       source,
       configExists: Boolean(content),
       configPath,
+      hasMiawRouter: config.configured,
       has9Router: config.configured,
       ...config,
     });
@@ -136,6 +137,7 @@ export async function POST(request) {
       message: "Oh My Pi settings applied successfully",
       configPath,
       backupPath,
+      hasMiawRouter: true,
       has9Router: true,
     });
   } catch (error) {
