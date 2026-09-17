@@ -14,7 +14,10 @@ async function getGotScraping() {
   if (_gotScrapingChecked) return _gotScraping;
   _gotScrapingChecked = true;
   try {
-    const mod = await import("got-scraping");
+    // Optional dependency, probed at runtime. webpackIgnore keeps the build from
+    // resolving it statically so an absent package stays a caught runtime fallback
+    // instead of a "Module not found" warning on every build.
+    const mod = await import(/* webpackIgnore: true */ "got-scraping");
     _gotScraping = typeof mod.gotScraping === "function" ? mod.gotScraping : null;
     if (_gotScraping) dbg("TLS", "got-scraping loaded (browser-like JA3 enabled)");
   } catch (e) {
