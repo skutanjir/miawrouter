@@ -83,11 +83,14 @@ function wrapNdjsonAsOpenAISse(originalResponse, model) {
     },
   });
 
+  const newHeaders = new Headers(originalResponse.headers);
+  newHeaders.set("Content-Type", "text/event-stream; charset=utf-8");
+
   const newBody = originalResponse.body.pipeThrough(transform);
   return new Response(newBody, {
     status: originalResponse.status,
     statusText: originalResponse.statusText,
-    headers: originalResponse.headers,
+    headers: newHeaders,
   });
 }
 

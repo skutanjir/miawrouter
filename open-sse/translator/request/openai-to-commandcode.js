@@ -171,7 +171,6 @@ function convertTools(tools) {
       result.push({
         name: t.function.name,
         description: t.function.description,
-        parameters: schema,
         input_schema: schema,
       });
     } else if (t.name && (t.input_schema || t.parameters)) {
@@ -179,7 +178,6 @@ function convertTools(tools) {
       result.push({
         name: t.name,
         description: t.description,
-        parameters: schema,
         input_schema: schema,
       });
     }

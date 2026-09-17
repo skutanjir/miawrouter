@@ -101,7 +101,7 @@ describe("open-sse getConsistentMachineId — no default salt", () => {
 
   it("source file does not contain the literal endpoint-proxy-salt", async () => {
     const src = fs.readFileSync(
-      path.resolve("../open-sse/shared/machineId.js"),
+      path.resolve(process.cwd(), "open-sse/shared/machineId.js"),
       "utf8",
     );
     expect(src).not.toContain("endpoint-proxy-salt");
@@ -111,7 +111,7 @@ describe("open-sse getConsistentMachineId — no default salt", () => {
 describe("app-side machineId source — no weak literal", () => {
   it("source file does not contain the literal endpoint-proxy-salt", () => {
     const src = fs.readFileSync(
-      path.resolve("../src/shared/utils/machineId.js"),
+      path.resolve(process.cwd(), "src/shared/utils/machineId.js"),
       "utf8",
     );
     expect(src).not.toContain("endpoint-proxy-salt");
