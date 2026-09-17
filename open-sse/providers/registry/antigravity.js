@@ -25,8 +25,11 @@ export default {
       "User-Agent": ANTIGRAVITY_IDE_USER_AGENT,
     },
     retry: {
+      // 6 attempts on 429 only: the executor honours Retry-After and vetoes
+      // waits above MAX_RETRY_AFTER_MS, so extra attempts cost nothing when
+      // the quota window has not moved.
       "429": {
-        attempts: 3,
+        attempts: 6,
       },
       "500": {
         attempts: 3,
