@@ -178,7 +178,7 @@ export function openaiToCursorRequest(model, body, stream, credentials) {
   return {
     ...rest,
     messages,
-    max_tokens: DEFAULT_MIN_TOKENS
+    max_tokens: body.max_tokens ?? body.max_completion_tokens ?? DEFAULT_MIN_TOKENS
   };
 }
 

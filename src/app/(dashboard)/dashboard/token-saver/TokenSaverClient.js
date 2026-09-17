@@ -631,10 +631,10 @@ export default function TokenSaverClient() {
     {
       id: "max_saver",
       icon: "bolt",
-      name: "Maksimal Hemat",
-      badge: "Hemat Maksimal",
+      name: "Maximum Savings",
+      badge: "Maximum Savings",
       badgeColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-      description: "Kompresi agresif untuk tool output, prompt cache L0 aktif, dan respon ringkas code-first tanpa filler.",
+      description: "Aggressive compression for tool outputs, L0 prompt caching enabled, and concise code-first responses with zero filler.",
       settings: {
         rtkEnabled: true,
         rtkMode: "aggressive",
@@ -649,10 +649,10 @@ export default function TokenSaverClient() {
     {
       id: "balanced",
       icon: "tune",
-      name: "Seimbang (Rekomendasi)",
-      badge: "Stabil & Aman",
+      name: "Balanced (Recommended)",
+      badge: "Stable & Safe",
       badgeColor: "bg-primary/15 text-primary border-primary/30",
-      description: "Kompresi tool output standar tanpa mengubah gaya bahasa maupun respon model bawaan.",
+      description: "Standard tool output compression without altering language style or default model responses.",
       settings: {
         rtkEnabled: true,
         rtkMode: "standard",
@@ -668,7 +668,7 @@ export default function TokenSaverClient() {
       name: "Developer Pro",
       badge: "Code-First & YAGNI",
       badgeColor: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-      description: "Khusus coding agent (Claude Code, Cursor, Windsurf): patch kode langsung to-the-point dan minim boilerplate.",
+      description: "Tailored for coding agents (Claude Code, Cursor, Windsurf): direct to-the-point code patches with minimal boilerplate.",
       settings: {
         rtkEnabled: true,
         rtkMode: "standard",
@@ -683,9 +683,9 @@ export default function TokenSaverClient() {
       id: "passthrough",
       icon: "block",
       name: "Passthrough (Off)",
-      badge: "Tanpa Filter",
+      badge: "No Filters",
       badgeColor: "bg-surface-2 text-text-muted border-border",
-      description: "Nonaktifkan semua filter untuk evaluasi mentah atau debugging respon tanpa kompresi.",
+      description: "Disable all filters for raw evaluation or uncompressed response debugging.",
       settings: {
         rtkEnabled: false,
         cavemanEnabled: false,
@@ -766,14 +766,14 @@ export default function TokenSaverClient() {
               <span className="material-symbols-outlined text-primary">
                 rocket_launch
               </span>
-              Profil Penghematan Cepat (Quick Presets)
+              Quick Presets (Token Saver Profiles)
             </h2>
             <p className="text-sm text-text-muted mt-0.5">
-              Pilih strategi siap pakai dengan 1-klik agar performa optimal dan hemat token tanpa bingung konfigurasi manual.
+              Choose a 1-click ready-to-use strategy for optimal performance and token savings without complex manual configuration.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted">Profil Saat Ini:</span>
+            <span className="text-xs text-text-muted">Current Profile:</span>
             <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
               activePresetId === "max_saver"
                 ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
@@ -785,11 +785,11 @@ export default function TokenSaverClient() {
                 ? "bg-surface-2 text-text-muted border-border"
                 : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
             }`}>
-              {activePresetId === "max_saver" ? "⚡ Maksimal Hemat"
+              {activePresetId === "max_saver" ? "⚡ Maximum Savings"
                 : activePresetId === "developer_pro" ? "🛠️ Developer Pro"
-                : activePresetId === "balanced" ? "⚖️ Seimbang"
+                : activePresetId === "balanced" ? "⚖️ Balanced"
                 : activePresetId === "passthrough" ? "⚪ Passthrough"
-                : "⚙️ Kustom (Custom)"}
+                : "⚙️ Custom"}
             </span>
           </div>
         </div>
@@ -838,7 +838,7 @@ export default function TokenSaverClient() {
                   <span className="material-symbols-outlined text-sm">
                     {isApplied ? "check_circle" : isActive ? "check" : "play_arrow"}
                   </span>
-                  {isApplied ? "Berhasil Diterapkan!" : isActive ? "Profil Aktif" : "Terapkan Profil"}
+                  {isApplied ? "Applied Successfully!" : isActive ? "Active Profile" : "Apply Profile"}
                 </button>
               </div>
             );
@@ -848,10 +848,10 @@ export default function TokenSaverClient() {
         {/* Live Status Highlights Bar */}
         <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
           <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
-            <span className="text-text-muted block text-[11px]">Kompresi Tool (RTK)</span>
+            <span className="text-text-muted block text-[11px]">Tool Compression (RTK)</span>
             <span className="font-medium text-text mt-0.5 flex items-center gap-1">
               <span className={`w-2 h-2 rounded-full ${rtkEnabled ? "bg-emerald-500" : "bg-text-muted/40"}`} />
-              {rtkEnabled ? `Aktif (${rtkMode})` : "Nonaktif"}
+              {rtkEnabled ? `Active (${rtkMode})` : "Disabled"}
             </span>
           </div>
           <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
@@ -862,15 +862,15 @@ export default function TokenSaverClient() {
             </span>
           </div>
           <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
-            <span className="text-text-muted block text-[11px]">Gaya Respon Model</span>
+            <span className="text-text-muted block text-[11px]">Response Focus Style</span>
             <span className="font-medium text-text mt-0.5 block capitalize">
-              {responseFocus === "code" ? "Code-first" : responseFocus === "explanation" ? "Penjelasan" : "Seimbang"}
+              {responseFocus === "code" ? "Code-first" : responseFocus === "explanation" ? "Explanation-first" : "Balanced"}
             </span>
           </div>
           <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
-            <span className="text-text-muted block text-[11px]">Ambang Pemicu</span>
+            <span className="text-text-muted block text-[11px]">Trigger Threshold</span>
             <span className="font-medium text-text mt-0.5 block">
-              {Number(autoTriggerTokens) === 0 ? "Segera (0 token)" : `${autoTriggerTokens} token`}
+              {Number(autoTriggerTokens) === 0 ? "Immediate (0 tokens)" : `${autoTriggerTokens} tokens`}
             </span>
           </div>
         </div>

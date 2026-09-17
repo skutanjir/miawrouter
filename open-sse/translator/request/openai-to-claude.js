@@ -250,6 +250,21 @@ function getContentBlocksFromMessage(msg, toolNameMap = new Map()) {
       }
     }
   } else if (msg.role === ROLE.ASSISTANT) {
+    const hasThinkingInContent = Array.isArray(msg.content) && msg.content.some(
+      (part) => part.type === CLAUDE_BLOCK.THINKING || part.type === CLAUDE_BLOCK.REDACTED_THINKING
+    );
+
+    const reasoning = typeof msg.reasoning_content === "string" && msg.reasoning_content
+      ? msg.reasoning_content
+      : (typeof msg.reasoning === "string" && msg.reasoning ? msg.reasoning : null);
+
+    if (!hasThinkingInContent && reasoning) {
+      blocks.push({
+        type: CLAUDE_BLOCK.THINKING,
+        thinking: reasoning,
+      });
+    }
+
     if (Array.isArray(msg.content)) {
       for (const part of msg.content) {
         if (part.type === OPENAI_BLOCK.TEXT && part.text) {
@@ -301,7 +316,8 @@ function convertOpenAIToolChoice(choice) {
   // OpenAI string forms: "auto" | "none" | "required"
   if (typeof choice === "string") {
     if (choice === "required") return { type: "any" };
-    return { type: "auto" }; // "auto", "none", or anything unexpected
+    if (choice === "none") return { type: "none" };
+    return { type: "auto" };
   }
 
   if (typeof choice === "object") {
