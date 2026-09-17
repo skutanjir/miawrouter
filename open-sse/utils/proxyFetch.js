@@ -6,9 +6,6 @@ const originalFetch = globalThis.fetch;
 const proxyDispatchers = new Map();
 
 // ─── TLS fingerprinting via got-scraping (browser-like JA3) ───────────────
-// Disabled: not in use. Kept commented for future re-enable.
-// Restore the original block to re-enable per-host JA3 spoofing.
-/*
 let _gotScraping = null;
 let _gotScrapingChecked = false;
 const _gotScrapingLoggedHosts = new Set();
@@ -37,43 +34,32 @@ async function gotScrapingFetch(url, options) {
     ? Object.fromEntries(headersInit.entries())
     : { ...headersInit };
 
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const stream = gs.stream({
-      url,
-      method,
-      headers,
-      body: method === "GET" || method === "HEAD" ? undefined : options.body,
-      throwHttpErrors: false,
-      retry: { limit: 0 },
-      timeout: { request: undefined },
-      followRedirect: false,
-      decompress: true,
-    });
+  const res = await gs({
+    url,
+    method,
+    headers,
+    body: method === "GET" || method === "HEAD" ? undefined : options.body,
+    throwHttpErrors: false,
+    retry: { limit: 0 },
+    timeout: { request: undefined },
+    followRedirect: false,
+    decompress: true,
+    responseType: "buffer",
+  });
 
-    if (options.signal) {
-      const onAbort = () => { try { stream.destroy(new Error("aborted")); } catch { } };
-      if (options.signal.aborted) onAbort();
-      else options.signal.addEventListener("abort", onAbort, { once: true });
-    }
+  const resHeaders = new Headers();
+  for (const [k, v] of Object.entries(res.headers || {})) {
+    if (Array.isArray(v)) v.forEach((x) => resHeaders.append(k, String(x)));
+    else if (v != null) resHeaders.set(k, String(v));
+  }
 
-    stream.once("response", (res) => {
-      if (settled) return;
-      settled = true;
-      const resHeaders = new Headers();
-      for (const [k, v] of Object.entries(res.headers || {})) {
-        if (Array.isArray(v)) v.forEach((x) => resHeaders.append(k, String(x)));
-        else if (v != null) resHeaders.set(k, String(v));
-      }
-      const body = Readable.toWeb(stream);
-      resolve(new Response(body, { status: res.statusCode, statusText: res.statusMessage || "", headers: resHeaders }));
-    });
+  const raw = res.rawBody || res.body || "";
+  const bodyText = Buffer.isBuffer(raw) ? raw.toString("utf8") : String(raw);
 
-    stream.once("error", (err) => {
-      if (settled) return;
-      settled = true;
-      reject(err);
-    });
+  return new Response(bodyText, {
+    status: res.statusCode,
+    statusText: res.statusMessage || "",
+    headers: resHeaders,
   });
 }
 
@@ -95,7 +81,6 @@ async function tryGotScrapingFetch(url, options) {
     return null;
   }
 }
-*/
 
 // DNS cache — use Map to avoid prototype pollution via malformed hostnames
 const DNS_CACHE = new Map();
@@ -348,8 +333,22 @@ export async function proxyAwareFetch(url, options = {}, proxyOptions = null) {
     }
   }
 
-  // got-scraping disabled — use native fetch directly
-  // (Re-enable per-host by wrapping with tryGotScrapingFetch when needed)
+  // TLS fingerprinting for Anthropic non-streaming requests
+  try {
+    const parsed = new URL(targetUrl);
+    if (parsed.hostname === "api.anthropic.com") {
+      const headersInit = options.headers || {};
+      const accept = headersInit instanceof Headers
+        ? headersInit.get("accept") || ""
+        : (headersInit["accept"] || headersInit["Accept"] || "");
+      const isStreaming = String(accept).toLowerCase().includes("text/event-stream");
+      if (!isStreaming) {
+        const gsRes = await tryGotScrapingFetch(url, options);
+        if (gsRes) return gsRes;
+      }
+    }
+  } catch { }
+
   return originalFetch(url, options);
 }
 
