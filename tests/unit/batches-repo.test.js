@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createNodeSqliteAdapter } from "../../src/lib/db/adapters/nodeSqliteAdapter.js";
 import { runMigrationOnce } from "../../src/lib/db/migrate.js";
+
+async function getTestAdapter() {
+  try {
+    const { createNodeSqliteAdapter } = await import("../../src/lib/db/adapters/nodeSqliteAdapter.js");
+    return await createNodeSqliteAdapter(":memory:");
+  } catch {
+    const { createBetterSqliteAdapter } = await import("../../src/lib/db/adapters/betterSqliteAdapter.js");
+    return createBetterSqliteAdapter(":memory:");
+  }
+}
 
 const mocks = vi.hoisted(() => ({ getAdapter: vi.fn() }));
 vi.mock("@/lib/db/driver.js", () => ({ getAdapter: mocks.getAdapter }));
@@ -8,7 +17,7 @@ const repo = await import("../../src/lib/db/repos/batchesRepo.js");
 
 describe("batch repository", () => {
   let db;
-  beforeEach(async () => { db = await createNodeSqliteAdapter(":memory:"); await runMigrationOnce(db); mocks.getAdapter.mockResolvedValue(db); });
+  beforeEach(async () => { db = await getTestAdapter(); await runMigrationOnce(db); mocks.getAdapter.mockResolvedValue(db); });
   afterEach(() => db?.close());
 
   it("persists and transitions explicit lifecycle states", async () => {
