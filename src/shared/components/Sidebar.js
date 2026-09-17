@@ -127,9 +127,9 @@ function NavSection({ title, items, pathname, onClose, open: defaultOpen = true 
     <div className="pt-2">
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="label px-2.5 py-1 mb-0.5 flex items-center justify-between w-full hover:text-text-main transition-colors cursor-pointer"
+        className="label px-2.5 py-1 mb-1 flex items-center justify-between w-full hover:text-text-main transition-colors cursor-pointer"
       >
-        <span>{title}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">{title}</span>
         <span
           className="material-symbols-outlined text-[13px] text-text-muted/70 transition-transform"
           style={{ transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
@@ -321,7 +321,7 @@ export default function Sidebar({ onClose }) {
 
           {/* System section */}
           <div className="pt-2">
-            <p className="label px-2.5 py-1 mb-0.5">
+            <p className="label px-2.5 py-1 mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">
               System
             </p>
 

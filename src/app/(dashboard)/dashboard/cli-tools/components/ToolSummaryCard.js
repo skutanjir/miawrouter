@@ -2,57 +2,92 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Card } from "@/shared/components";
+import PropTypes from "prop-types";
+import { cn } from "@/shared/utils/cn";
 
 // Derive simple connected/configured/not-installed status from API payload
 function getStatus(status) {
-  if (!status) return { label: "Unknown", cls: "bg-gray-500/10 text-gray-500" };
-  if (!status.installed) return { label: "Not installed", cls: "bg-gray-500/10 text-gray-500" };
-  if (status.has9Router) return { label: "Connected", cls: "bg-green-500/10 text-green-600 dark:text-green-400" };
-  return { label: "Not configured", cls: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" };
+  if (!status) return { label: "Unknown", state: "unknown", cls: "bg-surface-2 text-text-muted border-border-subtle" };
+  if (!status.installed) return { label: "Not installed", state: "missing", cls: "bg-surface-2 text-text-muted border-border-subtle" };
+  if (status.has9Router) return { label: "Connected", state: "connected", cls: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" };
+  return { label: "Not configured", state: "unconfigured", cls: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" };
 }
 
 export default function ToolSummaryCard({ toolId, tool, status }) {
   const s = getStatus(status);
+  const isConnected = s.state === "connected";
+  const isPending = s.state === "unconfigured";
+
+  const statusRailClass = isConnected
+    ? "bg-primary"
+    : isPending
+      ? "bg-yellow-500"
+      : "bg-border-subtle dark:bg-border/60";
+
   return (
-    <Link href={`/dashboard/cli-tools/${toolId}`} className="block">
-      <Card padding="sm" className="h-full border border-border-subtle hover:border-primary/40 transition-colors">
-        <div className="flex h-full items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="size-8 flex items-center justify-center shrink-0 rounded border border-border-subtle bg-bg">
-              {tool.image ? (
-                <Image
-                  src={tool.image}
-                  alt={tool.name}
-                  width={24}
-                  height={24}
-                  className="size-6 object-contain rounded-xs"
-                  sizes="24px"
-                  onError={(e) => {
-                    e.target.style.display = "none";
-                  }}
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <span
-                  className="material-symbols-outlined text-[20px]"
-                  style={{
-                    color: tool.color || "var(--color-primary)",
-                  }}
-                >
-                  {tool.icon || "terminal"}
-                </span>
-              )}
+    <Link href={`/dashboard/cli-tools/${toolId}`} className="group block min-w-0">
+      <div
+        className={cn(
+          "relative flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-2.5 transition-all duration-150 cursor-pointer overflow-hidden",
+          "hover:border-border hover:bg-surface-2/60"
+        )}
+      >
+        <span
+          className={cn("absolute inset-y-0 left-0 w-[3px] transition-colors", statusRailClass)}
+          aria-hidden="true"
+        />
+        <div className="flex min-w-0 items-center gap-2.5 pl-1.5 flex-1">
+          <div className="size-8 shrink-0 rounded-md flex items-center justify-center border border-border-subtle/50 bg-bg">
+            {tool.image ? (
+              <Image
+                src={tool.image}
+                alt={tool.name}
+                width={22}
+                height={22}
+                className="size-[22px] object-contain rounded-xs"
+                sizes="22px"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                }}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <span
+                className="material-symbols-outlined text-[18px] text-primary"
+              >
+                {tool.icon || "terminal"}
+              </span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h3 className="truncate text-xs sm:text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
+                {tool.name}
+              </h3>
             </div>
-            <div className="min-w-0">
-              <h3 className="font-medium text-xs sm:text-sm text-text-main truncate">{tool.name}</h3>
-              <span className={`inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded ${s.cls}`}>{s.label}</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className={cn("inline-block px-1.5 py-0.5 text-[10px] font-medium font-mono uppercase tracking-wider rounded border", s.cls)}>
+                {s.label}
+              </span>
             </div>
           </div>
-          <span className="material-symbols-outlined text-text-muted text-[16px] shrink-0">chevron_right</span>
         </div>
-      </Card>
+        <div className="flex shrink-0 items-center pl-1 text-text-muted group-hover:text-primary transition-colors">
+          <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+        </div>
+      </div>
     </Link>
   );
 }
+
+ToolSummaryCard.propTypes = {
+  toolId: PropTypes.string.isRequired,
+  tool: PropTypes.shape({
+    name: PropTypes.string,
+    image: PropTypes.string,
+    icon: PropTypes.string,
+    color: PropTypes.string,
+  }).isRequired,
+  status: PropTypes.object,
+};

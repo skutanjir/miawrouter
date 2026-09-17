@@ -89,7 +89,7 @@ ProviderNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-// Center MiawRouter node — calm instrument card with quiet signal glow
+// Center MiawRouter node — calm instrument card with quiet signal border
 function RouterNode({ data }) {
   const powering = (data.activeCount || 0) > 0;
   return (
