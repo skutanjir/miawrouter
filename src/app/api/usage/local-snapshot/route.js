@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import os from "node:os";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
 
 import { getProviderConnections } from "@/lib/localDb";
 import { isLocalRequest } from "@/dashboardGuard";
@@ -19,9 +18,10 @@ const PROVIDER_ALIASES = {
 
 export const dynamic = "force-dynamic";
 
-function loadMiawAgentConnections(provider) {
+async function loadMiawAgentConnections(provider) {
   const dbPath = path.join(os.homedir(), ".miawagent", "router.sqlite");
   try {
+    const { DatabaseSync } = await import("node:sqlite");
     const db = new DatabaseSync(dbPath, { readOnly: true });
     return db
       .prepare("SELECT * FROM router_accounts WHERE provider = ? AND isActive = 1")
@@ -49,9 +49,10 @@ export async function GET(request) {
     return NextResponse.json({ error: "Unsupported provider" }, { status: 400 });
   }
 
+  const miawConnections = await loadMiawAgentConnections(provider);
   const connections = [
     ...(await getProviderConnections({ provider, isActive: true })),
-    ...loadMiawAgentConnections(provider),
+    ...miawConnections,
   ];
   const results = await Promise.all(
     connections.map(async (connection) => {
