@@ -7,7 +7,6 @@
  */
 
 import crypto from "crypto";
-import http2 from "http2";
 import { PROVIDER_OAUTH } from "../providers/index.js";
 import { buildCursorHeaders } from "../utils/cursorChecksum.js";
 import { decodeMessage } from "../utils/cursorProtobuf.js";
@@ -74,60 +73,6 @@ export function parseCursorUsableModels(payload) {
   return models;
 }
 
-/**
- * agent.api5.cursor.sh is HTTP/2-only; Node fetch/undici cannot speak h2.
- * Unary GetUsableModels uses an unframed protobuf body (application/proto).
- */
-function http2PostProto(url, headers, body, signal, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const client = http2.connect(`https://${urlObj.host}`);
-    const chunks = [];
-    let responseHeaders = {};
-    let settled = false;
-
-    const finish = (fn) => (...args) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timeoutId);
-      try { client.close(); } catch {}
-      fn(...args);
-    };
-
-    const timeoutId = setTimeout(finish(() => {
-      reject(new Error("Cursor GetUsableModels timed out"));
-    }), timeoutMs);
-
-    client.on("error", finish(reject));
-
-    const req = client.request({
-      ":method": "POST",
-      ":path": urlObj.pathname,
-      ":authority": urlObj.host,
-      ":scheme": "https",
-      ...headers,
-    });
-
-    req.on("response", (hdrs) => { responseHeaders = hdrs; });
-    req.on("data", (chunk) => { chunks.push(chunk); });
-    req.on("end", finish(() => {
-      resolve({
-        status: Number(responseHeaders[":status"] || 0),
-        body: Buffer.concat(chunks),
-      });
-    }));
-    req.on("error", finish(reject));
-
-    if (signal) {
-      const onAbort = finish(() => reject(new Error("Request aborted")));
-      if (signal.aborted) onAbort();
-      else signal.addEventListener("abort", onAbort, { once: true });
-    }
-
-    req.end(body && body.length ? Buffer.from(body) : undefined);
-  });
-}
-
 async function fetchCursorCatalog(credentials, signal) {
   const accessToken = credentials?.accessToken;
   const machineId = credentials?.providerSpecificData?.machineId;
@@ -144,14 +89,19 @@ async function fetchCursorCatalog(credentials, signal) {
   delete headers["connect-accept-encoding"];
   delete headers["connect-protocol-version"];
 
-  const response = await http2PostProto(url, headers, new Uint8Array(), signal, FETCH_TIMEOUT_MS);
+  const response = await fetch(url, {
+    method: "POST",
+    headers,
+    body: new Uint8Array(),
+    signal,
+  });
   if (response.status !== 200) {
     const error = new Error(`Cursor GetUsableModels returned ${response.status}`);
     error.status = response.status;
     throw error;
   }
 
-  return parseCursorUsableModels(new Uint8Array(response.body));
+  return parseCursorUsableModels(new Uint8Array(await response.arrayBuffer()));
 }
 
 /**

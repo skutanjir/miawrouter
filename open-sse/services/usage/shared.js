@@ -90,6 +90,8 @@ const PLAN_ALIASES = new Map([
   ["one ai", "Pro"],
   ["lite", "Lite"],
   ["light", "Lite"],
+  ["super grok", "Super Grok"],
+  ["premium plus", "Premium Plus"],
 ]);
 
 /**

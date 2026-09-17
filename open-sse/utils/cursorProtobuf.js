@@ -207,6 +207,19 @@ export function encodeField(fieldNum, wireType, value) {
     return concatArrays(tagBytes, valueBytes);
   }
 
+  if (wireType === WIRE_TYPE.FIXED64) {
+    let buf;
+    if (typeof value === "number") {
+      buf = Buffer.alloc(8);
+      buf.writeDoubleLE(value, 0);
+    } else if (Buffer.isBuffer(value) || value instanceof Uint8Array) {
+      buf = value;
+    } else {
+      buf = Buffer.alloc(8);
+    }
+    return concatArrays(tagBytes, new Uint8Array(buf));
+  }
+
   if (wireType === WIRE_TYPE.LEN) {
     const dataBytes = typeof value === "string" 
       ? new TextEncoder().encode(value)
@@ -887,6 +900,161 @@ export function extractTextFromResponse(payload) {
   }
 }
 
+// Wire-protocol identifier inherited from upstream, NOT a brand string.
+const AGENT_WIRE_PROVIDER = "9router";
+
+export function encodeAgentValue(val) {
+  if (val === null || val === undefined) {
+    return encodeField(1, WIRE_TYPE.VARINT, 0);
+  }
+  if (typeof val === "number") {
+    return encodeField(2, WIRE_TYPE.FIXED64, val);
+  }
+  if (typeof val === "string") {
+    return encodeField(3, WIRE_TYPE.LEN, val);
+  }
+  if (typeof val === "boolean") {
+    return encodeField(4, WIRE_TYPE.VARINT, val ? 1 : 0);
+  }
+  if (Array.isArray(val)) {
+    const listElements = val.map(item => encodeField(1, WIRE_TYPE.LEN, encodeAgentValue(item)));
+    const listValue = concatArrays(...listElements);
+    return encodeField(6, WIRE_TYPE.LEN, listValue);
+  }
+  if (typeof val === "object") {
+    const fields = Object.entries(val).map(([k, v]) => {
+      const entryBytes = concatArrays(
+        encodeField(1, WIRE_TYPE.LEN, k),
+        encodeField(2, WIRE_TYPE.LEN, encodeAgentValue(v))
+      );
+      return encodeField(1, WIRE_TYPE.LEN, entryBytes);
+    });
+    const structValue = concatArrays(...fields);
+    return encodeField(5, WIRE_TYPE.LEN, structValue);
+  }
+  return new Uint8Array(0);
+}
+
+export function decodeAgentValue(buffer) {
+  const fields = decodeMessage(buffer);
+  if (fields.has(1)) {
+    return null;
+  }
+  if (fields.has(2)) {
+    const raw = fields.get(2)[0].value;
+    return Buffer.from(raw).readDoubleLE(0);
+  }
+  if (fields.has(3)) {
+    const raw = fields.get(3)[0].value;
+    return Buffer.from(raw).toString("utf8");
+  }
+  if (fields.has(4)) {
+    const raw = fields.get(4)[0].value;
+    return Boolean(raw);
+  }
+  if (fields.has(5)) {
+    const structBytes = fields.get(5)[0].value;
+    const structFields = decodeMessage(structBytes);
+    const obj = {};
+    const entries = structFields.get(1) || [];
+    for (const entryItem of entries) {
+      const entryMsg = decodeMessage(entryItem.value);
+      const key = Buffer.from(entryMsg.get(1)[0].value).toString("utf8");
+      const val = decodeAgentValue(entryMsg.get(2)[0].value);
+      obj[key] = val;
+    }
+    return obj;
+  }
+  if (fields.has(6)) {
+    const listBytes = fields.get(6)[0].value;
+    const listFields = decodeMessage(listBytes);
+    const arr = [];
+    const elements = listFields.get(1) || [];
+    for (const el of elements) {
+      arr.push(decodeAgentValue(el.value));
+    }
+    return arr;
+  }
+  return null;
+}
+
+export function encodeMcpToolDefinition(tool) {
+  const fn = tool?.function;
+  const name = fn?.name || tool?.name || "";
+  const desc = fn?.description || tool?.description || "";
+  const params = fn?.parameters || tool?.inputSchema || tool?.parameters || {};
+
+  return concatArrays(
+    encodeField(1, WIRE_TYPE.LEN, name),
+    encodeField(2, WIRE_TYPE.LEN, desc),
+    encodeField(3, WIRE_TYPE.LEN, encodeAgentValue(params)),
+    encodeField(4, WIRE_TYPE.LEN, AGENT_WIRE_PROVIDER),
+    encodeField(5, WIRE_TYPE.LEN, name)
+  );
+}
+
+export function encodeMcpTools(tools) {
+  if (!tools || !Array.isArray(tools) || tools.length === 0) {
+    return new Uint8Array(0);
+  }
+  const toolDefs = tools.map(tool => encodeField(1, WIRE_TYPE.LEN, encodeMcpToolDefinition(tool)));
+  return concatArrays(...toolDefs);
+}
+
+export function decodeMcpArgs(buffer) {
+  const fields = decodeMessage(buffer);
+  const name = fields.has(1) ? Buffer.from(fields.get(1)[0].value).toString("utf8") : "";
+  const toolCallId = fields.has(3) ? Buffer.from(fields.get(3)[0].value).toString("utf8") : "";
+  const toolName = fields.has(5) ? Buffer.from(fields.get(5)[0].value).toString("utf8") : "";
+
+  const args = {};
+  const entries = fields.get(2) || [];
+  for (const item of entries) {
+    const entryMsg = decodeMessage(item.value);
+    const key = Buffer.from(entryMsg.get(1)[0].value).toString("utf8");
+    const val = decodeAgentValue(entryMsg.get(2)[0].value);
+    args[key] = val;
+  }
+
+  return { name, toolName, toolCallId, args };
+}
+
+export function encodeMcpResultSuccess({ textItems = [], imageItems = [], isError = false } = {}) {
+  const contentItems = [];
+
+  for (const text of textItems) {
+    const textContent = encodeField(1, WIRE_TYPE.LEN, text);
+    const item = encodeField(1, WIRE_TYPE.LEN, textContent);
+    contentItems.push(encodeField(1, WIRE_TYPE.LEN, item));
+  }
+
+  for (const img of imageItems) {
+    const imgContent = concatArrays(
+      encodeField(1, WIRE_TYPE.LEN, img.data),
+      encodeField(2, WIRE_TYPE.LEN, img.mimeType || "image/png")
+    );
+    const item = encodeField(2, WIRE_TYPE.LEN, imgContent);
+    contentItems.push(encodeField(1, WIRE_TYPE.LEN, item));
+  }
+
+  const successFields = concatArrays(
+    ...contentItems,
+    encodeField(2, WIRE_TYPE.VARINT, isError ? 1 : 0)
+  );
+
+  return encodeField(1, WIRE_TYPE.LEN, successFields);
+}
+
+export function encodeMcpResultError(errorMessage) {
+  const errorMsg = encodeField(1, WIRE_TYPE.LEN, errorMessage || "");
+  return encodeField(2, WIRE_TYPE.LEN, errorMsg);
+}
+
+export function encodeMcpResultToolNotFound(toolName) {
+  const notFoundMsg = encodeField(1, WIRE_TYPE.LEN, toolName || "");
+  return encodeField(5, WIRE_TYPE.LEN, notFoundMsg);
+}
+
 // ==================== EXPORTS ====================
 
 export default {
@@ -900,5 +1068,13 @@ export default {
   decodeField,
   decodeMessage,
   parseConnectRPCFrame,
-  extractTextFromResponse
+  extractTextFromResponse,
+  encodeAgentValue,
+  decodeAgentValue,
+  encodeMcpToolDefinition,
+  encodeMcpTools,
+  decodeMcpArgs,
+  encodeMcpResultSuccess,
+  encodeMcpResultError,
+  encodeMcpResultToolNotFound
 };

@@ -74,11 +74,12 @@ export async function getGeminiUsage(accessToken, providerSpecificData, proxyOpt
     let projectId = normalizeCloudCodeProjectId(providerSpecificData?.projectId);
     let plan = "";
 
-    // Subscription fetch is fail-open and also supplies the plan tier when projectId is already stored.
-    const subInfo = await getGeminiSubscriptionInfo(accessToken, proxyOptions);
-    if (subInfo) {
-      if (!projectId) projectId = normalizeCloudCodeProjectId(subInfo?.cloudaicompanionProject);
-      plan = subInfo?.currentTier?.name || plan;
+    if (!projectId) {
+      const subInfo = await getGeminiSubscriptionInfo(accessToken, proxyOptions);
+      if (subInfo) {
+        projectId = normalizeCloudCodeProjectId(subInfo?.cloudaicompanionProject);
+        plan = subInfo?.currentTier?.name || plan;
+      }
     }
 
     if (!projectId) {

@@ -46,6 +46,21 @@ function isValidPdfPagesArg(filePath, pages) {
     /^\d+(?:-\d+)?$/.test(pages);
 }
 
+// A JSON object fragment is only parseable once it is the complete object.
+// Non-object JSON (numbers, strings) is rejected so partial fragments such as
+// `1` or `"a` can never be mistaken for a finished argument payload.
+function isCompleteJsonObject(json) {
+  if (typeof json !== "string") return false;
+  const trimmed = json.trim();
+  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) return false;
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed !== null && typeof parsed === "object" && !Array.isArray(parsed);
+  } catch {
+    return false;
+  }
+}
+
 // Helper: stop thinking block if started
 function stopThinkingBlock(state, results) {
   if (!state.thinkingBlockStarted) return;
@@ -215,7 +230,23 @@ export function openaiToClaudeResponse(chunk, state) {
         if (toolInfo) {
           // Buffer args instead of streaming — sanitize at finish to fix bad params
           if (!state.toolArgBuffers) state.toolArgBuffers = new Map();
-          state.toolArgBuffers.set(idx, (state.toolArgBuffers.get(idx) || "") + tc.function.arguments);
+          const buffered = (state.toolArgBuffers.get(idx) || "") + tc.function.arguments;
+          // Emit as soon as the buffer is a complete JSON object instead of
+          // waiting for a finish_reason chunk: some upstreams end the stream
+          // right after the args, and the tool_use block would then never carry
+          // an input_json_delta (client sees empty input). A prefix of a JSON
+          // object parses as valid JSON only when it is the whole object, so
+          // this cannot fire on a partial fragment.
+          if (isCompleteJsonObject(buffered)) {
+            state.toolArgBuffers.set(idx, "");
+            results.push({
+              type: "content_block_delta",
+              index: toolInfo.blockIndex,
+              delta: { type: "input_json_delta", partial_json: sanitizeToolArgs(toolInfo.name, buffered) }
+            });
+          } else {
+            state.toolArgBuffers.set(idx, buffered);
+          }
         }
       }
     }
