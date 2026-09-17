@@ -9,6 +9,12 @@ export const BREAKER_CONFIG = {
   FAILURE_THRESHOLD: 5,
   WINDOW_MS: 60 * 1000,
   COOLDOWN_MS: 30 * 1000,
+  // Circuit keys are `provider:connectionId`; connections can be deleted and
+  // recreated, and combo/alias traffic mints transient keys, so the map needs a
+  // bound or it grows for the process lifetime. Idle CLOSED entries carry no
+  // information (a fresh entry is identical), so they are the ones evicted.
+  MAX_CIRCUITS: 5000,
+  IDLE_EVICT_MS: 10 * 60 * 1000,
 };
 
 const BreakerState = {
@@ -17,20 +23,49 @@ const BreakerState = {
   HALF_OPEN: "half_open",
 };
 
-// key (`provider:connectionId`) → { state, failures[], openedAt, probeInFlight, probeAt }
+// key (`provider:connectionId`) → { state, failures[], openedAt, probeInFlight, probeAt, lastTouch }
 const circuits = new Map();
 
 function key(provider, connectionId) {
   return `${provider}:${connectionId}`;
 }
 
+// Evict only entries that are fully settled and untouched for IDLE_EVICT_MS.
+// OPEN/HALF_OPEN entries are health state and must survive.
+function evictIdle(now) {
+  if (circuits.size <= BREAKER_CONFIG.MAX_CIRCUITS) return;
+  for (const [k, entry] of circuits) {
+    if (circuits.size <= BREAKER_CONFIG.MAX_CIRCUITS) break;
+    const settled = entry.state === BreakerState.CLOSED && entry.failures.length === 0 && !entry.probeInFlight;
+    if (settled && now - entry.lastTouch > BREAKER_CONFIG.IDLE_EVICT_MS) circuits.delete(k);
+  }
+}
+
 function entryFor(k) {
   let entry = circuits.get(k);
   if (!entry) {
-    entry = { state: BreakerState.CLOSED, failures: [], openedAt: null, probeInFlight: false, probeAt: 0 };
+    entry = { state: BreakerState.CLOSED, failures: [], openedAt: null, probeInFlight: false, probeAt: 0, lastTouch: Date.now() };
     circuits.set(k, entry);
+    evictIdle(entry.lastTouch);
   }
   return entry;
+}
+
+/** Read-only state snapshot for observability. Never mutates health state. */
+export function getCircuitSnapshot() {
+  const now = Date.now();
+  const out = [];
+  for (const [k, entry] of circuits) {
+    settle(entry, now);
+    out.push({
+      key: k,
+      state: entry.state,
+      failures: entry.failures.length,
+      openedAt: entry.openedAt,
+      probeInFlight: entry.probeInFlight
+    });
+  }
+  return out;
 }
 
 // Lazy transitions evaluated on every read.
@@ -59,6 +94,7 @@ export function isCircuitBlocked(provider, connectionId) {
   if (!provider || !connectionId) return false;
   const entry = entryFor(key(provider, connectionId));
   settle(entry, Date.now());
+  entry.lastTouch = Date.now();
   if (entry.state === BreakerState.OPEN) return true;
   return entry.state === BreakerState.HALF_OPEN && entry.probeInFlight;
 }
@@ -71,6 +107,7 @@ export function admitProbe(provider, connectionId) {
   if (!provider || !connectionId) return;
   const entry = entryFor(key(provider, connectionId));
   settle(entry, Date.now());
+  entry.lastTouch = Date.now();
   if (entry.state === BreakerState.HALF_OPEN && !entry.probeInFlight) {
     entry.probeInFlight = true;
     entry.probeAt = Date.now();
@@ -85,6 +122,7 @@ export function releaseProbe(provider, connectionId) {
   if (!provider || !connectionId) return;
   const entry = entryFor(key(provider, connectionId));
   settle(entry, Date.now());
+  entry.lastTouch = Date.now();
   entry.probeInFlight = false;
 }
 
@@ -98,6 +136,7 @@ export function recordFailure(provider, connectionId) {
   if (!provider || !connectionId) return;
   const entry = entryFor(key(provider, connectionId));
   const t = Date.now();
+  entry.lastTouch = t;
   entry.probeInFlight = false;
   if (entry.state === BreakerState.OPEN) return;
   if (entry.state === BreakerState.HALF_OPEN) {
@@ -124,6 +163,7 @@ export function recordFailure(provider, connectionId) {
 export function recordSuccess(provider, connectionId) {
   if (!provider || !connectionId) return;
   const entry = entryFor(key(provider, connectionId));
+  entry.lastTouch = Date.now();
   entry.probeInFlight = false;
   entry.failures = [];
   if (entry.state === BreakerState.HALF_OPEN) entry.state = BreakerState.CLOSED;
