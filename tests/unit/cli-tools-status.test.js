@@ -3,14 +3,14 @@ import { describe, it, expect } from "vitest";
 // Re-implement the status logic tested in ToolSummaryCard
 function getStatus(status, tool) {
   if (tool?.configType === "guide" && !tool?.autoConfig) {
-    return { label: "Guide", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400" };
+    return { label: "Guide", state: "guide", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
   }
-  if (!status) return { label: "Unknown", cls: "bg-gray-500/10 text-gray-500" };
-  if (!status.installed) return { label: "Not installed", cls: "bg-gray-500/10 text-gray-500" };
+  if (!status) return { label: "Unknown", state: "unknown", cls: "bg-surface-2 text-text-muted border-border-subtle" };
+  if (!status.installed) return { label: "Not installed", state: "missing", cls: "bg-surface-2 text-text-muted border-border-subtle" };
   if (status.hasMiawRouter || status.has9Router || status.configured) {
-    return { label: "Connected", cls: "bg-green-500/10 text-green-600 dark:text-green-400" };
+    return { label: "Connected", state: "connected", cls: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" };
   }
-  return { label: "Not configured", cls: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" };
+  return { label: "Not configured", state: "unconfigured", cls: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" };
 }
 
 describe("CLI Tools status derivation", () => {
@@ -18,7 +18,8 @@ describe("CLI Tools status derivation", () => {
     const tool = { configType: "guide" };
     expect(getStatus(undefined, tool)).toEqual({
       label: "Guide",
-      cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+      state: "guide",
+      cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
     });
   });
 

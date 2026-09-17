@@ -24,6 +24,11 @@ import { augmentModelsWithCapacityAdapter, withCapacityAdapterStripping, getActi
 import { handleBypassRequest } from "open-sse/utils/bypassHandler.js";
 import { HTTP_STATUS } from "open-sse/config/runtimeConfig.js";
 import { detectFormatByEndpoint } from "open-sse/translator/formats.js";
+import {
+  assertJsonBodySize,
+  validateChatRequest,
+  enforceLimits
+} from "open-sse/utils/requestValidation.js";
 import * as log from "../utils/logger.js";
 import { updateProviderCredentials, checkAndRefreshToken } from "../services/tokenRefresh.js";
 import { onboardProjectForConnection } from "open-sse/services/projectId.js";
@@ -35,12 +40,27 @@ import { enforceLlmApiKeyGuardrail } from "@/lib/guardrails/runtime.js";
  * Format detection and translation handled by translator
  */
 export async function handleChat(request, clientRawRequest = null) {
+  const sizeCheck = assertJsonBodySize(request);
+  if (!sizeCheck.ok) {
+    return errorResponse(sizeCheck.status, sizeCheck.message);
+  }
+
   let body;
   try {
     body = await request.json();
   } catch {
     log.warn("CHAT", "Invalid JSON body");
     return errorResponse(HTTP_STATUS.BAD_REQUEST, "Invalid JSON body");
+  }
+
+  const validation = validateChatRequest(body);
+  if (!validation.ok) {
+    return errorResponse(validation.status, validation.message);
+  }
+
+  const limitCheck = enforceLimits(body);
+  if (!limitCheck.ok) {
+    return errorResponse(limitCheck.status, limitCheck.message);
   }
 
   // Build clientRawRequest for logging (if not provided)

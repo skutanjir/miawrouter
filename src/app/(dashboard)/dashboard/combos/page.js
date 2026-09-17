@@ -6,6 +6,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { Card, Button, Modal, Input, CardSkeleton, ModelSelectModal, ConfirmModal, CapacityBadges, Select, Toggle } from "@/shared/components";
+import { cn } from "@/shared/utils/cn";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/shared/constants/providers";
@@ -196,21 +197,47 @@ export default function CombosPage() {
   return (
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm text-text-muted mt-1">
-            Group models under one name, then pick a strategy per combo:
-          </p>
-          <ul className="text-sm text-text-muted mt-2 flex flex-col gap-1">
-            <li><span className="font-medium text-text-main">Fallback</span> — tries models in order (next on failure)</li>
-            <li><span className="font-medium text-text-main">Round Robin</span> — rotates models across requests to spread load</li>
-            <li><span className="font-medium text-text-main">Fusion</span> — queries all models in parallel, then a judge synthesizes one answer. Best quality, but costs the most: every request bills all panel models + the judge (N+1 calls)</li>
-            <li><span className="font-medium text-text-main">Race</span> — queries all models in parallel; the first successful response wins. Fastest latency, but costs N calls: every request bills all panel models</li>
-          </ul>
+      <div className="flex flex-col gap-4 rounded-lg border border-border-subtle bg-surface p-3.5 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+            <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-text-main truncate">
+              Model Combos
+            </h2>
+            <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
+              {combos.length} {combos.length === 1 ? "COMBO" : "COMBOS"}
+            </span>
+          </div>
+          <Button icon="add" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto shrink-0">
+            Create Combo
+          </Button>
         </div>
-        <Button icon="add" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto whitespace-nowrap">
-          Create Combo
-        </Button>
+
+        {/* Strategy reference panel */}
+        <div className="rounded-md border border-border-subtle bg-surface-2/40 p-2.5">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-text-muted mb-2 flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-[14px] text-primary">alt_route</span>
+            <span>Routing Strategies</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+            <div className="flex flex-col gap-0.5 p-2 rounded bg-surface border border-border-subtle">
+              <span className="font-mono text-[11px] font-semibold text-primary">fallback:</span>
+              <span className="text-[11px] text-text-muted leading-snug">Tries models in order until one succeeds</span>
+            </div>
+            <div className="flex flex-col gap-0.5 p-2 rounded bg-surface border border-border-subtle">
+              <span className="font-mono text-[11px] font-semibold text-primary">round-robin:</span>
+              <span className="text-[11px] text-text-muted leading-snug">Distributes requests across models</span>
+            </div>
+            <div className="flex flex-col gap-0.5 p-2 rounded bg-surface border border-border-subtle">
+              <span className="font-mono text-[11px] font-semibold text-primary">fusion:</span>
+              <span className="text-[11px] text-text-muted leading-snug">Queries in parallel; judge synthesizes one answer</span>
+            </div>
+            <div className="flex flex-col gap-0.5 p-2 rounded bg-surface border border-border-subtle">
+              <span className="font-mono text-[11px] font-semibold text-primary">race:</span>
+              <span className="text-[11px] text-text-muted leading-snug">Parallel dispatch; first successful response wins</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Combos List */}
@@ -303,36 +330,46 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
   const isFusion = current === "fusion";
 
   return (
-    <Card padding="sm" className="group">
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+    <div className="relative rounded-lg border border-border-subtle bg-surface px-3.5 py-3 transition-all duration-150 overflow-hidden hover:border-border hover:bg-surface-2/40">
+      <span
+        className="absolute inset-y-0 left-0 w-[3px] bg-primary"
+        aria-hidden="true"
+      />
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pl-1.5">
+        {/* Left column: Combo identifier + models list + judge if fusion */}
+        <div className="flex min-w-0 flex-1 items-start gap-2.5">
+          <div className="size-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
             <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
           </div>
           <div className="min-w-0 flex-1">
-            <code className="block truncate font-mono text-sm font-medium">{combo.name}</code>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
+            <div className="flex items-center gap-2">
+              <code className="block truncate font-mono text-xs sm:text-sm font-semibold text-text-main">{combo.name}</code>
+              <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
+                {combo.models.length} {combo.models.length === 1 ? "MODEL" : "MODELS"}
+              </span>
+            </div>
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
               {combo.models.length === 0 ? (
-                <span className="text-xs text-text-muted italic">No models</span>
+                <span className="text-xs text-text-muted italic">No models configured</span>
               ) : (
                 combo.models.slice(0, 3).map((model, index) => (
-                  <code key={index} className="inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 font-mono text-xs text-text-muted dark:bg-white/5">
-                    <span>{model}</span>
+                  <code key={index} className="inline-flex items-center gap-1 rounded bg-bg border border-border-subtle px-1.5 py-0.5 font-mono text-[11px] text-text-muted">
+                    <span className="truncate max-w-[200px]">{model}</span>
                     <CapacityBadges caps={getCaps?.(model)} />
                   </code>
                 ))
               )}
               {combo.models.length > 3 && (
-                <span className="text-[10px] text-text-muted">+{combo.models.length - 3} more</span>
+                <span className="text-[10px] font-mono text-text-muted px-1 py-0.5 rounded bg-surface-2">+{combo.models.length - 3} more</span>
               )}
             </div>
             {/* Fusion: judge picker (Auto = first model) */}
             {isFusion && (
-              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-medium text-text-muted">Judge</span>
+              <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 pt-1.5 border-t border-border-subtle">
+                <span className="text-[11px] font-medium text-text-muted">Judge Model:</span>
                 <button
                   onClick={() => setShowJudgeSelect(true)}
-                  className="inline-flex max-w-full items-center gap-1 rounded border border-dashed border-primary/40 px-1.5 py-0.5 font-mono text-[11px] text-primary hover:border-primary hover:bg-primary/5 transition-colors"
+                  className="inline-flex max-w-full items-center gap-1 rounded border border-border-subtle bg-bg px-2 py-0.5 font-mono text-[11px] text-primary hover:border-primary transition-colors cursor-pointer"
                   title="Pick the model that fuses panel answers"
                 >
                   <span className="material-symbols-outlined text-[13px]">gavel</span>
@@ -341,7 +378,7 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
                 {judge && (
                   <button
                     onClick={() => onSetStrategy({ judgeModel: "" })}
-                    className="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                    className="p-0.5 rounded text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
                     title="Reset judge to Auto"
                   >
                     <span className="material-symbols-outlined text-[13px]">close</span>
@@ -352,44 +389,43 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:shrink-0">
-          {/* Strategy selector — always visible */}
-          <div className="w-full sm:w-[200px]">
+        {/* Right column: Strategy selector + action buttons */}
+        <div className="flex w-full flex-col gap-2 pt-2 border-t border-border-subtle sm:flex-row sm:items-center sm:gap-2 sm:shrink-0 lg:w-auto lg:pt-0 lg:border-t-0">
+          <div className="w-full sm:w-[210px]">
             <Select
               options={STRATEGY_OPTIONS}
               value={current}
               onChange={(e) => onSetStrategy({ fallbackStrategy: e.target.value })}
-              selectClassName="py-1.5 text-xs"
+              selectClassName="py-1 text-xs font-medium"
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-1 sm:flex">
+          <div className="flex items-center gap-1 self-end sm:self-center">
             <button
               onClick={(e) => { e.stopPropagation(); onCopy(combo.name, `combo-${combo.id}`); }}
-              className="flex flex-col items-center rounded px-2 py-1 text-text-muted transition-colors hover:bg-black/5 hover:text-primary dark:hover:bg-white/5"
+              className="inline-flex items-center gap-1 rounded border border-border-subtle bg-surface px-2 py-1 text-xs text-text-muted transition-colors hover:bg-surface-2 hover:text-primary cursor-pointer"
               title="Copy combo name"
             >
-              <span className="material-symbols-outlined text-[18px]">
+              <span className="material-symbols-outlined text-[15px]">
                 {copied === `combo-${combo.id}` ? "check" : "content_copy"}
               </span>
-              <span className="text-[10px] leading-tight">Copy</span>
+              <span className="text-[11px] font-medium">Copy</span>
             </button>
             <button
               onClick={onEdit}
-              className="flex flex-col items-center rounded px-2 py-1 text-text-muted transition-colors hover:bg-black/5 hover:text-primary dark:hover:bg-white/5"
+              className="inline-flex items-center gap-1 rounded border border-border-subtle bg-surface px-2 py-1 text-xs text-text-muted transition-colors hover:bg-surface-2 hover:text-primary cursor-pointer"
               title="Edit"
             >
-              <span className="material-symbols-outlined text-[18px]">edit</span>
-              <span className="text-[10px] leading-tight">Edit</span>
+              <span className="material-symbols-outlined text-[15px]">edit</span>
+              <span className="text-[11px] font-medium">Edit</span>
             </button>
             <button
               onClick={onDelete}
-              className="flex flex-col items-center rounded px-2 py-1 text-red-500 transition-colors hover:bg-red-500/10"
+              className="inline-flex items-center gap-1 rounded border border-border-subtle bg-surface px-2 py-1 text-xs text-red-500 transition-colors hover:bg-red-500/10 hover:border-red-500/30 cursor-pointer"
               title="Delete"
             >
-              <span className="material-symbols-outlined text-[18px]">delete</span>
-              <span className="text-[10px] leading-tight">Delete</span>
+              <span className="material-symbols-outlined text-[15px]">delete</span>
+              <span className="text-[11px] font-medium">Delete</span>
             </button>
           </div>
         </div>
@@ -407,26 +443,28 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
           closeOnSelect={true}
         />
       )}
-    </Card>
+    </div>
   );
 }
 
 function CapacityAdapterSection({ capacityAdapter, onChange, activeProviders, getCaps }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">Vision Adapter</p>
-          <p className="text-xs text-text-muted mt-0.5">
-            Your model can&apos;t read image/audio? Auto-switches to a model in the pool below.
-          </p>
-          <ul className="mt-1.5 text-[11px] text-text-muted flex flex-col gap-0.5">
-            <li><span className="font-medium text-text-main">Vision</span> — images (png, jpg, webp, …)</li>
-            <li><span className="font-medium text-text-main">Audio</span> — audio input</li>
-          </ul>
+      <div className="flex flex-col gap-1.5 py-1 border-b border-border-subtle">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-text-main truncate">
+            Vision Adapter
+          </h2>
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
+            AUTO-FALLBACK
+          </span>
         </div>
+        <p className="text-xs text-text-muted pl-3">
+          Fallback router for multimodal requests (PNG, JPG, WebP, Audio). Automatically directs payloads to capable adapter pools when target models lack modality support.
+        </p>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {CAPACITY_ADAPTER_CAPS.map((cap) => (
           <CapacityAdapterCap
             key={cap.key}
@@ -467,63 +505,104 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
   };
 
   return (
-    <Card padding="sm" className={`group ${!enabled ? "opacity-50" : ""}`}>
-      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      className={cn(
+        "relative rounded-lg border border-border-subtle bg-surface px-3.5 py-3 transition-all duration-150 overflow-hidden hover:border-border hover:bg-surface-2/40",
+        !enabled && "opacity-55"
+      )}
+    >
+      <span
+        className={cn(
+          "absolute inset-y-0 left-0 w-[3px] transition-colors",
+          enabled ? "bg-primary" : "bg-border-subtle"
+        )}
+        aria-hidden="true"
+      />
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between pl-1.5">
         {/* Master toggle + icon + label + chips */}
-        <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <Toggle
             checked={enabled}
             onChange={(v) => patch({ enabled: v })}
             aria-label={`Enable ${cap.label} adapter`}
           />
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <div className="size-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
             <span className="material-symbols-outlined text-primary text-[18px]">{cap.icon}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <code className="font-mono text-sm font-medium">{cap.label}</code>
-              <span className="text-[10px] text-text-muted">— {cap.desc}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs sm:text-sm font-semibold text-text-main">{cap.label} Adapter</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2">
+                {cap.desc}
+              </span>
+              <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
+                {models.length} {models.length === 1 ? "MODEL" : "MODELS"}
+              </span>
             </div>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5">
               {models.length === 0 ? (
-                <span className="text-xs text-text-muted italic">No models</span>
+                <span className="text-xs text-text-muted italic">No fallback models configured</span>
               ) : (
                 models.slice(0, 3).map((model, index) => (
                   <code
                     key={`${model}-${index}`}
-                    className="group/chip inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 font-mono text-xs text-text-muted dark:bg-white/5"
+                    className="group/chip inline-flex items-center gap-1 rounded bg-bg border border-border-subtle px-1.5 py-0.5 font-mono text-[11px] text-text-muted"
                   >
-                    <span>{model}</span>
+                    <span className="truncate max-w-[180px]">{model}</span>
                     <CapacityBadges caps={getCaps?.(model)} />
-                    <button onClick={() => handleMove(index, -1)} disabled={index === 0} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === 0 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleMove(index, -1)}
+                      disabled={index === 0}
+                      className={cn(
+                        "leading-none p-0.5 transition-colors cursor-pointer",
+                        index === 0 ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary"
+                      )}
+                      title="Move up"
+                    >
                       <span className="material-symbols-outlined text-[12px]">arrow_upward</span>
                     </button>
-                    <button onClick={() => handleMove(index, 1)} disabled={index === models.length - 1} className={`leading-none opacity-0 group-hover/chip:opacity-100 ${index === models.length - 1 ? "text-text-muted/20" : "text-text-muted hover:text-primary"}`}>
+                    <button
+                      type="button"
+                      onClick={() => handleMove(index, 1)}
+                      disabled={index === models.length - 1}
+                      className={cn(
+                        "leading-none p-0.5 transition-colors cursor-pointer",
+                        index === models.length - 1 ? "text-text-muted/20 cursor-not-allowed" : "text-text-muted hover:text-primary"
+                      )}
+                      title="Move down"
+                    >
                       <span className="material-symbols-outlined text-[12px]">arrow_downward</span>
                     </button>
-                    <button onClick={() => handleRemove(index)} className="leading-none opacity-0 group-hover/chip:opacity-100 text-text-muted hover:text-red-500">
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(index)}
+                      className="leading-none p-0.5 text-text-muted hover:text-red-500 transition-colors cursor-pointer"
+                      title="Remove model"
+                    >
                       <span className="material-symbols-outlined text-[12px]">close</span>
                     </button>
                   </code>
                 ))
               )}
               {models.length > 3 && (
-                <span className="text-[10px] text-text-muted">+{models.length - 3} more</span>
+                <span className="text-[10px] font-mono text-text-muted px-1 py-0.5 rounded bg-surface-2">+{models.length - 3} more</span>
               )}
             </div>
           </div>
         </div>
 
         {/* Actions: Round-robin toggle + Add Model */}
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:shrink-0">
-          <label className="flex items-center gap-1.5 text-xs text-text-muted cursor-pointer select-none">
+        <div className="flex w-full flex-col gap-2 pt-2 border-t border-border-subtle sm:flex-row sm:items-center sm:gap-3 sm:shrink-0 lg:w-auto lg:pt-0 lg:border-t-0">
+          <label className="flex items-center gap-2 text-xs text-text-muted cursor-pointer select-none rounded border border-border-subtle bg-surface px-2.5 py-1">
             <Toggle
               checked={roundRobin}
               onChange={(v) => patch({ roundRobin: v })}
               disabled={!enabled}
+              size="sm"
               aria-label={`Round-robin ${cap.label} adapter`}
             />
-            <span>Round</span>
+            <span className="font-mono text-[11px] uppercase tracking-wider">Round robin</span>
           </label>
           <Button
             icon="add"
@@ -550,7 +629,7 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
           closeOnSelect={false}
         />
       )}
-    </Card>
+    </div>
   );
 }
 

@@ -19,7 +19,10 @@ export const MITM_TOOLS = {
       { id: "gemini-3.6-flash-high", name: "Gemini 3.6 Flash (High)", alias: "gemini-3.6-flash-high" },
       { id: "gemini-3.6-flash-medium", name: "Gemini 3.6 Flash (Medium)", alias: "gemini-3.6-flash-medium" },
       { id: "gemini-3.6-flash-low", name: "Gemini 3.6 Flash (Low)", alias: "gemini-3.6-flash-low" },
-      { id: "gemini-3.5-flash-low", name: "Gemini 3.5 Flash (Medium)", alias: "gemini-3.5-flash-low" },
+      // Marked mandatory: the live MITM capture of Antigravity's
+      // streamGenerateContent shows the out-of-box agent loop sending this
+      // model, so its mapping slot must exist.
+      { id: "gemini-3.5-flash-low", name: "Gemini 3.5 Flash (Medium)", alias: "gemini-3.5-flash-low", mandatory: true },
       { id: "gemini-3-flash-agent", name: "Gemini 3.5 Flash (High)", alias: "gemini-3-flash-agent" },
       { id: "gemini-3.5-flash-extra-low", name: "Gemini 3.5 Flash (Low)", alias: "gemini-3.5-flash-extra-low" },
       { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro (Low)", alias: "gemini-3.1-pro-low" },

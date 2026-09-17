@@ -271,10 +271,14 @@ function httpJson({ host, port, method, path: reqPath, body, headers = {} }) {
   });
 }
 
+function isAuthFailure(res) {
+  return res && (res.status === 401 || (res.body && (res.body.error === "Unauthorized" || res.body.error === "Invalid password")));
+}
+
 // Export: CLI token first; on 401 retry with the dashboard password when supplied.
 async function exportFrom(host, port, cliToken, cliHeader, password, passwordHeader) {
   let res = await httpJson({ host, port, method: "GET", path: EXPORT_PATH, headers: { [cliHeader]: cliToken } });
-  if (res.status === 401 && password) {
+  if (isAuthFailure(res) && password) {
     res = await httpJson({ host, port, method: "GET", path: EXPORT_PATH, headers: { [passwordHeader]: password } });
   }
   return res;
@@ -288,7 +292,7 @@ async function importTo(host, port, cliToken, payload, password) {
     host, port, method: "POST", path: EXPORT_PATH, body: payload,
     headers: { [TARGET_CLI_TOKEN_HEADER]: cliToken },
   });
-  if (res.status === 401 && password) {
+  if (isAuthFailure(res) && password) {
     res = await httpJson({
       host, port, method: "POST", path: EXPORT_PATH, body: payload,
       headers: { [TARGET_CLI_TOKEN_HEADER]: cliToken, [TARGET_PASSWORD_HEADER]: password },

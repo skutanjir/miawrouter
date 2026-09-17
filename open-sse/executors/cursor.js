@@ -7,7 +7,8 @@ import {
   wrapConnectRPCFrame,
   decodeMessage,
   parseConnectRPCFrame,
-  extractTextFromResponse
+  extractTextFromResponse,
+  encodeMcpTools
 } from "../utils/cursorProtobuf.js";
 import { buildCursorHeaders } from "../utils/cursorChecksum.js";
 import { estimateUsage } from "../utils/usageTracking.js";
@@ -83,19 +84,52 @@ function isAgentTextRequest(body) {
   });
 }
 
-function encodeHistoryMessage(message) {
-  const content = textFromContent(message?.content);
-  if (!content) return null;
-
-  // ConversationHistoryMessage.user / .assistant -> repeated content -> text.
-  const text = agentString(1, content);
-  if (message.role === "assistant") {
-    return agentMessage(2, agentMessage(1, agentMessage(1, text)));
+export function isAgentCapableRequest(body) {
+  if (!body || !Array.isArray(body.messages) || body.messages.length === 0) {
+    return false;
   }
-  return agentMessage(1, agentMessage(1, agentMessage(1, text)));
+  for (const message of body.messages) {
+    if (typeof message?.content === "string") {
+      continue;
+    }
+    if (Array.isArray(message?.content)) {
+      const allText = message.content.every((part) => part?.type === "text" && typeof part?.text === "string");
+      if (!allText) return false;
+      continue;
+    }
+    if (message?.content === null || message?.content === undefined) {
+      if (message?.tool_calls?.length || message?.role === "tool" || message?.role === "assistant") {
+        continue;
+      }
+      return false;
+    }
+    return false;
+  }
+  return true;
 }
 
-function buildAgentRunFrame(messages, model) {
+function encodeHistoryMessage(message) {
+  const content = textFromContent(message?.content);
+  if (content) {
+    const text = agentString(1, content);
+    if (message.role === "assistant") {
+      return agentMessage(2, agentMessage(1, agentMessage(1, text)));
+    }
+    return agentMessage(1, agentMessage(1, agentMessage(1, text)));
+  }
+
+  if (message.role === "assistant" && message?.tool_calls?.length) {
+    return agentMessage(2, agentMessage(1, new Uint8Array()));
+  }
+
+  if (message.role === "tool") {
+    return agentMessage(1, agentMessage(1, new Uint8Array()));
+  }
+
+  return null;
+}
+
+export function buildAgentRunFrame(messages, model, tools = []) {
   const system = messages
     .filter((message) => message?.role === "system")
     .map((message) => textFromContent(message.content))
@@ -124,10 +158,12 @@ function buildAgentRunFrame(messages, model) {
   );
   const conversationAction = agentMessage(1, userAction);
   const requestedModel = concatBuffers(agentString(1, model), agentBool(7, true));
+  const mcpToolsBytes = encodeMcpTools(tools);
   const runRequest = concatBuffers(
     // An empty ConversationStateStructure starts a fresh local agent session.
     agentMessage(1, new Uint8Array()),
     agentMessage(2, conversationAction),
+    ...(mcpToolsBytes.length ? [agentMessage(4, mcpToolsBytes)] : []),
     ...(system ? [agentString(8, system)] : []),
     agentMessage(9, requestedModel),
   );

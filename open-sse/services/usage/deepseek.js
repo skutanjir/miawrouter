@@ -7,6 +7,8 @@ import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { toFiniteNumber } from "./shared.js";
 
 const BALANCE_URL = "https://api.deepseek.com/user/balance";
+const DEEPSEEK_PLAN = "DeepSeek";
+const DEEPSEEK_PLAN_UNAVAILABLE = "Unavailable";
 
 function parseBalanceInfos(data) {
   const list = Array.isArray(data?.balance_infos) ? data.balance_infos : [];
@@ -78,26 +80,27 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
     }
 
     const balances = parseBalanceInfos(data);
+    const plan = data.is_available === false ? DEEPSEEK_PLAN_UNAVAILABLE : DEEPSEEK_PLAN;
     if (balances.length === 0) {
       return {
+        plan,
         message: "DeepSeek connected. No balance data returned.",
       };
     }
-
-    const isAvailable = data.is_available !== false;
-    const plan = isAvailable ? "DeepSeek" : "Insufficient Balance";
 
     const quotas = {};
     for (const b of balances) {
       const total = Math.max(0, b.totalBalance);
       // Credit pot: show full remaining against current balance; never set absolute
       // `remaining` — QuotaTable treats it as a 0–100 percentage.
+      const isAvailable = data.is_available !== false;
+      const available = isAvailable && total > 0;
       quotas[`Balance (${b.currency})`] = {
         used: 0,
         total,
-        remainingPercentage: isAvailable && total > 0 ? 100 : 0,
+        remainingPercentage: available ? 100 : 0,
         resetAt: null,
-        unlimited: isAvailable && total > 0,
+        unlimited: available,
       };
     }
 

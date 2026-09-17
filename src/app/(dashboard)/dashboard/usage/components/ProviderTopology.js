@@ -18,10 +18,6 @@ import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/prov
 const FE_ACTIVE_TIMEOUT_MS = 60000;
 const FE_ACTIVE_TICK_MS = 1000;
 
-// Kame + electric particles along active edges
-const KAME_PARTICLE_COUNT = 6;
-const SPARK_COUNT = 5;
-
 function getProviderConfig(providerId) {
   return AI_PROVIDERS[providerId] || { color: "#6b7280", name: providerId };
 }
@@ -36,10 +32,10 @@ function ProviderNode({ data }) {
   const [imgError, setImgError] = useState(false);
   return (
     <div
-      className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg border-2 transition-all duration-300 bg-bg"
+      className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg border transition-all duration-200 bg-surface"
       style={{
-        borderColor: active ? color : "var(--color-border)",
-        boxShadow: active ? `0 0 16px ${color}40` : "none",
+        borderColor: active ? "var(--color-primary)" : "var(--color-border)",
+        boxShadow: active ? "0 0 0 1px var(--color-primary), 0 2px 8px -2px rgba(22, 139, 255, 0.25)" : "none",
         minWidth: "150px",
       }}
     >
@@ -50,14 +46,14 @@ function ProviderNode({ data }) {
 
       {/* Provider icon */}
       <div
-        className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+        className="w-7 h-7 rounded flex items-center justify-center shrink-0 border border-border-subtle"
         style={{ backgroundColor: `${color}15` }}
       >
         {imageUrl && !imgError ? (
           <img
             src={imageUrl}
             alt={label}
-            className="w-6 h-6 rounded-sm object-contain"
+            className="w-5 h-5 rounded-xs object-contain"
             loading="lazy"
             decoding="async"
             onError={() => {
@@ -67,23 +63,22 @@ function ProviderNode({ data }) {
             }}
           />
         ) : (
-          <span className="text-sm font-bold" style={{ color }}>{textIcon}</span>
+          <span className="text-xs font-bold" style={{ color }}>{textIcon}</span>
         )}
       </div>
 
       {/* Provider name */}
       <span
-        className="text-base font-medium truncate"
-        style={{ color: active ? color : "var(--color-text)" }}
+        className="text-sm font-medium truncate"
+        style={{ color: active ? "var(--color-text-main)" : "var(--color-text-muted)" }}
       >
         {label}
       </span>
 
       {/* Active indicator */}
       {active && (
-        <span className="relative flex h-2 w-2 shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: color }} />
-          <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: color }} />
+        <span className="relative flex h-2 w-2 shrink-0 ml-auto">
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
         </span>
       )}
     </div>
@@ -94,15 +89,15 @@ ProviderNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-// Center MiawRouter node — pulse/glow on card only (no expanding rings)
+// Center MiawRouter node — calm instrument card with quiet signal border
 function RouterNode({ data }) {
   const powering = (data.activeCount || 0) > 0;
   return (
     <div
-      className={`relative z-[1] flex items-center justify-center px-5 py-3 rounded-xl border-2 min-w-[130px] ${
+      className={`relative z-[1] flex items-center justify-center px-4 py-2.5 rounded-lg border transition-all duration-300 min-w-[130px] ${
         powering
-          ? "topology-router-core border-yellow-300 bg-gradient-to-br from-primary/30 via-yellow-400/20 to-cyan-400/25"
-          : "border-primary bg-primary/5 shadow-md"
+          ? "topology-router-active border-primary bg-primary/10"
+          : "border-border bg-surface shadow-xs"
       }`}
     >
       <Handle type="source" position={Position.Top} id="top" className="!bg-transparent !border-0 !w-0 !h-0" />
@@ -113,15 +108,15 @@ function RouterNode({ data }) {
       <img
         src="/miawrouter-favicon-48.png"
         alt="MiawRouter"
-        className={`w-7 h-7 mr-2 rounded-md object-contain ${powering ? "topology-router-icon" : ""}`}
+        className="w-6 h-6 mr-2 rounded object-contain shrink-0"
         loading="lazy"
         decoding="async"
       />
-      <span className={`text-sm font-bold ${powering ? "topology-router-label text-yellow-300" : "text-primary"}`}>
+      <span className={`text-sm font-semibold tracking-tight ${powering ? "text-primary" : "text-text-main"}`}>
         MiawRouter
       </span>
       {data.activeCount > 0 && (
-        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-yellow-400 text-black text-xs font-bold topology-router-badge">
+        <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary text-white text-[11px] font-mono font-semibold">
           {data.activeCount}
         </span>
       )}
@@ -133,7 +128,7 @@ RouterNode.propTypes = {
   data: PropTypes.object.isRequired,
 };
 
-// Active: electric kame beam (multi-layer stroke + sparks). Idle/last/error: solid BaseEdge.
+// Legible static cable structure with calm, single-stroke active signal flow
 function TopologyEdge({
   id,
   sourceX,
@@ -155,91 +150,35 @@ function TopologyEdge({
   });
   const active = !!data?.active;
   const stroke = style.stroke || "var(--color-border)";
-  const filterId = `topo-electric-${id}`;
 
   if (!active) {
-    return <BaseEdge id={id} path={edgePath} style={{ ...style, stroke }} />;
-  }
-
-  return (
-    <g className="topology-edge-electric">
-      <defs>
-        <filter id={filterId} x="-40%" y="-40%" width="180%" height="180%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="2" result="noise">
-            <animate attributeName="baseFrequency" values="0.8;1.4;0.8" dur="0.25s" repeatCount="indefinite" />
-          </feTurbulence>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.5" xChannelSelector="R" yChannelSelector="G" />
-        </filter>
-      </defs>
-      {/* Outer electric halo */}
-      <path
-        d={edgePath}
-        fill="none"
-        stroke="#22d3ee"
-        strokeWidth={10}
-        strokeOpacity={0.35}
-        strokeLinecap="round"
-        filter={`url(#${filterId})`}
-        className="topology-edge-halo"
-      />
-      {/* Mid plasma */}
-      <path
-        d={edgePath}
-        fill="none"
-        stroke="#4ade80"
-        strokeWidth={5}
-        strokeOpacity={0.85}
-        strokeLinecap="round"
-        filter={`url(#${filterId})`}
-        className="topology-edge-plasma"
-      />
-      {/* Hot white core */}
+    return (
       <BaseEdge
         id={id}
         path={edgePath}
-        style={{ stroke: "#f8fafc", strokeWidth: 2.2, opacity: 1 }}
-        className="topology-edge-kame"
+        style={{ ...style, stroke, strokeWidth: style.strokeWidth || 1.25 }}
       />
-      {/* Energy orbs */}
-      {Array.from({ length: KAME_PARTICLE_COUNT }, (_, i) => (
-        <circle
-          key={`${id}-p-${i}`}
-          r={i % 2 === 0 ? 4 : 2.5}
-          fill={i % 3 === 0 ? "#fde047" : i % 3 === 1 ? "#67e8f9" : "#fff"}
-          opacity={0.95}
-          style={{ filter: "drop-shadow(0 0 4px #22d3ee)" }}
-        >
-          <animateMotion
-            dur={`${0.4 + i * 0.08}s`}
-            repeatCount="indefinite"
-            path={edgePath}
-            begin={`${i * 0.09}s`}
-          />
-        </circle>
-      ))}
-      {/* Electric sparks (short-lived blink along path) */}
-      {Array.from({ length: SPARK_COUNT }, (_, i) => (
-        <circle
-          key={`${id}-s-${i}`}
-          r={1.8}
-          fill="#e0f2fe"
-          opacity={0}
-        >
-          <animate
-            attributeName="opacity"
-            values="0;1;0;0;1;0"
-            dur={`${0.35 + (i % 3) * 0.1}s`}
-            begin={`${i * 0.07}s`}
-            repeatCount="indefinite"
-          />
-          <animateMotion
-            dur={`${0.28 + i * 0.05}s`}
-            repeatCount="indefinite"
-            path={edgePath}
-            begin={`${i * 0.11}s`}
-          />
-        </circle>
-      ))}
+    );
+  }
+
+  return (
+    <g>
+      {/* Background static route track */}
+      <path
+        d={edgePath}
+        fill="none"
+        stroke="var(--color-primary)"
+        strokeWidth={2}
+        strokeOpacity={0.25}
+        strokeLinecap="round"
+      />
+      {/* Restrained single-stroke directional drift */}
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        style={{ stroke: "var(--color-primary)", strokeWidth: 2, strokeLinecap: "round" }}
+        className="topology-edge-active"
+      />
     </g>
   );
 }
@@ -292,10 +231,10 @@ function buildLayout(providers, activeSet, lastSet, errorSet) {
   });
 
   const edgeStyle = (active, last, error) => {
-    if (error) return { stroke: "#ef4444", strokeWidth: 2.5, opacity: 0.9 };
-    if (active) return { stroke: "#22d3ee", strokeWidth: 3.5, opacity: 1 };
-    if (last) return { stroke: "#f59e0b", strokeWidth: 2, opacity: 0.7 };
-    return { stroke: "var(--color-border)", strokeWidth: 1, opacity: 0.3 };
+    if (error) return { stroke: "var(--color-danger)", strokeWidth: 2, opacity: 0.9 };
+    if (active) return { stroke: "var(--color-primary)", strokeWidth: 2, opacity: 1 };
+    if (last) return { stroke: "var(--color-warning)", strokeWidth: 1.5, opacity: 0.75 };
+    return { stroke: "var(--color-border)", strokeWidth: 1, opacity: 0.45 };
   };
 
   providers.forEach((p, i) => {

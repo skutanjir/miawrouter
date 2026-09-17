@@ -34,7 +34,9 @@ import { l1Key as l1CacheKey, isCacheable as isCacheableRequest, l1Lookup, l1Sto
 import { l2Lookup, lastUserText, looksLikeCodeGeneration } from "../cache/l2.js";
 import { transform as l3Transform } from "../cache/l3.js";
 import { emitCacheEvent } from "../cache/events.js";
+import { increment, observeHistogram } from "../services/runtimeMetrics.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
+import { resolveCacheCapability } from "../providers/cacheCapabilities.js";
 import { stripUnsupportedModalities } from "../translator/concerns/modality.js";
 import { prefetchRemoteImages } from "../translator/concerns/prefetch.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
@@ -79,6 +81,11 @@ export function canAttemptTokenRefresh(provider, credentials, executor) {
 export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, responseFocus, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, antiSlopEnabled, antiSlopLevel, hermesAutonomyEnabled, hermesAutonomyMode, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled, aiMemoryCapture, aiMemoryRecall, aiMemoryMaxTokens }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
+  // Per-request usage id. Usage stats can be written more than once for one
+  // logical request (an endpoint-enriching second write), and the DB dedupes on
+  // this id. Without it the DB had to guess by timestamp+token equality, which
+  // collapsed two genuinely distinct parallel requests into one row.
+  const usageRequestId = `${requestStartTime}-${Math.random().toString(36).slice(2, 11)}`;
   // Stable per-session color so all lines of one CLI conversation share a tag
   const sessionSeed = (() => {
     try {
@@ -469,16 +476,15 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // proceeds without breakpoints.
   if (cacheState) {
     try {
-      const l0 = finishCacheOrchestration(translatedBody, cacheState, {
-        cacheKey,
-        provider,
-        model,
-        format: finalFormat,
-        onCacheEvent,
-      });
+      // Cache orchestration is capability-driven: only providers whose resolved
+      // format accepts vendor cache markers may receive inserted breakpoints.
+      // Everything else (implicit/none/unknown) keeps its stable prefix intact
+      // and gets NO injected marker fields.
+      const cacheCapability = resolveCacheCapability(provider, finalFormat);
+      const l0 = finishCacheOrchestration(translatedBody, cacheState, { cacheKey, provider, model, capability: cacheCapability, onCacheEvent });
       if (l0.body !== translatedBody) translatedBody = l0.body;
       if (l0.info) {
-        log?.debug?.("CACHE", `key=${cacheKey.slice(0, 24)}… turns=${l0.info.turns} stable=${l0.info.stable} bp=${l0.info.breakpoints}${l0.info.restored ? " prefix-restored" : ""}`);
+        log?.debug?.("CACHE", `key=${cacheKey.slice(0, 24)}… mode=${l0.info.cacheMode} turns=${l0.info.turns} stable=${l0.info.stable} bp=${l0.info.breakpoints}${l0.info.restored ? " prefix-restored" : ""}`);
       }
     } catch { /* fail-open: cache orchestration must never break the request */ }
   }
@@ -533,6 +539,10 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
           }
         }
         saveMetrics(buildCacheMetricRows({ stream, cacheable: true, l1On, l2On, l1Hit: !!hit, l2Hit: !!l2Hit, l2Attempted, provider, model })).catch(() => {});
+        if (hit) increment("miawrouter_cache_hits_total", { layer: "l1", provider }, "Response cache hits");
+        else if (l1On) increment("miawrouter_cache_misses_total", { layer: "l1", provider }, "Response cache misses");
+        if (l2Hit) increment("miawrouter_cache_hits_total", { layer: "l2", provider }, "Response cache hits");
+        else if (l2On && l2Attempted && !hit) increment("miawrouter_cache_misses_total", { layer: "l2", provider }, "Response cache misses");
         if (hit || l2Hit) {
           const entry = hit || l2Hit.value;
           if (!hit && l2Hit && l1On) l1Store(key, entry);
@@ -549,6 +559,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
             status: "success"
           })).catch(() => { });
           if (onRequestSuccess) Promise.resolve().then(onRequestSuccess).catch(() => { });
+          increment("miawrouter_requests_total", { provider, outcome: "cache_hit" }, "Total routed requests");
+          observeHistogram(
+            "miawrouter_request_duration_seconds",
+            (Date.now() - requestStartTime) / 1000,
+            { provider, outcome: "cache_hit" },
+            "End-to-end router request duration in seconds"
+          );
           if (log?.line) {
             const sim = l2Hit ? ` sim=${(l2Hit.similarity * 100).toFixed(1)}%` : "";
             log.line(reqTag, "⚡", `CACHE ${layer} HIT · ${provider}/${model}${sim}`);
@@ -737,7 +754,16 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // Provider returned error
   if (!providerResponse.ok) {
     trackPendingRequest(model, provider, connectionId, false, true);
+    increment("miawrouter_requests_total", { provider, outcome: "upstream_error" }, "Total routed requests");
     const { statusCode, message, resetsAtMs } = await parseUpstreamError(providerResponse, executor);
+    increment("miawrouter_provider_errors_total", { provider, status: String(statusCode) }, "Upstream provider errors by status");
+    if (Number(statusCode) === 429) increment("miawrouter_provider_429_total", { provider }, "Upstream 429 responses");
+    observeHistogram(
+      "miawrouter_request_duration_seconds",
+      (Date.now() - requestStartTime) / 1000,
+      { provider, outcome: "error" },
+      "End-to-end router request duration in seconds"
+    );
     appendRequestLog({ model, provider, connectionId, status: `FAILED ${statusCode}` }).catch(() => { });
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId,
@@ -759,26 +785,50 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     return createErrorResult(statusCode, errMsg, resetsAtMs);
   }
 
-  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log, cacheKey, onCacheEvent, cacheWrite: cacheWriteCtx, semanticEmbed, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries };
+  const sharedCtx = { provider, model, body, stream, translatedBody, finalBody, requestStartTime, usageRequestId, connectionId, apiKey, clientRawRequest, onRequestSuccess, pxpipe: pxpipeSummary, reqTag, log, cacheKey, onCacheEvent, cacheWrite: cacheWriteCtx, semanticEmbed, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries };
   const appendLog = (extra) => appendRequestLog({ model, provider, connectionId, ...extra }).catch(() => { });
   const trackDone = () => trackPendingRequest(model, provider, connectionId, false);
 
   // Provider forced streaming but client wants JSON
   if (!clientRequestedStreaming && providerRequiresStreaming) {
     const result = await handleForcedSSEToJson({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, customToolNames, trackDone, appendLog });
-    if (result) { streamController.handleComplete(); return result; }
+    if (result) {
+      streamController.handleComplete();
+      recordSuccessMetrics(provider, requestStartTime, result);
+      return result;
+    }
   }
 
   // True non-streaming response
   if (!stream) {
     const result = await handleNonStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, reqLogger, toolNameMap, customToolNames, trackDone, appendLog });
     streamController.handleComplete();
+    recordSuccessMetrics(provider, requestStartTime, result);
     return result;
   }
 
   // Streaming response
   const { onStreamComplete, streamDetailId } = buildOnStreamComplete({ ...sharedCtx });
   return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, userAgent, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId });
+}
+
+/**
+ * Count and time a completed successful request. Streaming is measured by the
+ * stream handler instead, because its duration is only known at stream end.
+ */
+function recordSuccessMetrics(provider, requestStartTime, result) {
+  try {
+    const outcome = result?.success === false ? "router_error" : "success";
+    increment("miawrouter_requests_total", { provider, outcome }, "Total routed requests");
+    observeHistogram(
+      "miawrouter_request_duration_seconds",
+      (Date.now() - requestStartTime) / 1000,
+      { provider, outcome },
+      "End-to-end router request duration in seconds"
+    );
+  } catch {
+    // Metrics must never affect a response.
+  }
 }
 
 export function isTokenExpiringSoon(expiresAt, bufferMs = 5 * 60 * 1000) {

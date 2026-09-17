@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import {
-  Card,
   CardSkeleton,
   Badge,
-  Button,
   Toggle,
 } from "@/shared/components";
+import { cn } from "@/shared/utils/cn";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { getProviderIconSrc } from "@/shared/utils/providerIcon";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS } from "@/shared/constants/config";
@@ -47,7 +46,7 @@ function getStatusDisplay(connected, error, errorCode) {
     );
   }
   if (parts.length === 0) {
-    return <span className="text-text-muted">No connections</span>;
+    return <span className="text-text-muted text-xs">No connections</span>;
   }
   return parts;
 }
@@ -94,6 +93,35 @@ function getConnectionErrorTag(connection) {
   return "ERR";
 }
 
+function SectionControlStrip({ title, count, children }) {
+  return (
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between py-1 border-b border-border-subtle">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+        <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-text-main truncate">
+          {title}
+        </h2>
+        {count !== undefined && (
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
+            {count} {count === 1 ? "PROVIDER" : "PROVIDERS"}
+          </span>
+        )}
+      </div>
+      {children && (
+        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+SectionControlStrip.propTypes = {
+  title: PropTypes.string.isRequired,
+  count: PropTypes.number,
+  children: PropTypes.node,
+};
+
 const APIKEY_INITIAL_VISIBLE = 20;
 
 export default function ProvidersPage() {
@@ -127,19 +155,6 @@ export default function ProvidersPage() {
       if (pa !== pb) return pa - pb;
       const sa = getProviderStats(ka, authType);
       const sb = getProviderStats(kb, authType);
-      const ca = sa.connected > 0 ? 1 : 0;
-      const cb = sb.connected > 0 ? 1 : 0;
-      if (ca !== cb) return cb - ca;
-      return (a.name || "").localeCompare(b.name || "");
-    });
-
-  const sortItemsByPriority = (items, authType) =>
-    [...items].sort((a, b) => {
-      const pa = a.priority ?? 999;
-      const pb = b.priority ?? 999;
-      if (pa !== pb) return pa - pb;
-      const sa = getProviderStats(a.id, authType);
-      const sb = getProviderStats(b.id, authType);
       const ca = sa.connected > 0 ? 1 : 0;
       const cb = sb.connected > 0 ? 1 : 0;
       if (ca !== cb) return cb - ca;
@@ -385,39 +400,37 @@ export default function ProvidersPage() {
       )}
 
       {/* Custom Providers (OpenAI/Anthropic Compatible) — dynamic */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            Custom Providers (OpenAI/Anthropic Compatible){" "}
-          </h2>
-          <div className="grid grid-cols-1 gap-2 sm:flex sm:w-auto">
-            <Button
-              size="sm"
-              icon="add"
-              onClick={() => setShowAddAnthropicCompatibleModal(true)}
-              className="w-full sm:w-auto"
-            >
-              Add Anthropic Compatible
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon="add"
-              onClick={() => setShowAddCompatibleModal(true)}
-              className="w-full !bg-white !text-black hover:!bg-gray-100 sm:w-auto"
-            >
-              Add OpenAI Compatible
-            </Button>
-          </div>
-        </div>
+      <div className="flex flex-col gap-3">
+        <SectionControlStrip
+          title="Custom Providers (OpenAI/Anthropic Compatible)"
+          count={compatibleProviders.length + anthropicCompatibleProviders.length}
+        >
+          <button
+            type="button"
+            onClick={() => setShowAddAnthropicCompatibleModal(true)}
+            className="h-7 px-2.5 text-xs font-medium text-text-muted hover:text-text-main border border-border hover:border-primary/40 rounded-md bg-surface hover:bg-surface-2 transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
+          >
+            <span className="material-symbols-outlined text-[14px]">add</span>
+            Add Anthropic Compatible
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAddCompatibleModal(true)}
+            className="h-7 px-2.5 text-xs font-medium text-text-muted hover:text-text-main border border-border hover:border-primary/40 rounded-md bg-surface hover:bg-surface-2 transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
+          >
+            <span className="material-symbols-outlined text-[14px]">add</span>
+            Add OpenAI Compatible
+          </button>
+        </SectionControlStrip>
+
         {compatibleProviders.length === 0 &&
         anthropicCompatibleProviders.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 py-2 border border-dashed border-border rounded-xl text-text-muted text-sm">
+          <div className="flex items-center justify-center gap-2 py-4 border border-dashed border-border rounded-xl text-text-muted text-xs sm:text-sm">
             <span className="material-symbols-outlined text-[18px]">extension</span>
             <span>No custom providers — use buttons above to add OpenAI/Anthropic compatible endpoints</span>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {[...compatibleProviders, ...anthropicCompatibleProviders].map(
               (info) => (
                 <ApiKeyProviderCard
@@ -438,34 +451,35 @@ export default function ProvidersPage() {
 
       {/* OAuth Providers */}
       {oauthEntries.length > 0 && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            OAuth Providers
-          </h2>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <ModelAvailabilityBadge />
-            <button
-              onClick={() => handleBatchTest("oauth")}
-              disabled={!!testingMode}
-              className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors sm:w-auto sm:py-1.5 ${
-                testingMode === "oauth"
-                  ? "bg-primary/20 border-primary/40 text-primary animate-pulse"
-                  : "bg-bg border-border text-text-muted hover:text-text-main hover:border-primary/40"
-              }`}
-              title="Test all OAuth connections"
-              aria-label="Test all OAuth connections"
+      <div className="flex flex-col gap-3">
+        <SectionControlStrip
+          title="OAuth Providers"
+          count={oauthEntries.length}
+        >
+          <ModelAvailabilityBadge />
+          <button
+            type="button"
+            onClick={() => handleBatchTest("oauth")}
+            disabled={!!testingMode}
+            className={cn(
+              "h-7 px-2.5 text-xs font-medium rounded-md border transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto",
+              testingMode === "oauth"
+                ? "bg-primary/20 border-primary/40 text-primary animate-pulse"
+                : "bg-surface border-border text-text-muted hover:text-text-main hover:border-primary/40 hover:bg-surface-2"
+            )}
+            title="Test all OAuth connections"
+            aria-label="Test all OAuth connections"
+          >
+            <span
+              className={cn("material-symbols-outlined text-[14px]", testingMode === "oauth" && "animate-spin")}
             >
-              <span
-                className={`material-symbols-outlined text-[14px]${testingMode === "oauth" ? " animate-spin" : ""}`}
-              >
-                play_arrow
-              </span>
-              {testingMode === "oauth" ? "Testing..." : "Test All"}
-            </button>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+              {testingMode === "oauth" ? "progress_activity" : "play_arrow"}
+            </span>
+            {testingMode === "oauth" ? "Testing..." : "Test All"}
+          </button>
+        </SectionControlStrip>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
           {oauthEntries.map(([key, info]) => {
             const authTypes = dualAuthTypes(info, key);
             return (
@@ -488,31 +502,34 @@ export default function ProvidersPage() {
 
       {/* Free Tier Providers */}
       {(freeEntries.length > 0 || freeTierEntries.length > 0) && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            Free Tier Providers
-          </h2>
+      <div className="flex flex-col gap-3">
+        <SectionControlStrip
+          title="Free Tier Providers"
+          count={freeEntries.length + freeTierEntries.length}
+        >
           <button
+            type="button"
             onClick={() => handleBatchTest("free")}
             disabled={!!testingMode}
-            className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors sm:w-auto sm:py-1.5 ${
+            className={cn(
+              "h-7 px-2.5 text-xs font-medium rounded-md border transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto",
               testingMode === "free"
                 ? "bg-primary/20 border-primary/40 text-primary animate-pulse"
-                : "bg-bg border-border text-text-muted hover:text-text-main hover:border-primary/40"
-            }`}
-            title="Test all Free connections"
+                : "bg-surface border-border text-text-muted hover:text-text-main hover:border-primary/40 hover:bg-surface-2"
+            )}
+            title="Test all Free provider connections"
             aria-label="Test all Free provider connections"
           >
             <span
-              className={`material-symbols-outlined text-[14px]${testingMode === "free" ? " animate-spin" : ""}`}
+              className={cn("material-symbols-outlined text-[14px]", testingMode === "free" && "animate-spin")}
             >
-              play_arrow
+              {testingMode === "free" ? "progress_activity" : "play_arrow"}
             </span>
             {testingMode === "free" ? "Testing..." : "Test All"}
           </button>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        </SectionControlStrip>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
           {freeEntries.map(([key, info]) => {
             // Dual-auth (e.g. kiro): count/toggle oauth + apikey/api_key so the
             // card total matches the provider detail page.
@@ -549,31 +566,34 @@ export default function ProvidersPage() {
 
       {/* API Key Providers — fixed list */}
       {apikeyEntries.length > 0 && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            API Key Providers{" "}
-          </h2>
+      <div className="flex flex-col gap-3">
+        <SectionControlStrip
+          title="API Key Providers"
+          count={apikeyEntries.length}
+        >
           <button
+            type="button"
             onClick={() => handleBatchTest("apikey")}
             disabled={!!testingMode}
-            className={`flex w-full items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors sm:w-auto sm:py-1.5 ${
+            className={cn(
+              "h-7 px-2.5 text-xs font-medium rounded-md border transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto",
               testingMode === "apikey"
                 ? "bg-primary/20 border-primary/40 text-primary animate-pulse"
-                : "bg-bg border-border text-text-muted hover:text-text-main hover:border-primary/40"
-            }`}
+                : "bg-surface border-border text-text-muted hover:text-text-main hover:border-primary/40 hover:bg-surface-2"
+            )}
             title="Test all API Key connections"
             aria-label="Test all API Key connections"
           >
             <span
-              className={`material-symbols-outlined text-[14px]${testingMode === "apikey" ? " animate-spin" : ""}`}
+              className={cn("material-symbols-outlined text-[14px]", testingMode === "apikey" && "animate-spin")}
             >
-              play_arrow
+              {testingMode === "apikey" ? "progress_activity" : "play_arrow"}
             </span>
             {testingMode === "apikey" ? "Testing..." : "Test All"}
           </button>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+        </SectionControlStrip>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
           {visibleApikeyEntries.map(([key, info]) => (
             <ApiKeyProviderCard
               key={key}
@@ -587,8 +607,9 @@ export default function ProvidersPage() {
         </div>
         {!isApikeySearching && !showAllApikey && hiddenApikeyCount > 0 && (
           <button
+            type="button"
             onClick={() => setShowAllApikey(true)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-2.5 text-xs sm:text-sm font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[16px]">expand_more</span>
             Show all {apikeyEntries.length} providers
@@ -599,13 +620,12 @@ export default function ProvidersPage() {
 
       {/* Web Cookie Providers — hidden from UI; backend data preserved */}
       {false && webCookieEntries.length > 0 && (
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            Web Cookie Providers{" "}
-          </h2>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="flex flex-col gap-3">
+        <SectionControlStrip
+          title="Web Cookie Providers"
+          count={webCookieEntries.length}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
           {webCookieEntries.map(([key, info]) => (
             <ApiKeyProviderCard
               key={key}
@@ -651,10 +671,11 @@ export default function ProvidersPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 border-b border-border bg-surface/95 backdrop-blur-sm rounded-t-xl">
-              <h3 className="font-semibold">Test Results</h3>
+              <h3 className="font-semibold text-sm">Test Results</h3>
               <button
+                type="button"
                 onClick={() => setTestResults(null)}
-                className="p-1 rounded-lg hover:bg-bg text-text-muted hover:text-text-main transition-colors"
+                className="p-1 rounded-lg hover:bg-bg text-text-muted hover:text-text-main transition-colors cursor-pointer"
                 aria-label="Close test results"
               >
                 <span className="material-symbols-outlined text-lg">close</span>
@@ -674,99 +695,121 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
   const { connected, error, errorCode, errorTime, allDisabled } = stats;
   const isNoAuth = !!provider.noAuth;
 
-  const dotColors = {
-    free: "bg-green-500",
-    oauth: "bg-blue-500",
-    apikey: "bg-amber-500",
-    compatible: "bg-orange-500",
-  };
-  const dotLabels = {
-    free: "Free",
+  const authLabels = {
     oauth: "OAuth",
+    free: "Free",
     apikey: "API Key",
-    compatible: "Compatible",
+    api_key: "API Key",
+    compatible: "Custom",
+    cookie: "Cookie",
   };
+  const authLabel = authLabels[authType] || (typeof authType === "string" ? authType : "OAuth");
+
+  const statusRailClass = allDisabled
+    ? "bg-border"
+    : error > 0
+      ? "bg-red-500"
+      : connected > 0
+        ? "bg-primary"
+        : isNoAuth
+          ? "bg-primary"
+          : "bg-border-subtle dark:bg-border/60";
 
   return (
-    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0">
-      <Card
-        padding="xs"
-        className={`h-full hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
+    <Link href={`/dashboard/providers/${providerId}`} className="group block min-w-0">
+      <div
+        className={cn(
+          "relative flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-2.5 transition-all duration-150 cursor-pointer overflow-hidden",
+          "hover:border-border hover:bg-surface-2/60",
+          allDisabled && "opacity-50"
+        )}
       >
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="size-8 shrink-0 rounded-lg flex items-center justify-center"
-              style={{
-                backgroundColor: `${provider.color?.length > 7 ? provider.color : provider.color + "15"}`,
-              }}
-            >
-              <ProviderIcon
-                src={`/providers/${provider.id}.png`}
-                alt={provider.name}
-                size={30}
-                className="object-contain rounded-lg max-w-[32px] max-h-[32px]"
-                fallbackIcon={provider.icon}
-                fallbackText={
-                  provider.textIcon || provider.id.slice(0, 2).toUpperCase()
-                }
-                fallbackColor={provider.color}
-              />
-            </div>
-            <div className="min-w-0">
-              <h3 className="truncate font-semibold">{provider.name}</h3>
-              <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap">
-                {allDisabled ? (
-                  <Badge variant="default" size="sm">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[12px]">
-                        pause_circle
-                      </span>
-                      Disabled
-                    </span>
-                  </Badge>
-                ) : isNoAuth ? (
-                  <Badge variant="success" size="sm" dot>Ready</Badge>
-                ) : (
-                  <>
-                    {getStatusDisplay(connected, error, errorCode)}
-                    {provider.billingTier === "subscription" && (
-                      <Badge variant="default" size="sm">
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
-                          Subscription
-                        </span>
-                      </Badge>
-                    )}
-                    {errorTime && (
-                      <span className="text-text-muted">{errorTime}</span>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+        <span
+          className={cn("absolute inset-y-0 left-0 w-[3px] transition-colors", statusRailClass)}
+          aria-hidden="true"
+        />
+        <div className="flex min-w-0 items-center gap-2.5 pl-1.5 flex-1">
+          <div
+            className="size-8 shrink-0 rounded-md flex items-center justify-center border border-border-subtle/50"
+            style={{
+              backgroundColor: `${provider.color?.length > 7 ? provider.color : (provider.color || "#168BFF") + "15"}`,
+            }}
+          >
+            <ProviderIcon
+              src={`/providers/${provider.id}.png`}
+              alt={provider.name}
+              size={24}
+              className="object-contain rounded max-w-[24px] max-h-[24px]"
+              fallbackIcon={provider.icon}
+              fallbackText={
+                provider.textIcon || provider.id.slice(0, 2).toUpperCase()
+              }
+              fallbackColor={provider.color}
+            />
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {stats.total > 0 && (
-              <div
-                className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                <Toggle
-                  size="sm"
-                  checked={!allDisabled}
-                  onChange={onToggle}
-                  ariaLabel={`${provider.name} routing`}
-                  title={allDisabled ? "Enable provider" : "Disable provider"}
-                />
-              </div>
-            )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h3 className="truncate text-xs sm:text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
+                {provider.name}
+              </h3>
+              <span className="shrink-0 text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded bg-surface-2 border border-border-subtle">
+                {authLabel}
+              </span>
+            </div>
+            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-0.5">
+              {allDisabled ? (
+                <Badge variant="default" size="sm">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">
+                      pause_circle
+                    </span>
+                    Disabled
+                  </span>
+                </Badge>
+              ) : isNoAuth ? (
+                <Badge variant="success" size="sm" dot>Ready</Badge>
+              ) : (
+                <>
+                  {getStatusDisplay(connected, error, errorCode)}
+                  {provider.billingTier === "subscription" && (
+                    <Badge variant="default" size="sm">
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
+                        Subscription
+                      </span>
+                    </Badge>
+                  )}
+                  {errorTime && (
+                    <span className="text-text-muted text-[11px]">{errorTime}</span>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </Card>
+        <div className="flex shrink-0 items-center gap-2">
+          {stats.total > 0 && (
+            <div
+              className="opacity-100 transition-opacity sm:opacity-70 sm:group-hover:opacity-100"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <Toggle
+                size="sm"
+                checked={!allDisabled}
+                onChange={onToggle}
+                ariaLabel={`${provider.name} routing`}
+                title={allDisabled ? "Enable provider" : "Disable provider"}
+              />
+            </div>
+          )}
+          <span className="material-symbols-outlined text-[16px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
+            chevron_right
+          </span>
+        </div>
+      </div>
     </Link>
   );
 }
@@ -786,6 +829,8 @@ ProviderCard.propTypes = {
     error: PropTypes.number,
     errorCode: PropTypes.string,
     errorTime: PropTypes.string,
+    total: PropTypes.number,
+    allDisabled: PropTypes.bool,
   }).isRequired,
   authType: PropTypes.string,
   onToggle: PropTypes.func,
@@ -804,18 +849,26 @@ function ApiKeyProviderCard({
     ANTHROPIC_COMPATIBLE_PREFIX,
   );
 
-  const dotColors = {
-    free: "bg-green-500",
-    oauth: "bg-blue-500",
-    apikey: "bg-amber-500",
-    compatible: "bg-orange-500",
-  };
-  const dotLabels = {
-    free: "Free",
-    oauth: "OAuth",
-    apikey: "API Key",
-    compatible: "Compatible",
-  };
+  const authLabel = isCompatible
+    ? "OpenAI"
+    : isAnthropicCompatible
+      ? "Anthropic"
+      : authType === "cookie"
+        ? "Cookie"
+        : authType === "free"
+          ? "Free"
+          : "API Key";
+
+  const isNoAuth = !!provider.noAuth;
+  const statusRailClass = allDisabled
+    ? "bg-border"
+    : error > 0
+      ? "bg-red-500"
+      : connected > 0
+        ? "bg-primary"
+        : isNoAuth
+          ? "bg-primary"
+          : "bg-border-subtle dark:bg-border/60";
 
   const getIconPath = () => {
     if (isCompatible && provider.apiType)
@@ -827,95 +880,110 @@ function ApiKeyProviderCard({
   };
 
   return (
-    <Link href={`/dashboard/providers/${providerId}`} className="group min-w-0">
-      <Card
-        padding="xs"
-        className={`h-full hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
+    <Link href={`/dashboard/providers/${providerId}`} className="group block min-w-0">
+      <div
+        className={cn(
+          "relative flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-2.5 transition-all duration-150 cursor-pointer overflow-hidden",
+          "hover:border-border hover:bg-surface-2/60",
+          allDisabled && "opacity-50"
+        )}
       >
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div
-              className="size-8 shrink-0 rounded-lg flex items-center justify-center"
-              style={{
-                backgroundColor: `${provider.color?.length > 7 ? provider.color : provider.color + "15"}`,
-              }}
-            >
-              <ProviderIcon
-                src={getIconPath()}
-                alt={provider.name}
-                size={30}
-                className="object-contain rounded-lg max-w-[30px] max-h-[30px]"
-                fallbackIcon={provider.icon}
-                fallbackText={
-                  provider.textIcon || provider.id.slice(0, 2).toUpperCase()
-                }
-                fallbackColor={provider.color}
-              />
-            </div>
-            <div className="min-w-0">
-              <h3 className="truncate font-semibold">{provider.name}</h3>
-              <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap">
-                {allDisabled ? (
-                  <Badge variant="default" size="sm">
-                    <span className="flex items-center gap-1">
-                      <span className="material-symbols-outlined text-[12px]">
-                        pause_circle
-                      </span>
-                      Disabled
-                    </span>
-                  </Badge>
-                ) : (
-                  <>
-                    {getStatusDisplay(connected, error, errorCode)}
-                    {provider.billingTier === "subscription" && (
-                      <Badge variant="default" size="sm">
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
-                          Subscription
-                        </span>
-                      </Badge>
-                    )}
-                    {isCompatible && (
-                      <Badge variant="default" size="sm">
-                        {provider.apiType === "responses"
-                          ? "Responses"
-                          : "Chat"}
-                      </Badge>
-                    )}
-                    {isAnthropicCompatible && (
-                      <Badge variant="default" size="sm">
-                        Messages
-                      </Badge>
-                    )}
-                    {errorTime && (
-                      <span className="text-text-muted">{errorTime}</span>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
+        <span
+          className={cn("absolute inset-y-0 left-0 w-[3px] transition-colors", statusRailClass)}
+          aria-hidden="true"
+        />
+        <div className="flex min-w-0 items-center gap-2.5 pl-1.5 flex-1">
+          <div
+            className="size-8 shrink-0 rounded-md flex items-center justify-center border border-border-subtle/50"
+            style={{
+              backgroundColor: `${provider.color?.length > 7 ? provider.color : (provider.color || "#168BFF") + "15"}`,
+            }}
+          >
+            <ProviderIcon
+              src={getIconPath()}
+              alt={provider.name}
+              size={24}
+              className="object-contain rounded max-w-[24px] max-h-[24px]"
+              fallbackIcon={provider.icon}
+              fallbackText={
+                provider.textIcon || provider.id.slice(0, 2).toUpperCase()
+              }
+              fallbackColor={provider.color}
+            />
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {stats.total > 0 && (
-              <div
-                className="opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-              >
-                <Toggle
-                  size="sm"
-                  checked={!allDisabled}
-                  onChange={onToggle}
-                  ariaLabel={`${provider.name} routing`}
-                  title={allDisabled ? "Enable provider" : "Disable provider"}
-                />
-              </div>
-            )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h3 className="truncate text-xs sm:text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
+                {provider.name}
+              </h3>
+              <span className="shrink-0 text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded bg-surface-2 border border-border-subtle">
+                {authLabel}
+              </span>
+            </div>
+            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-0.5">
+              {allDisabled ? (
+                <Badge variant="default" size="sm">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">
+                      pause_circle
+                    </span>
+                    Disabled
+                  </span>
+                </Badge>
+              ) : isNoAuth ? (
+                <Badge variant="success" size="sm" dot>Ready</Badge>
+              ) : (
+                <>
+                  {getStatusDisplay(connected, error, errorCode)}
+                  {provider.billingTier === "subscription" && (
+                    <Badge variant="default" size="sm">
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
+                        Subscription
+                      </span>
+                    </Badge>
+                  )}
+                  {isCompatible && (
+                    <Badge variant="default" size="sm">
+                      {provider.apiType === "responses" ? "Responses" : "Chat"}
+                    </Badge>
+                  )}
+                  {isAnthropicCompatible && (
+                    <Badge variant="default" size="sm">
+                      Messages
+                    </Badge>
+                  )}
+                  {errorTime && (
+                    <span className="text-text-muted text-[11px]">{errorTime}</span>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </Card>
+        <div className="flex shrink-0 items-center gap-2">
+          {stats.total > 0 && (
+            <div
+              className="opacity-100 transition-opacity sm:opacity-70 sm:group-hover:opacity-100"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+            >
+              <Toggle
+                size="sm"
+                checked={!allDisabled}
+                onChange={onToggle}
+                ariaLabel={`${provider.name} routing`}
+                title={allDisabled ? "Enable provider" : "Disable provider"}
+              />
+            </div>
+          )}
+          <span className="material-symbols-outlined text-[16px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
+            chevron_right
+          </span>
+        </div>
+      </div>
     </Link>
   );
 }
@@ -936,6 +1004,8 @@ ApiKeyProviderCard.propTypes = {
     error: PropTypes.number,
     errorCode: PropTypes.string,
     errorTime: PropTypes.string,
+    total: PropTypes.number,
+    allDisabled: PropTypes.bool,
   }).isRequired,
   authType: PropTypes.string,
   onToggle: PropTypes.func,
@@ -988,7 +1058,10 @@ function ProviderTestResultsView({ results }) {
           className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg bg-black/[0.03] px-3 py-2 text-xs dark:bg-white/[0.03] sm:flex-nowrap"
         >
           <span
-            className={`material-symbols-outlined text-[16px] ${r.valid ? "text-emerald-500" : "text-red-500"}`}
+            className={cn(
+              "material-symbols-outlined text-[16px]",
+              r.valid ? "text-emerald-500" : "text-red-500"
+            )}
           >
             {r.valid ? "check_circle" : "error"}
           </span>
@@ -1006,11 +1079,12 @@ function ProviderTestResultsView({ results }) {
             </span>
           )}
           <span
-            className={`shrink-0 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
+            className={cn(
+              "shrink-0 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded",
               r.valid
                 ? "bg-emerald-500/15 text-emerald-400"
                 : "bg-red-500/15 text-red-400"
-            }`}
+            )}
           >
             {r.valid ? "OK" : r.diagnosis?.type || "ERROR"}
           </span>

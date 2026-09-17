@@ -202,8 +202,12 @@ export function evaluateGate(actual, char) {
 
 function runVitest() {
   const tmpOut = path.join(mkdtempSync(path.join(tmpdir(), "w02-gate-")), "run.json");
-  const res = spawnSync(process.execPath, [VITEST_BIN, "run", "--reporter=json", `--outputFile=${tmpOut}`], {
-    cwd: TESTS_DIR,
+  // Run from the repository root, not tests/: several suites resolve fixture and
+  // source paths relative to process.cwd() (e.g. tests/unit/machine-id-salt.test.js
+  // reads open-sse/shared/machineId.js), so a tests/ CWD reports failures that do
+  // not exist under the canonical `--root .` invocation.
+  const res = spawnSync(process.execPath, [VITEST_BIN, "run", "--config", "tests/vitest.config.js", "--root", ".", "--reporter=json", `--outputFile=${tmpOut}`], {
+    cwd: ROOT,
     encoding: "utf8",
     timeout: 900_000,
   });

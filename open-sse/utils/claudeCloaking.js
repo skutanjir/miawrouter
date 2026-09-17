@@ -6,11 +6,38 @@ const CC_ENTRYPOINT = "sdk-cli";
 
 // Generate billing header matching real Claude Code 2.1.92+ format:
 // x-anthropic-billing-header: cc_version=<ver>.<build>; cc_entrypoint=sdk-cli; cch=<hash>;
-function generateBillingHeader(payload) {
-  const content = JSON.stringify(payload);
-  const cch = createHash("sha256").update(content).digest("hex").slice(0, 5);
-  const buildHash = randomBytes(2).toString("hex").slice(0, 3);
+//
+// CACHE STABILITY: this text is injected as system[0], i.e. the very first bytes
+// of the prefix a provider prompt-caches. Anything request-varying here
+// invalidates the ENTIRE cached prefix on every turn. Both fields are therefore
+// derived from stable inputs only:
+//   - build is stable per account (same derivation pattern as device_id below),
+//     not a fresh randomBytes() per request.
+//   - cch is stable for a stable prefix: it hashes system + tools + every message
+//     EXCEPT the mutable last turn, so a long coding session keeps a byte-stable
+//     header while the client appends new turns.
+// Field shapes (3-hex build, 5-hex cch) are unchanged, so the header remains
+// protocol-valid.
+function generateBillingHeader(payload, accountSeed = "") {
+  const cch = createHash("sha256")
+    .update(JSON.stringify(stableHeaderInput(payload)))
+    .digest("hex")
+    .slice(0, 5);
+  const buildHash = accountSeed
+    ? createHash("sha256").update(`build:${accountSeed}`).digest("hex").slice(0, 3)
+    : createHash("sha256").update("build:static").digest("hex").slice(0, 3);
   return `x-anthropic-billing-header: cc_version=${CLAUDE_VERSION}.${buildHash}; cc_entrypoint=${CC_ENTRYPOINT}; cch=${cch};`;
+}
+
+// Everything a provider would cache EXCEPT the mutable tail (last message).
+// Keeps cch stable across appends to the same conversation.
+function stableHeaderInput(payload) {
+  if (!payload || typeof payload !== "object") return payload ?? null;
+  const { messages, ...rest } = payload;
+  return {
+    ...rest,
+    messages: Array.isArray(messages) && messages.length > 1 ? messages.slice(0, -1) : [],
+  };
 }
 
 // Derive a deterministic UUID-v4-shaped string from a seed (stable per account)
@@ -141,7 +168,7 @@ export function applyCloaking(body, apiKey, sessionId) {
   const result = { ...body };
 
   // Inject billing header as system[0], preserve existing system blocks
-  const billingText = generateBillingHeader(body);
+  const billingText = generateBillingHeader(body, apiKey);
   const billingBlock = { type: "text", text: billingText };
 
   if (Array.isArray(result.system)) {

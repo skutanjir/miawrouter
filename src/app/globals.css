@@ -566,13 +566,14 @@ button:disabled,
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0.375rem 0.75rem;
+    padding: 0.375rem 0.625rem;
     border-radius: var(--radius-brand);
     color: var(--color-text-muted);
     font-size: 13px;
     font-weight: 500;
     line-height: 1.4;
-    transition: background-color 150ms ease-out, color 150ms ease-out;
+    transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+    border-left: 2px solid transparent;
   }
   .nav-item:hover {
     background-color: var(--color-bg-hover);
@@ -581,71 +582,30 @@ button:disabled,
   .nav-item-active,
   .nav-item-active:hover {
     background-color: var(--color-bg-hover);
-    color: var(--color-text-main);
-    box-shadow: inset 2px 0 0 0 var(--color-signal);
+    color: var(--color-primary);
+    font-weight: 600;
+    border-left-color: var(--color-primary);
   }
 }
 
-/* Topology: router card pulse (no flying rings) + electric edge beam */
-@keyframes topology-router-pulse {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow:
-      0 0 8px #fde047,
-      0 0 20px color-mix(in srgb, var(--color-primary) 65%, transparent),
-      0 0 32px rgba(34, 211, 238, 0.4),
-      inset 0 0 10px rgba(253, 224, 71, 0.3);
+/* Topology: steady edge stroke with reduced-motion fallback */
+@keyframes topology-edge-flow {
+  to { stroke-dashoffset: -24; }
+}
+
+.topology-router-active {
+  box-shadow: 0 0 0 1px var(--color-primary), 0 2px 8px -2px rgba(22, 139, 255, 0.3);
+}
+
+.topology-edge-active {
+  stroke-dasharray: 6 6;
+  animation: topology-edge-flow 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topology-edge-active {
+    animation: none !important;
   }
-  50% {
-    transform: scale(1.06);
-    box-shadow:
-      0 0 14px #fef08a,
-      0 0 28px #facc15,
-      0 0 44px rgba(34, 211, 238, 0.6),
-      inset 0 0 14px rgba(255, 255, 255, 0.25);
-  }
-}
-@keyframes topology-router-icon-shake {
-  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px #fde047); }
-  25% { transform: rotate(-5deg) scale(1.08); filter: drop-shadow(0 0 6px #facc15); }
-  75% { transform: rotate(5deg) scale(1.08); filter: drop-shadow(0 0 6px #22d3ee); }
-}
-@keyframes topology-router-label-flicker {
-  0%, 100% { text-shadow: 0 0 6px #fde047, 0 0 12px #22d3ee; }
-  50% { text-shadow: 0 0 10px #fff, 0 0 18px #facc15; }
-}
-@keyframes topology-edge-dash {
-  to { stroke-dashoffset: -36; }
-}
-@keyframes topology-edge-flicker {
-  0%, 100% { opacity: 0.85; }
-  40% { opacity: 1; }
-  55% { opacity: 0.55; }
-  70% { opacity: 1; }
-}
-.topology-router-core {
-  animation: topology-router-pulse 0.75s ease-in-out infinite;
-  border-color: #fde047 !important;
-}
-.topology-router-icon {
-  animation: topology-router-icon-shake 0.45s ease-in-out infinite;
-}
-.topology-router-label {
-  animation: topology-router-label-flicker 0.7s ease-in-out infinite;
-}
-.topology-router-badge {
-  box-shadow: 0 0 10px #fde047, 0 0 16px rgba(34, 211, 238, 0.6);
-}
-.topology-edge-kame {
-  stroke-dasharray: 8 6;
-  animation: topology-edge-dash 0.22s linear infinite;
-}
-.topology-edge-halo {
-  animation: topology-edge-flicker 0.18s steps(2) infinite;
-}
-.topology-edge-plasma {
-  stroke-dasharray: 14 10;
-  animation: topology-edge-dash 0.18s linear infinite, topology-edge-flicker 0.22s steps(3) infinite;
 }
 
 /* React Flow controls: match app theme */

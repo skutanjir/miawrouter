@@ -6,7 +6,9 @@ import { PROVIDERS } from "../../config/providers.js";
 import { STREAM_STALL_TIMEOUT_MS } from "../../config/runtimeConfig.js";
 import { buildAbortedResponsesTerminalBytes } from "../../utils/responsesStreamHelpers.js";
 import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
+import { increment, observeHistogram } from "../../services/runtimeMetrics.js";
 import { emitCacheUsage } from "../../cache/l0.js";
+import { resolveCacheCapability } from "../../providers/cacheCapabilities.js";
 import { saveRequestDetail } from "@/lib/usageDb.js";
 import { SSE_HEADERS_CORS as SSE_HEADERS } from "../../utils/sseConstants.js";
 
@@ -111,7 +113,7 @@ export async function handleStreamingResponse({ providerResponse, provider, mode
 /**
  * Build onStreamComplete callback for streaming usage tracking.
  */
-export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log, cacheKey, onCacheEvent }) {
+export function buildOnStreamComplete({ provider, model, connectionId, apiKey, requestStartTime, usageRequestId, body, stream, finalBody, translatedBody, clientRawRequest, pxpipe, reqTag, log, cacheKey, onCacheEvent }) {
   const streamDetailId = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
   const onStreamComplete = (contentObj, usage, ttftAt) => {
@@ -121,6 +123,21 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     };
     const safeContent = contentObj?.content || "[Empty streaming response]";
     const safeThinking = contentObj?.thinking || null;
+
+    try {
+      increment("miawrouter_requests_total", { provider, outcome: "success" }, "Total routed requests");
+      observeHistogram("miawrouter_ttft_seconds", latency.ttft / 1000, { provider }, "Time to first token in seconds");
+      observeHistogram("miawrouter_request_duration_seconds", latency.total / 1000, { provider, outcome: "success" }, "End-to-end router request duration in seconds");
+      if (Number.isFinite(usage?.prompt_tokens)) increment("miawrouter_tokens_input_total", { provider }, "Prompt tokens seen by the router", usage.prompt_tokens);
+      if (Number.isFinite(usage?.completion_tokens)) increment("miawrouter_tokens_output_total", { provider }, "Completion tokens seen by the router", usage.completion_tokens);
+      // UPSTREAM prompt-cache accounting — distinct from the router's own L1/L2
+      // response cache (miawrouter_cache_hits_total). Never report an L1/L2 hit
+      // here, and never report a provider cache read as a router cache hit.
+      const cacheReadTokens = usage?.prompt_tokens_details?.cached_tokens ?? usage?.cache_read_input_tokens ?? usage?.prompt_cache_hit_tokens ?? usage?.cachedContentTokenCount;
+      if (Number.isFinite(cacheReadTokens)) increment("miawrouter_provider_cache_read_tokens_total", { provider, cacheMode: resolveCacheCapability(provider, targetFormat).mode }, "Prompt tokens served from the UPSTREAM provider prompt cache", cacheReadTokens);
+      const cacheWriteTokens = usage?.cache_creation_input_tokens ?? usage?.prompt_tokens_details?.cache_creation_tokens;
+      if (Number.isFinite(cacheWriteTokens)) increment("miawrouter_provider_cache_write_tokens_total", { provider, cacheMode: resolveCacheCapability(provider, targetFormat).mode }, "Prompt tokens written to the UPSTREAM provider prompt cache", cacheWriteTokens);
+    } catch { /* metrics are never allowed to break the request */ }
 
     saveRequestDetail(buildRequestDetail({
       provider, model, connectionId,
@@ -137,8 +154,8 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
     });
 
     // Persist stream usage to DB (no console line; the "📊 done" line below is authoritative)
-    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, label: "STREAM USAGE", silent: true });
-    emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage });
+    saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, requestId: usageRequestId, label: "STREAM USAGE", silent: true });
+    emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage, cacheMode: resolveCacheCapability(provider, targetFormat).mode, connectionId });
     if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency }));
   };
 

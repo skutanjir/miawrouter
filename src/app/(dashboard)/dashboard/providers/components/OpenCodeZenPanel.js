@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useId } from "react";
-import { Card, Toggle } from "@/shared/components";
+import { Toggle } from "@/shared/components";
+import { cn } from "@/shared/utils/cn";
 import { getRelativeTime } from "@/shared/utils";
 
 const PREVIEW_IDS = 3;
@@ -15,16 +16,18 @@ function DiffList({ items, kind }) {
   const shown = expanded ? ids : ids.slice(0, PREVIEW_IDS);
   const hidden = ids.length - shown.length;
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-        {kind} ({ids.length})
-      </span>
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5">
+        <span className="w-1 h-2.5 rounded-full bg-primary/60 shrink-0" aria-hidden="true" />
+        <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-text-muted">
+          {kind} ({ids.length})
+        </span>
+      </div>
       <div id={listId} className="flex flex-wrap gap-1">
         {shown.map((id) => (
           <span
             key={id}
-            className="font-mono text-[11px] tabular-nums rounded px-1.5 py-0.5 truncate max-w-[180px] bg-panel border text-muted"
-            style={{ borderColor: "var(--color-rule)" }}
+            className="font-mono text-[11px] tabular-nums rounded px-2 py-0.5 truncate max-w-[180px] bg-surface-2 border border-border-subtle text-text-muted hover:text-text-main transition-colors"
             title={id}
           >
             {id}
@@ -35,7 +38,7 @@ function DiffList({ items, kind }) {
             type="button"
             id={buttonId}
             onClick={() => setExpanded((v) => !v)}
-            className="text-[11px] font-medium rounded px-1.5 py-0.5 text-muted hover:text-ink"
+            className="text-[11px] font-mono font-medium rounded px-2 py-0.5 border border-dashed border-border text-text-muted hover:text-text-main hover:border-primary/40 bg-surface transition-colors cursor-pointer"
             aria-expanded={expanded}
             aria-controls={listId}
             aria-label={expanded ? `Collapse ${kind} models` : `Show ${hidden} more ${kind} models`}
@@ -120,17 +123,28 @@ export default function OpenCodeZenPanel() {
   const catalogError = catalog?.error || null;
 
   return (
-    <Card
-      title="OpenCode Zen Catalog"
-      subtitle="Free model availability from opencode.ai/zen"
-      padding="sm"
-    >
+    <div className="rounded-xl border border-border-subtle bg-surface p-4 flex flex-col gap-3 shadow-soft">
+      {/* Control console header strip */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-border-subtle">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-text-main truncate">
+            OpenCode Zen Catalog
+          </h2>
+          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
+            Telemetry
+          </span>
+        </div>
+        <span className="text-xs text-text-muted truncate">
+          Free model availability from opencode.ai/zen
+        </span>
+      </div>
+
       <div className="flex flex-col gap-3">
         {catalogLoadError && (
           <div
             role="alert"
-            className="rounded-[8px] px-3 py-2 text-sm bg-panel border text-fail"
-            style={{ borderColor: "var(--color-rule)" }}
+            className="rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/20 text-red-500"
           >
             Could not load the Zen catalog: {catalogLoadError}
           </div>
@@ -138,8 +152,7 @@ export default function OpenCodeZenPanel() {
         {settingsLoadError && (
           <div
             role="alert"
-            className="rounded-[8px] px-3 py-2 text-sm bg-panel border text-fail"
-            style={{ borderColor: "var(--color-rule)" }}
+            className="rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/20 text-red-500"
           >
             Could not load settings — the free-only toggle is unavailable: {settingsLoadError}
           </div>
@@ -147,52 +160,90 @@ export default function OpenCodeZenPanel() {
 
         {catalog && (
           <>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-mono tabular-nums text-2xl font-semibold text-ink">{freeCount}</span>
-                <span className="text-sm text-muted">free of {total} models</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-muted">
-                  Last refresh: {fetchedAt ? `${new Date(fetchedAt).toLocaleString()} (${getRelativeTime(new Date(fetchedAt).toISOString())})` : "never"}
+            {/* Metric strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-2.5 rounded-lg bg-surface-2 border border-border-subtle">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Free Models</span>
+                <span className="font-mono tabular-nums text-lg sm:text-xl font-bold text-text-main">
+                  {freeCount}
+                  <span className="text-xs font-normal text-text-muted ml-1">/ {total}</span>
                 </span>
-                {stale && !catalogError && (
-                  <span role="status" className="inline-flex items-center gap-1 font-medium text-warn">
-                    <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
-                    Catalog may be outdated
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Catalog Ratio</span>
+                <span className="font-mono tabular-nums text-lg sm:text-xl font-bold text-primary">
+                  {total > 0 ? `${Math.round((freeCount / total) * 100)}%` : "0%"}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Status</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span
+                    className={cn(
+                      "size-2 rounded-full shrink-0",
+                      catalogError
+                        ? "bg-red-500"
+                        : stale
+                          ? "bg-amber-500"
+                          : "bg-emerald-500"
+                    )}
+                    aria-hidden="true"
+                  />
+                  <span className="text-xs font-semibold text-text-main">
+                    {catalogError ? "Unavailable" : stale ? "Stale" : "Live"}
                   </span>
-                )}
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Last Refresh</span>
+                <span className="text-xs font-mono text-text-muted truncate mt-0.5" title={fetchedAt ? new Date(fetchedAt).toLocaleString() : "never"}>
+                  {fetchedAt ? getRelativeTime(new Date(fetchedAt).toISOString()) : "never"}
+                </span>
               </div>
             </div>
+
+            {stale && !catalogError && (
+              <div
+                role="status"
+                className="rounded-lg px-3 py-2 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-[16px] shrink-0" aria-hidden="true">schedule</span>
+                <span>Catalog may be outdated — next refresh pending.</span>
+              </div>
+            )}
 
             {catalogError && (
               <div
                 role="alert"
-                className="rounded-[8px] px-3 py-2 text-sm bg-panel border text-fail"
-                style={{ borderColor: "var(--color-rule)" }}
+                className="rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/20 text-red-500 flex items-center gap-2"
               >
-                Catalog unavailable: {catalogError}
+                <span className="material-symbols-outlined text-[16px] shrink-0" aria-hidden="true">error</span>
+                <span>Catalog unavailable: {catalogError}</span>
               </div>
             )}
 
             {unknownRetention > 0 && (
               <div
                 role="status"
-                className="rounded-[8px] px-3 py-2 text-xs bg-panel border text-warn"
-                style={{ borderColor: "var(--color-rule)" }}
+                className="rounded-lg px-3 py-2 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex items-start gap-2"
               >
-                Warning: {unknownRetention} model{unknownRetention === 1 ? "" : "s"} have unknown data
-                retention — treat as unsafe. Zen may retain and train on submitted data for some free
-                models; retention is only considered safe when explicitly documented as none.
+                <span className="material-symbols-outlined text-[16px] text-amber-500 shrink-0 mt-0.5" aria-hidden="true">warning</span>
+                <span>
+                  <strong>Retention warning:</strong> {unknownRetention} model{unknownRetention === 1 ? "" : "s"} have unknown data
+                  retention — treat as unsafe. Zen may retain and train on submitted data for some free
+                  models; retention is only considered safe when explicitly documented as none.
+                </span>
               </div>
             )}
 
+            {/* Model chips */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <DiffList items={diff.added} kind="Added" />
               <DiffList items={diff.removed} kind="Removed" />
             </div>
 
-            <div className="flex flex-col gap-1 rounded-[8px] px-3 py-2.5 bg-chassis border" style={{ borderColor: "var(--color-rule)" }}>
+            {/* One settings row */}
+            <div className="flex flex-col gap-1 rounded-lg px-3 py-2.5 bg-surface-2 border border-border-subtle">
               <Toggle
                 checked={zenFreeOnly === true}
                 onChange={handleToggle}
@@ -201,7 +252,7 @@ export default function OpenCodeZenPanel() {
                 description="Only route OpenCode models classified as free"
               />
               {saveError && (
-                <p className="text-xs text-fail" role="alert">
+                <p className="text-xs text-red-500 mt-1" role="alert">
                   {saveError}
                 </p>
               )}
@@ -209,6 +260,6 @@ export default function OpenCodeZenPanel() {
           </>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

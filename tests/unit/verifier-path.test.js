@@ -26,7 +26,7 @@ describe("baseline verifier paths", () => {
     }));
 
     const result = spawnSync(process.execPath, [
-      path.resolve("__baseline__/verify-no-regression.mjs"),
+      path.resolve("tests/__baseline__/verify-no-regression.mjs"),
       resultsPath,
     ], { encoding: "utf8" });
 

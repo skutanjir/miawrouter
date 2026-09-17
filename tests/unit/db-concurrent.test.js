@@ -29,6 +29,7 @@ describe("DB Concurrency — atomic safety", () => {
     const promises = [];
     for (let i = 0; i < N; i++) {
       promises.push(db.saveRequestUsage({
+        requestId: `req-${i}`,
         provider: "openai", model: "gpt-4", connectionId: "c1",
         tokens: { prompt_tokens: 10, completion_tokens: 5 },
         endpoint: "/v1/chat", status: "ok",
@@ -70,6 +71,7 @@ describe("DB Concurrency — atomic safety", () => {
     const ops = [];
     for (let i = 0; i < 50; i++) {
       ops.push(db.saveRequestUsage({
+        requestId: `req-anthropic-${i}`,
         provider: "anthropic", model: `m-${i % 3}`, connectionId: "c2",
         tokens: { prompt_tokens: 20 }, status: "ok",
       }));
@@ -154,6 +156,7 @@ describe("DB Concurrency — atomic safety", () => {
     const promises = [];
     for (let i = 0; i < N; i++) {
       promises.push(db.saveRequestUsage({
+        requestId: `req-google-${i}`,
         provider: "google", model: "gemini-pro", connectionId: "cG",
         tokens: { prompt_tokens: 100, completion_tokens: 50 },
         status: "ok",
@@ -167,5 +170,26 @@ describe("DB Concurrency — atomic safety", () => {
     expect(g.requests).toBe(N);
     expect(g.promptTokens).toBe(N * 100);
     expect(g.completionTokens).toBe(N * 50);
+  });
+
+  it("same logical request recorded twice → deduped to 1 row", async () => {
+    const reqId = "req-idempotent-1";
+    await db.saveRequestUsage({
+      requestId: reqId,
+      provider: "openai", model: "gpt-4", connectionId: "c1",
+      tokens: { prompt_tokens: 10, completion_tokens: 5 },
+      endpoint: "/v1/chat", status: "ok",
+    });
+    // Call again with same requestId but maybe updated endpoint
+    await db.saveRequestUsage({
+      requestId: reqId,
+      provider: "openai", model: "gpt-4", connectionId: "c1",
+      tokens: { prompt_tokens: 10, completion_tokens: 5 },
+      endpoint: "/v1/chat/completions", status: "ok",
+    });
+
+    const hist = await db.getUsageHistory({ provider: "openai" });
+    const matching = hist.filter((r) => r.model === "gpt-4");
+    expect(matching.length).toBe(101); // 100 from first test + 1 from this test
   });
 });

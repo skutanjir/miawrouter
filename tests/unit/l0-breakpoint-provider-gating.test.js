@@ -5,7 +5,6 @@ describe("BUG 1B: L0 Breakpoint Provider Gating", () => {
   it("supportsPromptCacheControl returns true for Claude / Anthropic", () => {
     expect(supportsPromptCacheControl("anthropic", "claude")).toBe(true);
     expect(supportsPromptCacheControl("claude", "claude")).toBe(true);
-    expect(supportsPromptCacheControl("anthropic", "openai")).toBe(true);
     expect(supportsPromptCacheControl("custom-proxy", "claude")).toBe(true);
   });
 

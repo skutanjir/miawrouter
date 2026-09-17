@@ -126,7 +126,7 @@ describe("bench/verify.mjs verifyReport", () => {
   });
 
   it("skips runs missing from the baseline instead of failing them", () => {
-    const extra = { ...report, runs: [...report.runs, { runId: "run-999", ...CUR() }] };
+    const extra = { ...report, runs: [...report.runs, CUR({ runId: "run-999" })] };
     const r = verifyReport({ report: extra, baseline });
     expect(r.passed).toBe(true);
     expect(r.skipped.some((s) => s.runId === "run-999" && s.detail.includes("missing from baseline"))).toBe(true);

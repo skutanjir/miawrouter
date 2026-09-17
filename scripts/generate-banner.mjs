@@ -362,7 +362,7 @@ async function generateBanner() {
     <div class="badge-row">
       <div class="release-badge">
         <span class="pulse-dot"></span>
-        <span>v1.0.29 • PRODUCTION RELEASE</span>
+        <span>v1.1.0 • PRODUCTION RELEASE</span>
       </div>
       <span class="sub-tag">OPENAI &bull; CLAUDE &bull; GEMINI COMPAT</span>
     </div>

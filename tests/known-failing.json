@@ -1,0 +1,6 @@
+{
+  "note": "Pre-existing failing suites quarantined from the blocking test job; CI runs them in a non-blocking backlog job so the debt stays visible. The list is now empty: every suite that was quarantined has either been fixed or, where the artifact under test is not part of this repository, replaced with an explicit self-skip that names the missing piece (tests/unit/embeddings.cloud.test.js, tests/unit/db-benchmark.test.js). Add an entry only with the same evidence a fix would need.",
+  "since": "2026-09-17",
+  "count": 0,
+  "files": []
+}

@@ -74,9 +74,14 @@ export function reorderByCapabilities(models, required) {
     return soft.every((c) => caps[c] === true) ? 0 : 1;
   };
 
+  const tiers = models.map(tierOf);
+  // Same tier for every model: nothing to promote, so hand the caller's array
+  // back untouched (callers compare against the original element).
+  if (tiers.every((t) => t === tiers[0])) return models;
+
   // Stable sort by tier (Array.prototype.sort is stable in modern engines).
   return models
-    .map((m, i) => ({ m, i, t: tierOf(m) }))
+    .map((m, i) => ({ m, i, t: tiers[i] }))
     .sort((a, b) => a.t - b.t || a.i - b.i)
     .map((x) => x.m);
 }
@@ -144,7 +149,15 @@ export function detectRequiredCapabilities(body) {
   const contents = body.contents || body.request?.contents;                      // gemini / antigravity
   for (const c of trailingUserItems(contents)) scanContent(c.parts);
 
-  // search: temporarily disabled in auto-switch (feature not wired yet).
+  // Built-in web-search tools (openai `web_search` / `web_search_preview`,
+  // anthropic `web_search_<version>`) are request-wide, not turn-scoped.
+  for (const tool of Array.isArray(body.tools) ? body.tools : []) {
+    const type = typeof tool?.type === "string" ? tool.type : "";
+    if (type.startsWith("web_search") || tool?.function?.name === "web_search") {
+      required.add("search");
+      break;
+    }
+  }
 
   return required;
 }

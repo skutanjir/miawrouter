@@ -86,23 +86,23 @@ const systemItems = [
 function NavItem({ item, active, onClick, indented }) {
   const base = cn(
     "nav-item group",
-    indented && "pl-8",
+    indented && "pl-7",
     active && "nav-item-active",
     item.comingSoon && "opacity-50 cursor-not-allowed pointer-events-none"
   );
 
   const iconClass = cn(
-    "material-symbols-outlined",
-    indented ? "text-[16px]" : "text-[18px]",
-    active ? "fill-1" : !item.comingSoon && "group-hover:text-primary transition-colors"
+    "material-symbols-outlined shrink-0",
+    indented ? "text-[15px]" : "text-[17px]",
+    active ? "text-primary fill-1" : !item.comingSoon && "text-text-muted group-hover:text-text-main transition-colors"
   );
 
   const content = (
     <>
       <span className={iconClass}>{item.icon}</span>
-      <span className={cn("font-medium", indented ? "text-sm" : "text-[13px]", "flex-1")}>{item.label}</span>
+      <span className={cn("truncate", indented ? "text-xs" : "text-[13px]", "flex-1")}>{item.label}</span>
       {item.comingSoon && (
-        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-bg-hover text-text-muted border border-border-subtle select-none">
+        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-hover text-text-muted border border-border-subtle select-none">
           Soon
         </span>
       )}
@@ -122,30 +122,33 @@ function NavItem({ item, active, onClick, indented }) {
 
 function NavSection({ title, items, pathname, onClose, open: defaultOpen = true }) {
   const [expanded, setExpanded] = useState(defaultOpen);
-  const hasActive = items.some((it) => !it.comingSoon && pathname.startsWith(it.href));
 
   return (
-    <div className="space-y-1">
+    <div className="pt-2">
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="label px-3 mb-1 flex items-center gap-1 w-full hover:text-text-main transition-colors cursor-pointer"
+        className="label px-2.5 py-1 mb-1 flex items-center justify-between w-full hover:text-text-main transition-colors cursor-pointer"
       >
-        {title}
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">{title}</span>
         <span
-          className="material-symbols-outlined text-[14px] transition-transform"
+          className="material-symbols-outlined text-[13px] text-text-muted/70 transition-transform"
           style={{ transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
         >
           expand_more
         </span>
       </button>
-      {expanded && items.map((item) => (
-        <NavItem
-          key={item.href}
-          item={item}
-          active={!item.comingSoon && pathname.startsWith(item.href)}
-          onClick={onClose}
-        />
-      ))}
+      {expanded && (
+        <div className="space-y-0.5">
+          {items.map((item) => (
+            <NavItem
+              key={item.href}
+              item={item}
+              active={!item.comingSoon && pathname.startsWith(item.href)}
+              onClick={onClose}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -224,16 +227,16 @@ export default function Sidebar({ onClose }) {
     <>
       <aside className="flex w-64 flex-col border-r border-border-subtle bg-sidebar transition-colors duration-300 min-h-full">
         {/* Logo */}
-        <div className="px-5 py-5 flex flex-col gap-2">
-          <Link href="/dashboard" className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-8 overflow-hidden rounded-[var(--radius-brand)] shadow-[var(--shadow-warm)]">
-              <BrandAsset kind="icon" className="size-full object-cover" />
+        <div className="px-4 py-4 border-b border-border-subtle flex flex-col gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <div className="flex items-center justify-center size-7 overflow-hidden rounded-[var(--radius-brand)] border border-border-subtle bg-surface">
+              <BrandAsset kind="icon" className="size-full object-contain p-0.5" />
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-base font-semibold tracking-tight text-text-main">
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-sm font-semibold tracking-tight text-text-main truncate">
                 {APP_CONFIG.name}
               </h1>
-              <span className="text-xs text-text-muted">{SIDEBAR_VERSION}</span>
+              <span className="text-[11px] font-mono text-text-muted">{SIDEBAR_VERSION}</span>
             </div>
           </Link>
           {updateInfo && (
@@ -263,16 +266,18 @@ export default function Sidebar({ onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar">
+        <nav className="flex-1 px-2.5 py-2.5 space-y-1 overflow-y-auto custom-scrollbar">
           {/* Core */}
-          {coreItems.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              active={!item.comingSoon && isActive(item.href)}
-              onClick={onClose}
-            />
-          ))}
+          <div className="space-y-0.5">
+            {coreItems.map((item) => (
+              <NavItem
+                key={item.href}
+                item={item}
+                active={!item.comingSoon && isActive(item.href)}
+                onClick={onClose}
+              />
+            ))}
+          </div>
 
           {/* Analytics */}
           <NavSection
@@ -315,8 +320,8 @@ export default function Sidebar({ onClose }) {
           />
 
           {/* System section */}
-          <div className="pt-3 mt-2 space-y-1">
-            <p className="label px-3 mb-1">
+          <div className="pt-2">
+            <p className="label px-2.5 py-1 mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">
               System
             </p>
 
@@ -328,26 +333,26 @@ export default function Sidebar({ onClose }) {
                 pathname.startsWith("/dashboard/media-providers") && "nav-item-active"
               )}
             >
-              <span className="material-symbols-outlined text-[18px]">perm_media</span>
-              <span className="text-[13px] font-medium flex-1 text-left">Media Providers</span>
-              <span className="material-symbols-outlined text-[14px] transition-transform" style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
+              <span className="material-symbols-outlined text-[17px] text-text-muted group-hover:text-text-main shrink-0">perm_media</span>
+              <span className="text-[13px] font-medium flex-1 text-left truncate">Media Providers</span>
+              <span className="material-symbols-outlined text-[13px] text-text-muted/70 transition-transform" style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
                 expand_more
               </span>
             </button>
             {mediaOpen && (
-              <div className="flex flex-col gap-1">
+              <div className="space-y-0.5 mt-0.5">
                 {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
                   <Link
                     key={kind.id}
                     href={`/dashboard/media-providers/${kind.id}`}
                     onClick={onClose}
                     className={cn(
-                      "nav-item pl-8 group",
+                      "nav-item pl-7 group",
                       pathname.startsWith(`/dashboard/media-providers/${kind.id}`) && "nav-item-active"
                     )}
                   >
-                    <span className="material-symbols-outlined text-[16px]">{kind.icon}</span>
-                    <span className="text-sm">{kind.label}</span>
+                    <span className="material-symbols-outlined text-[15px] shrink-0">{kind.icon}</span>
+                    <span className="text-xs truncate">{kind.label}</span>
                   </Link>
                 ))}
                 <Link
@@ -355,12 +360,12 @@ export default function Sidebar({ onClose }) {
                   href={COMBINED_WEB_ITEM.href}
                   onClick={onClose}
                   className={cn(
-                    "nav-item pl-8 group",
+                    "nav-item pl-7 group",
                     pathname.startsWith(COMBINED_WEB_ITEM.href) && "nav-item-active"
                   )}
                 >
-                  <span className="material-symbols-outlined text-[16px]">{COMBINED_WEB_ITEM.icon}</span>
-                  <span className="text-sm">{COMBINED_WEB_ITEM.label}</span>
+                  <span className="material-symbols-outlined text-[15px] shrink-0">{COMBINED_WEB_ITEM.icon}</span>
+                  <span className="text-xs truncate">{COMBINED_WEB_ITEM.label}</span>
                 </Link>
               </div>
             )}

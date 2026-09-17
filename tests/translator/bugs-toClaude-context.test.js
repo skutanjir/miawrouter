@@ -17,6 +17,7 @@ describe("OpenAI → Claude context mapping", () => {
     expect(JSON.stringify(out.system), "Claude Code prompt injected").not.toContain("Claude Code");
   });
 
+  // openai-to-claude.js:253-265 — reasoning_content/reasoning now map to a thinking block
   it("assistant reasoning_content becomes a thinking block", () => {
     const out = T({
       messages: [

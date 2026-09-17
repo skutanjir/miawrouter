@@ -23,13 +23,21 @@
  */
 
 import { proxyAwareFetch } from "../../utils/proxyFetch.js";
-import { U, parseResetTime, toFiniteNumber } from "./shared.js";
+import { U, parseResetTime, toFiniteNumber, normalizePlan } from "./shared.js";
 import {
   GROK_CLI_CLIENT_IDENTIFIER,
   GROK_CLI_USER_AGENT,
   GROK_CLI_VERSION,
 } from "../../config/grokCli.js";
 import { decodeGrokCreditsFrame } from "./grokCliQuotaFrame.js";
+
+const GROK_PLAN_CODE = "Grok Code";
+const GROK_TIER_NAMES = new Map([
+  [5, "SuperGrok Heavy"],
+  ["5", "SuperGrok Heavy"],
+  ["super_grok", "Super Grok"],
+  ["premium_plus", "Premium Plus"],
+]);
 
 const USAGE = U("grok-cli");
 const BILLING_URL = USAGE.url || "https://cli-chat-proxy.grok.com/v1/billing?format=credits";
@@ -69,24 +77,42 @@ function buildGrokCliHeaders(accessToken, providerSpecificData = {}) {
   return headers;
 }
 
+function decodeAccessTokenTier(token) {
+  if (typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+    return payload?.tier ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function subscriptionTier(user, config) {
   const rawTier =
     user?.subscriptionTier ??
     user?.subscription_tier ??
     user?.subscription?.tier ??
+    user?.tier ??
     config?.subscriptionTier ??
-    config?.subscription_tier;
+    config?.subscription_tier ??
+    config?.tier;
+  if (typeof rawTier === "number") return rawTier;
   return typeof rawTier === "string" ? rawTier.trim() : "";
 }
 
 function resolvePlan(user, config) {
   const tier = subscriptionTier(user, config);
-  if (tier) {
-    if (tier === "super_grok") return "Super Grok";
-    if (tier === "premium_plus") return "Premium Plus";
-    return tier;
+  if (tier !== "" && tier != null) {
+    const namedTier = GROK_TIER_NAMES.get(tier) || GROK_TIER_NAMES.get(Number(tier));
+    if (namedTier) return namedTier;
+    return normalizePlan(String(tier));
   }
-  return "Grok Code";
+  if (user?.hasGrokCodeAccess || user?.has_grok_code_access) {
+    return GROK_PLAN_CODE;
+  }
+  return GROK_PLAN_CODE;
 }
 
 function makeQuota({ used, total, resetAt, unlimited = false }) {
@@ -376,8 +402,14 @@ export async function getGrokCliUsage(accessToken, providerSpecificData = null, 
       const grpc = await fetchGrokCliCreditsConfig(accessToken, proxyOptions);
       const grpcQuotas = quotasFromGrpcCredits(grpc);
       if (grpcQuotas) {
+        const tokenTier = decodeAccessTokenTier(accessToken);
+        const resolvedPlan =
+          GROK_TIER_NAMES.get(tokenTier) ||
+          GROK_TIER_NAMES.get(Number(tokenTier)) ||
+          (parsed.plan === "XPremiumPlus" ? "SuperGrok Heavy" : parsed.plan) ||
+          "SuperGrok Heavy";
         return {
-          plan: parsed.plan === "XPremiumPlus" ? "SuperGrok Heavy" : (parsed.plan || "SuperGrok Heavy"),
+          plan: resolvedPlan,
           quotas: grpcQuotas,
         };
       }

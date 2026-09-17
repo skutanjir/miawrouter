@@ -65,7 +65,7 @@ export async function getUsageForProvider(connection, proxyOptions = null) {
   };
 
   const handler = USAGE_HANDLERS[provider];
-  if (!handler) return { plan: "Unknown", message: `Usage API not implemented for ${provider}` };
+  if (!handler) return { message: `Usage API not implemented for ${provider}` };
 
   const result = await handler({ provider, accessToken, apiKey, providerSpecificData, providerDataWithProjectId, proxyOptions });
   return {

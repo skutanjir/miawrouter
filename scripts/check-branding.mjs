@@ -86,9 +86,14 @@ export const COMPAT_ALIASES = {
   "open-sse/shared/clineAuth.js": ["9router"],
   // §4: external provider contract — zed's upstream sees "9router/zed" UA. Do not rename.
   "open-sse/executors/zed.js": ["9router"],
-  // §5: legacy config dir reads — ~/.9router, ~/.9router/db.json (lines 83, 192, 858),
-  // legacy process-name matches (kill stale 9router installs), legacy Win AppData path.
-  "cli/cli.js": ["9router", ".9router"],
+  // §4: external provider contract — Cursor AgentService expects the McpToolDefinition
+  // provider field (field 4) to carry the legacy id; tests/unit/cursor-agent-proto.test.js:60 pins it.
+  "open-sse/utils/cursorProtobuf.js": ["9router"],
+  // §5: file-wide only for the legacy dir reads (~/.9router, ~/.9router/db.json). The
+  // remaining plain-9router lines — `migrate --from-9router` flag/help text, the legacy
+  // process-name whitelist, and the legacy Win AppData db path — are compat per line
+  // (LINE_PATTERN_COMPAT below), so any *new* plain-9router line here stays forbidden.
+  "cli/cli.js": [".9router"],
   // §5: legacy MIAW_CLI_APP_DIR read fallback + build log strings.
   "cli/scripts/build-cli.js": ["NINEROUTER", "9router"],
   "cli/scripts/buildMitm.js": ["NINEROUTER"],
@@ -261,6 +266,16 @@ function trimSnippet(line, max = 120) {
 export const LINE_PATTERN_COMPAT = {
   "README.md": [/miawrouter migrate --from-9router/],
   "cli/README.md": [/miawrouter migrate --from-9router/],
+  // §5 legacy surfaces in the CLI entrypoint: the migration flag/help text, the
+  // stale-install process whitelist, and the legacy Win AppData db fallback.
+  // Deliberately line-scoped so a *new* plain-9router line in this file stays forbidden.
+  "cli/cli.js": [
+    /migrate --from-9router/,
+    /from a legacy 9router/,
+    /legacy 9router too/,
+    /cmd\.includes\("9router"\)/,
+    /Roaming", "9router", "db\.json"/,
+  ],
 };
 
 function lineIsPatternCompat(relPath, line) {
@@ -336,6 +351,10 @@ export function scanBranding({ root }) {
   let scannedFiles = 0;
 
   for (const relPath of walkBranding(root)) {
+    if (isProvenance(relPath)) {
+      allowlisted.push({ file: relPath, line: 0, term: "provenance", snippet: "" });
+      continue;
+    }
     let buf;
     try {
       buf = readFileSync(join(root, relPath));
@@ -349,8 +368,7 @@ export function scanBranding({ root }) {
     scannedFiles++;
     for (const h of hits) {
       const record = { file: relPath, line: h.line, term: h.term, snippet: h.snippet };
-      if (isProvenance(relPath)) allowlisted.push(record);
-      else if (h.compat) compat.push(record);
+      if (h.compat) compat.push(record);
       else forbidden.push(record);
     }
   }

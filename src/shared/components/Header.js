@@ -79,7 +79,7 @@ const getPageInfo = (pathname) => {
   if (pathname.includes("/combos"))
     return {
       title: "Combos",
-      description: "Model combos with fallback",
+      description: "Manage model fallback and routing groups",
       icon: "layers",
       breadcrumbs: [],
     };
@@ -122,7 +122,7 @@ const getPageInfo = (pathname) => {
   if (pathname.includes("/cli-tools"))
     return {
       title: "CLI Tools",
-      description: "Configure CLI tools",
+      description: "Connect terminal coding tools to your router",
       icon: "terminal",
       breadcrumbs: [],
     };
@@ -143,7 +143,7 @@ const getPageInfo = (pathname) => {
   if (pathname.includes("/endpoint"))
     return {
       title: "Endpoint",
-      description: "API endpoint configuration",
+      description: "Manage endpoints, tunnel access, and API keys",
       icon: "api",
       breadcrumbs: [],
     };
@@ -171,7 +171,7 @@ const getPageInfo = (pathname) => {
   if (pathname === "/dashboard")
     return {
       title: "Endpoint",
-      description: "API endpoint configuration",
+      description: "Manage endpoints, tunnel access, and API keys",
       icon: "api",
       breadcrumbs: [],
     };

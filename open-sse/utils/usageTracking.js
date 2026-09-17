@@ -125,13 +125,15 @@ export function normalizeUsage(usage) {
     if (Number.isFinite(numeric)) normalized[key] = numeric;
   };
 
-  assignNumber("prompt_tokens", usage?.prompt_tokens ?? usage?.input_tokens);
-  assignNumber("completion_tokens", usage?.completion_tokens ?? usage?.output_tokens);
-  assignNumber("total_tokens", usage?.total_tokens);
-  assignNumber("cache_read_input_tokens", usage?.cache_read_input_tokens);
-  assignNumber("cache_creation_input_tokens", usage?.cache_creation_input_tokens ?? usage?.prompt_tokens_details?.cache_creation_tokens);
-  assignNumber("cached_tokens", usage?.cached_tokens ?? usage?.prompt_tokens_details?.cached_tokens ?? usage?.prompt_cache_hit_tokens ?? usage?.cachedContentTokenCount ?? usage?.usageMetadata?.cachedContentTokenCount);
-  assignNumber("reasoning_tokens", usage?.reasoning_tokens ?? usage?.completion_tokens_details?.reasoning_tokens ?? usage?.output_tokens_details?.reasoning_tokens ?? usage?.usageMetadata?.thoughtsTokenCount);
+  assignNumber("prompt_tokens", usage?.prompt_tokens ?? usage?.input_tokens ?? usage?.promptTokens ?? usage?.inputTokens ?? usage?.promptTokenCount ?? usage?.prompt_eval_count);
+  assignNumber("completion_tokens", usage?.completion_tokens ?? usage?.output_tokens ?? usage?.completionTokens ?? usage?.outputTokens ?? usage?.candidatesTokenCount ?? usage?.eval_count);
+  assignNumber("total_tokens", usage?.total_tokens ?? usage?.totalTokens ?? usage?.totalTokenCount);
+  assignNumber("cache_read_input_tokens", usage?.cache_read_input_tokens ?? usage?.cacheReadTokens);
+  assignNumber("cache_creation_input_tokens", usage?.cache_creation_input_tokens ?? usage?.cacheWriteTokens ?? usage?.cacheCreationTokens ?? usage?.prompt_tokens_details?.cache_creation_tokens);
+  assignNumber("cached_tokens", usage?.cached_tokens ?? usage?.cachedTokens ?? usage?.prompt_tokens_details?.cached_tokens ?? usage?.prompt_cache_hit_tokens ?? usage?.cachedContentTokenCount ?? usage?.usageMetadata?.cachedContentTokenCount);
+  assignNumber("reasoning_tokens", usage?.reasoning_tokens ?? usage?.reasoningTokens ?? usage?.completion_tokens_details?.reasoning_tokens ?? usage?.output_tokens_details?.reasoning_tokens ?? usage?.usageMetadata?.thoughtsTokenCount ?? usage?.thoughtsTokenCount);
+  assignNumber("prompt_cache_hit_tokens", usage?.prompt_cache_hit_tokens);
+  assignNumber("prompt_cache_miss_tokens", usage?.prompt_cache_miss_tokens);
 
   // Preserve nested details objects for OpenAI format forwarding
   if (usage?.prompt_tokens_details && typeof usage.prompt_tokens_details === "object") {
@@ -148,62 +150,156 @@ export function normalizeUsage(usage) {
 /**
  * Canonicalize usage into ONE storage/cost convention so token counts and cost
  * are consistent across providers:
- *   prompt_tokens               = total input INCLUDING cache read + cache creation
- *   cached_tokens               = cache-read portion (subset of prompt_tokens)
- *   cache_creation_input_tokens = cache-write portion (subset of prompt_tokens)
- *   completion_tokens, reasoning_tokens, total_tokens
+ *   promptTokens / prompt_tokens = total input INCLUDING cache read + cache creation
+ *   cachedTokens / cached_tokens = cache-read portion (subset of prompt_tokens)
+ *   cacheWriteTokens / cache_creation_input_tokens = cache-write portion (subset of prompt_tokens)
+ *   completionTokens / completion_tokens
+ *   reasoningTokens / reasoning_tokens
+ *   totalTokens / total_tokens
  *
  * Discriminator: Claude reports cache_read_input_tokens with a prompt that
- * EXCLUDES cache, so we fold cache into prompt. OpenAI/Gemini report
- * cached_tokens already counted inside prompt, so we pass through. Idempotent:
- * once folded the output carries cached_tokens (not cache_read_input_tokens),
+ * EXCLUDES cache, so we fold cache into prompt. OpenAI/Gemini/DeepSeek report
+ * prompt tokens already inclusive of cached_tokens, so we pass through.
+ * Idempotent: once folded the output carries promptTokens and cached_tokens,
  * so re-running takes the passthrough branch and does not double-add.
  *
- * @param {object} usage - a normalizeUsage()-shaped object
+ * @param {object} usage - any provider usage payload
  * @returns {object|null} canonical token object, or null for invalid input
  */
 export function canonicalizeUsage(usage) {
   if (!usage || typeof usage !== "object" || Array.isArray(usage)) return null;
 
-  const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-  const completion = num(usage.completion_tokens ?? usage.output_tokens);
-  const reasoning = num(usage.reasoning_tokens);
-  // Fall back to the nested prompt_tokens_details.cache_creation_tokens shape
-  // (buildUsage()'s OpenAI-forwarding format) when the top-level field is
-  // absent, so callers that pass a buildUsage() object through don't silently
-  // drop cache_creation.
-  const cacheCreation = num(usage.cache_creation_input_tokens ?? usage.prompt_tokens_details?.cache_creation_tokens);
+  const raw = usage.usage || usage.usageMetadata || usage.response?.usageMetadata || usage;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
 
-  let prompt = num(usage.prompt_tokens ?? usage.input_tokens);
-  let cached;
+  const getNum = (v) => {
+    if (v === undefined || v === null) return undefined;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : undefined;
+  };
 
-  // Claude path: prompt excludes cache; cache_read_input_tokens and/or
-  // cache_creation_input_tokens are separate. A cache-miss "first write" only
-  // carries cache_creation_input_tokens (no cache_read_input_tokens yet), so
-  // check both fields — otherwise a first-write request falls through to the
-  // OpenAI passthrough branch below and cache_creation never gets folded in.
-  // Guard on the absence of `cached_tokens`: our own canonical output always
-  // sets that key (even to 0), so re-running canonicalizeUsage on an already-
-  // folded result takes the passthrough branch instead of folding again.
-  if (usage.cached_tokens === undefined &&
-      (usage.cache_read_input_tokens !== undefined || usage.cache_creation_input_tokens !== undefined)) {
-    cached = num(usage.cache_read_input_tokens);
-    prompt = prompt + cached + cacheCreation;
-  } else {
-    // OpenAI/Gemini path (or already-canonical input): prompt already includes cached_tokens.
-    cached = num(usage.cached_tokens);
+  const rawHit = getNum(raw.prompt_cache_hit_tokens);
+  const rawMiss = getNum(raw.prompt_cache_miss_tokens);
+
+  let rawPrompt = getNum(
+    raw.promptTokens ?? raw.prompt_tokens ?? raw.input_tokens ?? raw.inputTokens ?? raw.promptTokenCount ?? raw.prompt_eval_count
+  );
+  if (rawPrompt === undefined && (rawHit !== undefined || rawMiss !== undefined)) {
+    rawPrompt = (rawHit || 0) + (rawMiss || 0);
   }
 
+  const rawCompletion = getNum(
+    raw.completionTokens ?? raw.completion_tokens ?? raw.output_tokens ?? raw.outputTokens ?? raw.candidatesTokenCount ?? raw.eval_count
+  );
+
+  const rawTotal = getNum(raw.totalTokens ?? raw.total_tokens ?? raw.totalTokenCount);
+
+  // Extract optional cache and reasoning tokens: undefined if not reported
+  let cached;
+  if ("cachedTokens" in raw) {
+    cached = getNum(raw.cachedTokens);
+  } else {
+    cached = getNum(
+      raw.prompt_tokens_details?.cached_tokens ??
+      raw.input_tokens_details?.cached_tokens ??
+      raw.prompt_cache_hit_tokens ??
+      raw.cache_read_input_tokens ??
+      raw.cachedContentTokenCount ??
+      raw.cacheReadTokens ??
+      raw.cached_tokens
+    );
+  }
+
+  let cacheWrite;
+  if ("cacheWriteTokens" in raw) {
+    cacheWrite = getNum(raw.cacheWriteTokens);
+  } else {
+    cacheWrite = getNum(
+      raw.cache_creation_input_tokens ??
+      raw.prompt_tokens_details?.cache_creation_tokens ??
+      raw.input_tokens_details?.cache_creation_tokens ??
+      raw.cacheCreationTokens
+    );
+  }
+
+  let reasoning;
+  if ("reasoningTokens" in raw) {
+    reasoning = getNum(raw.reasoningTokens);
+  } else {
+    reasoning = getNum(
+      raw.reasoning_tokens ??
+      raw.completion_tokens_details?.reasoning_tokens ??
+      raw.output_tokens_details?.reasoning_tokens ??
+      raw.thoughtsTokenCount
+    );
+  }
+
+  // If no token fields at all are provided, return null
+  if (
+    rawPrompt === undefined &&
+    rawCompletion === undefined &&
+    rawTotal === undefined &&
+    cached === undefined &&
+    cacheWrite === undefined &&
+    reasoning === undefined
+  ) {
+    return null;
+  }
+
+  let prompt = rawPrompt ?? 0;
+  const completion = rawCompletion ?? 0;
+
+  // Claude path: prompt excludes cache; cache_read_input_tokens and/or
+  // cache_creation_input_tokens are separate.
+  // Guard against already-canonical input or OpenAI/Gemini input.
+  const isClaudeExclusive =
+    !("promptTokens" in raw) &&
+    raw.cached_tokens === undefined &&
+    raw.cachedTokens === undefined &&
+    raw.prompt_tokens_details === undefined &&
+    (raw.cache_read_input_tokens !== undefined || raw.cache_creation_input_tokens !== undefined);
+
+  if (isClaudeExclusive) {
+    prompt = prompt + (cached || 0) + (cacheWrite || 0);
+  }
+
+  // Double-count guard: totalTokens is prompt + completion.
+  // Prompt is now cache-inclusive, so cache tokens must NOT be summed again!
+  const total = isClaudeExclusive
+    ? prompt + completion
+    : (rawTotal !== undefined && rawTotal >= prompt + completion ? rawTotal : prompt + completion);
+
   const result = {
+    promptTokens: prompt,
+    completionTokens: completion,
+    totalTokens: total,
+    cachedTokens: cached,
+    cacheWriteTokens: cacheWrite,
+    reasoningTokens: reasoning,
+
     prompt_tokens: prompt,
     completion_tokens: completion,
-    // Recompute rather than pass through: when the fold branch ran above,
-    // an upstream total_tokens (cache-exclusive) would otherwise be stale.
-    total_tokens: prompt + completion,
-    cached_tokens: cached,
-    cache_creation_input_tokens: cacheCreation,
+    total_tokens: total,
+    cached_tokens: cached ?? 0,
+    cache_creation_input_tokens: cacheWrite ?? 0,
   };
-  if (reasoning > 0) result.reasoning_tokens = reasoning;
+
+  if (reasoning !== undefined) {
+    result.reasoning_tokens = reasoning;
+  }
+  if (rawHit !== undefined) {
+    result.prompt_cache_hit_tokens = rawHit;
+  }
+  if (rawMiss !== undefined) {
+    result.prompt_cache_miss_tokens = rawMiss;
+  }
+  if (raw.prompt_tokens_details && typeof raw.prompt_tokens_details === "object") {
+    result.prompt_tokens_details = raw.prompt_tokens_details;
+  }
+  if (raw.completion_tokens_details && typeof raw.completion_tokens_details === "object") {
+    result.completion_tokens_details = raw.completion_tokens_details;
+  }
+
   return result;
 }
 

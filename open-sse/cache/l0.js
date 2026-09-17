@@ -14,21 +14,13 @@
 import crypto from "crypto";
 import { CLAUDE_BLOCK } from "../translator/schema/index.js";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
-import { PROVIDERS } from "../config/providers.js";
+import { CACHE_MODE, resolveCacheCapability } from "../providers/cacheCapabilities.js";
 
 export const MAX_BREAKPOINTS = 4; // Anthropic's cache-breakpoint ceiling
 export const STABLE_TURNS = 2;    // same prefix twice in a row → safe to breakpoint
 
 export function supportsPromptCacheControl(provider, format = "") {
-  if (!provider && !format) return false;
-  if (format === "claude") return true;
-  const p = String(provider || "").toLowerCase();
-  if (p === "anthropic" || p === "claude") return true;
-  const entry = PROVIDERS[p];
-  if (entry?.transport?.format === "claude") return true;
-  if (entry?.quirks?.preserveCacheControl) return true;
-  if (entry?.features?.promptCache || entry?.features?.cacheControl) return true;
-  return false;
+  return resolveCacheCapability(provider, format)?.supportsCacheMarkers ?? false;
 }
 
 // L0's own breakpoint marker. Client-provided cache_control blocks are never
@@ -129,12 +121,17 @@ export function begin(body) {
  *
  * @param {object} body - final request body (may be a saver-replaced object)
  * @param {object} state - result of begin()
- * @param {object} ctx - { cacheKey, provider, model, onCacheEvent }
+ * @param {object} ctx - { cacheKey, provider, model, capability, onCacheEvent }
+ *   `capability` comes from providers/cacheCapabilities.js. Breakpoints are only
+ *   inserted when it reports supportsCacheMarkers — inserting Anthropic
+ *   cache_control into a provider that rejects the field corrupts the request.
  */
-export function finish(body, state, { cacheKey = "", provider = "", model = "", format = "", onCacheEvent = null } = {}) {
+export function finish(body, state, { cacheKey = "", provider = "", model = "", format = "", capability = null, onCacheEvent = null } = {}) {
   if (!body || !state) return { body, info: null };
   let result = body;
-  const info = { turns: 0, stable: false, restored: false, breakpoints: 0, prefixLen: state.prefixLen };
+  const resolvedCap = capability || (provider || format ? resolveCacheCapability(provider, format) : null);
+  const cacheMode = resolvedCap?.mode || CACHE_MODE.UNKNOWN;
+  const info = { turns: 0, stable: false, restored: false, breakpoints: 0, prefixLen: state.prefixLen, cacheMode };
 
   const messages = Array.isArray(body?.messages) ? body.messages : null;
   if (messages && messages.length >= state.prefixLen) {
@@ -194,10 +191,11 @@ export function finish(body, state, { cacheKey = "", provider = "", model = "", 
 
   info.turns = rec.turns;
   info.stable = rec.turns >= STABLE_TURNS;
-  const canInject = supportsPromptCacheControl(provider, format);
-  if (info.stable && canInject) {
+  info.markerInserted = false;
+  if (info.stable && resolvedCap?.supportsCacheMarkers) {
     if (result === body) result = structuredClone(body);
     insertBreakpoints(result, MAX_BREAKPOINTS);
+    info.markerInserted = true;
   }
   info.breakpoints = countBreakpoints(result);
 
@@ -208,11 +206,17 @@ export function finish(body, state, { cacheKey = "", provider = "", model = "", 
       cacheKey,
       provider,
       model,
+      cacheMode,
       turns: info.turns,
       stable: info.stable,
       restored: info.restored,
       prefixLen: info.prefixLen,
       breakpoints: info.breakpoints,
+      markerInserted: info.markerInserted,
+      // Truncated content hash of the stable prefix. Safe to export: it is a
+      // hash, never prompt text, and it is the only way to correlate provider
+      // cache hits with the exact prefix that produced them.
+      prefixHash: state.hash ? state.hash.slice(0, 16) : null,
     });
   } catch { /* stats must not break requests */ }
 
@@ -317,6 +321,11 @@ export function recordUsage(cacheKey, { cacheRead = 0, cacheCreation = 0 } = {})
   rec.cacheCreation = cacheCreation;
 }
 
+// Test-only: drop all warm-session records so a suite can start cold.
+export function _resetCacheState() {
+  stateByKey.clear();
+}
+
 // Warm-session metadata for routing: which prefix is stable, since when, and
 // what the provider last reported for cache read/write. null when cold.
 export function getSessionInfo(cacheKey) {
@@ -332,10 +341,27 @@ export function getSessionInfo(cacheKey) {
   };
 }
 
+// Privacy-safe account reference. Cache events correlate traffic per connection
+// so a provider cache hit can be attributed to the account that produced it,
+// but they must never carry a raw connection id, API key, or OAuth token.
+// A truncated hash is enough to correlate and useless to an attacker reading logs.
+export function connectionRef(connectionId) {
+  if (!connectionId) return null;
+  return crypto.createHash("sha256").update(String(connectionId)).digest("hex").slice(0, 16);
+}
+
 // Emit a cache_usage event when the provider reports cache read/write tokens
 // (including a reported-but-zero read: that marks a cold miss after breakpoints
 // were set, which routing may want to act on).
-export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage = null } = {}) {
+//
+// `cacheMode` distinguishes an UPSTREAM prompt-cache read from the router's own
+// L1/L2 response cache. They are different caches and must never be conflated in
+// metrics or reports.
+//
+// Token fields are only ever COPIED from what the upstream reported. A missing
+// field stays missing (null) — it is never defaulted to 0, because "upstream did
+// not tell us" and "upstream said zero" are different facts about cache health.
+export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage = null, cacheMode = null, connectionId = null } = {}) {
   if (!usage || typeof usage !== "object") return;
   const cacheRead = usage.cache_read_input_tokens
     ?? usage.cached_tokens
@@ -349,6 +375,23 @@ export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage 
   const read = Number(cacheRead) || 0;
   const create = Number(cacheCreation) || 0;
   recordUsage(cacheKey, { cacheRead: read, cacheCreation: create });
+
+  const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const promptTokens = num(
+    usage.prompt_tokens ?? usage.promptTokens ?? usage.input_tokens ?? usage.inputTokens ?? usage.promptTokenCount,
+  );
+  const reasoningTokens = num(
+    usage.completion_tokens_details?.reasoning_tokens
+      ?? usage.output_tokens_details?.reasoning_tokens
+      ?? usage.reasoning_tokens
+      ?? usage.reasoningTokens
+      ?? usage.thoughtsTokenCount
+      ?? usage.usageMetadata?.thoughtsTokenCount,
+  );
+  // Share of the prompt the provider served from its own cache. null (not 0)
+  // when the upstream never reported a prompt size.
+  const cacheHitRatio = promptTokens && promptTokens > 0 ? Number((read / promptTokens).toFixed(4)) : null;
+
   try {
     onCacheEvent?.({
       type: "cache_usage",
@@ -356,8 +399,13 @@ export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage 
       cacheKey,
       provider,
       model,
+      cacheMode,
+      connectionRef: connectionRef(connectionId),
       cacheRead: read,
       cacheCreation: create,
+      promptTokens,
+      reasoningTokens,
+      cacheHitRatio,
     });
   } catch { /* stats must not break requests */ }
 }

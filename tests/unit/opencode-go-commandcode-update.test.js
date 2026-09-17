@@ -218,10 +218,13 @@ describe("OpenCode Go and CommandCode model updates", () => {
       ],
     }, true);
 
-    // Check tools conversion (dual parameters + input_schema)
+    // Tools use the upstream-verified Anthropic shape: {name, description,
+    // input_schema} only. No OpenAI-style `parameters` mirror — the
+    // /alpha/generate schema was verified live (curl 2026-05-07) and the
+    // sibling suite openai-to-commandcode.test.js pins the same contract.
     expect(req.params.tools[0].name).toBe("view_file");
     expect(req.params.tools[0].input_schema).toBeDefined();
-    expect(req.params.tools[0].parameters).toBeDefined();
+    expect(req.params.tools[0].parameters).toBeUndefined();
 
     // Check tool-result block: toolName must be populated from call_read_1
     const toolMsg = req.params.messages[2];

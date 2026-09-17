@@ -45,6 +45,15 @@ function envUrl(name, def) {
   return raw || def;
 }
 
+// Boolean env override: unset → default; "0"/"false"/"off"/"no" → false.
+function envBool(name, def) {
+  const raw = process.env[name]?.trim().toLowerCase();
+  if (raw == null || raw === "") return def;
+  if (["0", "false", "off", "no"].includes(raw)) return false;
+  if (["1", "true", "on", "yes"].includes(raw)) return true;
+  return def;
+}
+
 // SearXNG endpoint used by the unauthenticated web-search provider.
 // Configure this for a separate Docker service or remote SearXNG instance.
 export const SEARXNG_URL = envUrl("SEARXNG_URL", "http://localhost:8888/search");
@@ -100,3 +109,43 @@ export function resolveRetryEntry(entry) {
 export const SKIP_PATTERNS = [
   "Please write a 5-10 word title for the following conversation:"
 ];
+
+// ---------------------------------------------------------------------------
+// Observability. `enabled: false` makes /api/metrics return 404 so the endpoint
+// can be removed from a hostile/exposed deployment with one env var.
+// ---------------------------------------------------------------------------
+export const METRICS_CONFIG = {
+  enabled: envBool("MIAW_METRICS", true)
+};
+
+// ---------------------------------------------------------------------------
+// Backpressure: bounds on simultaneous upstream work.
+// Defaults are generous (a local router may serve several agent sessions at
+// once); set any value to 0 to disable that specific bound. Env overrides use
+// the MIAW_ prefix so they can be tuned per deployment without a rebuild.
+// ---------------------------------------------------------------------------
+export const CONCURRENCY_CONFIG = {
+  // Total simultaneous upstream requests across every provider.
+  globalMax: envMs("MIAW_MAX_CONCURRENT", 256),
+  // Simultaneous upstream requests per provider id.
+  providerMax: envMs("MIAW_PROVIDER_MAX_CONCURRENT", 64),
+  // Simultaneous upstream requests per provider connection (= account).
+  connectionMax: envMs("MIAW_CONNECTION_MAX_CONCURRENT", 32),
+  // Requests allowed to wait for a slot before being rejected with 503.
+  queueMax: envMs("MIAW_QUEUE_MAX", 512),
+  // How long a queued request may wait for a free slot before giving up.
+  queueTimeoutMs: envMs("MIAW_QUEUE_TIMEOUT_MS", 120 * 1000)
+};
+
+// ---------------------------------------------------------------------------
+// Inbound request safety limits. These exist to reject pathological payloads
+// early (never to cap legitimate long-context work), so defaults are high;
+// 0 disables a given check. Body size is additionally bounded by
+// `proxyClientMaxBodySize` in next.config.mjs at the edge.
+// ---------------------------------------------------------------------------
+export const REQUEST_LIMITS = {
+  maxBodyBytes: envMs("MIAW_MAX_BODY_BYTES", 64 * 1024 * 1024),
+  maxMessages: envMs("MIAW_MAX_MESSAGES", 20000),
+  maxTools: envMs("MIAW_MAX_TOOLS", 1024),
+  maxToolSchemaBytes: envMs("MIAW_MAX_TOOL_SCHEMA_BYTES", 8 * 1024 * 1024)
+};
