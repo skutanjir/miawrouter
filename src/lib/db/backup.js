@@ -14,7 +14,8 @@ import { timestampSlug, getAppVersion } from "./version.js";
 const KEEP_BACKUPS = 3;
 
 // Tables excluded from safety backups (large, non-critical, reproducible).
-const BACKUP_EXCLUDE_TABLES = ["requestDetails"];
+// Also exclude virtual tables and their internal shadow tables (e.g. FTS5).
+const BACKUP_EXCLUDE_TABLES = ["requestDetails", "memoryFts"];
 
 export function makeBackupDir(label) {
   ensureDirs();
@@ -46,12 +47,12 @@ export function backupDbLite(adapter, destDir, destName = "data.sqlite") {
     const excluded = new Set(BACKUP_EXCLUDE_TABLES);
     const tables = adapter
       .all(`SELECT name, sql FROM main.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'`)
-      .filter((t) => !excluded.has(t.name));
+      .filter((t) => !excluded.has(t.name) && !t.name.startsWith("memoryFts_"));
 
     adapter.transaction(() => {
       for (const t of tables) {
         // Recreate table structure in backup DB, then copy rows.
-        const createSql = t.sql.replace(/CREATE TABLE\s+/i, "CREATE TABLE bak.");
+        const createSql = t.sql.replace(/CREATE TABLE\s+(IF NOT EXISTS\s+)?/i, "CREATE TABLE bak.");
         adapter.exec(createSql);
         adapter.exec(`INSERT INTO bak.${t.name} SELECT * FROM main.${t.name}`);
       }
