@@ -10,9 +10,11 @@ import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, sav
 import { appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
 import { emitCacheUsage } from "../../cache/l0.js";
+import { resolveCacheCapability } from "../../providers/cacheCapabilities.js";
 import { l1Store } from "../../cache/l1.js";
 import { l2Store } from "../../cache/l2.js";
 import { emitCacheEvent } from "../../cache/events.js";
+import { increment } from "../../services/runtimeMetrics.js";
 import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
 
 function parseToolArguments(value) {
@@ -285,7 +287,7 @@ export function translateNonStreamingResponse(responseBody, targetFormat, source
 /**
  * Handle non-streaming response from provider.
  */
-export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, cacheKey, onCacheEvent, cacheWrite, semanticEmbed, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries }) {
+export async function handleNonStreamingResponse({ providerResponse, provider, model, sourceFormat, targetFormat, body, stream, translatedBody, finalBody, requestStartTime, usageRequestId, connectionId, apiKey, clientRawRequest, onRequestSuccess, reqLogger, toolNameMap, customToolNames, trackDone, appendLog, pxpipe, reqTag, log, cacheKey, onCacheEvent, cacheWrite, semanticEmbed, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries }) {
   trackDone();
   const contentType = providerResponse.headers.get("content-type") || "";
   let responseBody;
@@ -322,9 +324,22 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
 
   const usage = extractUsageFromResponse(responseBody);
   appendLog({ tokens: usage, status: "200 OK" });
-  saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, silent: true });
-  emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage });
+  saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, requestId: usageRequestId, silent: true });
+  emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage, cacheMode: resolveCacheCapability(provider, targetFormat).mode });
   if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency: { total: Date.now() - requestStartTime } }));
+
+  try {
+    if (Number.isFinite(usage?.prompt_tokens)) increment("miawrouter_tokens_input_total", { provider }, "Prompt tokens seen by the router", usage.prompt_tokens);
+    if (Number.isFinite(usage?.completion_tokens)) increment("miawrouter_tokens_output_total", { provider }, "Completion tokens seen by the router", usage.completion_tokens);
+    // UPSTREAM prompt-cache accounting — distinct from the router's own L1/L2
+    // response cache (miawrouter_cache_hits_total). A provider cache read is not
+    // a router cache hit and must never be reported as one.
+    const cacheMode = resolveCacheCapability(provider, targetFormat).mode;
+    const cacheReadTokens = usage?.prompt_tokens_details?.cached_tokens ?? usage?.cache_read_input_tokens ?? usage?.prompt_cache_hit_tokens ?? usage?.cachedContentTokenCount;
+    if (Number.isFinite(cacheReadTokens)) increment("miawrouter_provider_cache_read_tokens_total", { provider, cacheMode }, "Prompt tokens served from the UPSTREAM provider prompt cache", cacheReadTokens);
+    const cacheWriteTokens = usage?.cache_creation_input_tokens ?? usage?.prompt_tokens_details?.cache_creation_tokens;
+    if (Number.isFinite(cacheWriteTokens)) increment("miawrouter_provider_cache_write_tokens_total", { provider, cacheMode }, "Prompt tokens written to the UPSTREAM provider prompt cache", cacheWriteTokens);
+  } catch { /* metrics are never allowed to break the request */ }
 
   const translatedResponse = needsTranslation(targetFormat, sourceFormat)
     ? translateNonStreamingResponse(responseBody, targetFormat, sourceFormat, customToolNames)

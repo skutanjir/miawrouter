@@ -96,7 +96,11 @@ export function filterToOpenAIFormat(body, opts = {}) {
             name: tool.name,
             description: String(tool.description || ""),
             parameters: tool.input_schema || { type: "object", properties: {} }
-          }
+          },
+          // A provider that supports markers (opts.preserveCacheControl, e.g.
+          // DashScope/alicode) keeps the client's tool-level breakpoint. Providers
+          // that reject the field get it stripped, same as message blocks.
+          ...(keepCache && tool.cache_control ? { cache_control: tool.cache_control } : {})
         };
       }
       

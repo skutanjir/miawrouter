@@ -14,6 +14,7 @@
 import crypto from "crypto";
 import { CLAUDE_BLOCK } from "../translator/schema/index.js";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
+import { CACHE_MODE } from "../providers/cacheCapabilities.js";
 
 export const MAX_BREAKPOINTS = 4; // Anthropic's cache-breakpoint ceiling
 export const STABLE_TURNS = 2;    // same prefix twice in a row → safe to breakpoint
@@ -116,12 +117,16 @@ export function begin(body) {
  *
  * @param {object} body - final request body (may be a saver-replaced object)
  * @param {object} state - result of begin()
- * @param {object} ctx - { cacheKey, provider, model, onCacheEvent }
+ * @param {object} ctx - { cacheKey, provider, model, capability, onCacheEvent }
+ *   `capability` comes from providers/cacheCapabilities.js. Breakpoints are only
+ *   inserted when it reports supportsCacheMarkers — inserting Anthropic
+ *   cache_control into a provider that rejects the field corrupts the request.
  */
-export function finish(body, state, { cacheKey = "", provider = "", model = "", onCacheEvent = null } = {}) {
+export function finish(body, state, { cacheKey = "", provider = "", model = "", capability = null, onCacheEvent = null } = {}) {
   if (!body || !state) return { body, info: null };
   let result = body;
-  const info = { turns: 0, stable: false, restored: false, breakpoints: 0, prefixLen: state.prefixLen };
+  const cacheMode = capability?.mode || CACHE_MODE.UNKNOWN;
+  const info = { turns: 0, stable: false, restored: false, breakpoints: 0, prefixLen: state.prefixLen, cacheMode };
 
   const messages = Array.isArray(body?.messages) ? body.messages : null;
   if (messages && messages.length >= state.prefixLen) {
@@ -181,9 +186,18 @@ export function finish(body, state, { cacheKey = "", provider = "", model = "", 
 
   info.turns = rec.turns;
   info.stable = rec.turns >= STABLE_TURNS;
-  if (info.stable) {
+  // Capability-driven orchestration (providers/cacheCapabilities.js):
+  //   explicit → insert supported breakpoint markers on the stable prefix
+  //   implicit → preserve the stable prefix (handled above) but add NO markers
+  //   none/unknown → never inject vendor fields we have no evidence for
+  // This is the single gate that keeps Anthropic-only cache_control out of
+  // OpenAI/Gemini/unknown bodies. `capability` is absent for callers that do not
+  // pass one (bench harness); absent means "unknown", i.e. never inject.
+  info.markerInserted = false;
+  if (info.stable && capability?.supportsCacheMarkers) {
     if (result === body) result = structuredClone(body);
     insertBreakpoints(result, MAX_BREAKPOINTS);
+    info.markerInserted = true;
   }
   info.breakpoints = countBreakpoints(result);
 
@@ -194,11 +208,17 @@ export function finish(body, state, { cacheKey = "", provider = "", model = "", 
       cacheKey,
       provider,
       model,
+      cacheMode,
       turns: info.turns,
       stable: info.stable,
       restored: info.restored,
       prefixLen: info.prefixLen,
       breakpoints: info.breakpoints,
+      markerInserted: info.markerInserted,
+      // Truncated content hash of the stable prefix. Safe to export: it is a
+      // hash, never prompt text, and it is the only way to correlate provider
+      // cache hits with the exact prefix that produced them.
+      prefixHash: state.hash ? state.hash.slice(0, 16) : null,
     });
   } catch { /* stats must not break requests */ }
 
@@ -303,6 +323,11 @@ export function recordUsage(cacheKey, { cacheRead = 0, cacheCreation = 0 } = {})
   rec.cacheCreation = cacheCreation;
 }
 
+// Test-only: drop all warm-session records so a suite can start cold.
+export function _resetCacheState() {
+  stateByKey.clear();
+}
+
 // Warm-session metadata for routing: which prefix is stable, since when, and
 // what the provider last reported for cache read/write. null when cold.
 export function getSessionInfo(cacheKey) {
@@ -321,7 +346,11 @@ export function getSessionInfo(cacheKey) {
 // Emit a cache_usage event when the provider reports cache read/write tokens
 // (including a reported-but-zero read: that marks a cold miss after breakpoints
 // were set, which routing may want to act on).
-export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage = null } = {}) {
+//
+// `cacheMode` distinguishes an UPSTREAM prompt-cache read from the router's own
+// L1/L2 response cache. They are different caches and must never be conflated in
+// metrics or reports.
+export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage = null, cacheMode = null } = {}) {
   if (!usage || typeof usage !== "object") return;
   const cacheRead = usage.cache_read_input_tokens
     ?? usage.cached_tokens
@@ -342,6 +371,7 @@ export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage 
       cacheKey,
       provider,
       model,
+      cacheMode,
       cacheRead: read,
       cacheCreation: create,
     });

@@ -24,7 +24,25 @@ export function extractRequestConfig(body, stream) {
 export function extractUsageFromResponse(responseBody) {
   if (!responseBody || typeof responseBody !== "object") return null;
 
-  // Claude format
+  // OpenAI Responses API. Must be checked BEFORE the Claude branch: a Responses
+  // usage object also carries `input_tokens`/`output_tokens`, so the Claude branch
+  // would match it and silently drop `input_tokens_details.cached_tokens` and
+  // `output_tokens_details.reasoning_tokens`, losing all cache accounting.
+  // Here `input_tokens` is cache-INCLUSIVE (cached is a subset), so nothing folds.
+  if (responseBody.usage?.input_tokens_details !== undefined || responseBody.usage?.output_tokens_details !== undefined) {
+    return {
+      prompt_tokens: responseBody.usage.input_tokens || 0,
+      completion_tokens: responseBody.usage.output_tokens || 0,
+      total_tokens: responseBody.usage.total_tokens,
+      cached_tokens: responseBody.usage.input_tokens_details?.cached_tokens
+        ?? responseBody.usage.input_tokens_details?.cache_creation_tokens
+        ?? responseBody.usage.cached_tokens,
+      reasoning_tokens: responseBody.usage.output_tokens_details?.reasoning_tokens
+    };
+  }
+
+  // Claude format. Anthropic's `input_tokens` EXCLUDES cache, so cache read and
+  // creation are reported separately here and folded in downstream.
   if (responseBody.usage?.input_tokens !== undefined) {
     return {
       prompt_tokens: responseBody.usage.input_tokens || 0,
@@ -93,7 +111,7 @@ export function formatDoneLine({ usage, latency }) {
   return `DONE ${latency?.total ?? 0}ms${ttftStr} · ${inStr} · OUT ${outTok}`;
 }
 
-export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, label = "USAGE", silent = false }) {
+export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, endpoint, requestId, label = "USAGE", silent = false }) {
   if (!tokens || typeof tokens !== "object") {
     // Some native Gemini/Antigravity streams omit usage metadata. Keep the
     // request visible in analytics even when token counts are unavailable.
@@ -123,6 +141,11 @@ export function saveUsageStats({ provider, model, tokens, connectionId, apiKey, 
     timestamp: new Date().toISOString(),
     connectionId: connectionId || undefined,
     apiKey: apiKey || undefined,
-    endpoint: endpoint || null
+    endpoint: endpoint || null,
+    // Stable per-request id: the same logical request written twice (e.g. an
+    // endpoint-enriching second write) collapses to one row, while two distinct
+    // requests that happen to share a millisecond and identical token counts no
+    // longer collapse into one — that was a real usage undercount.
+    requestId: requestId || undefined
   }).catch(() => {});
 }
