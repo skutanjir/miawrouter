@@ -14,7 +14,7 @@
     "dev:bun": "bun --bun next dev --webpack --port 21127",
     "build:bun": "bun --bun next build --webpack",
     "start:bun": "bun ./.next/standalone/server.js",
-    "test": "npm --prefix tests test --",
+    "test": "node scripts/run-tests.mjs --all",
     "test:root": "npm --prefix tests exec -- vitest run --config tests/vitest.config.js --root .",
     "test:all": "node scripts/run-tests.mjs --all",
     "test:ci": "node scripts/run-tests.mjs",

@@ -325,7 +325,7 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   const usage = extractUsageFromResponse(responseBody);
   appendLog({ tokens: usage, status: "200 OK" });
   saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, requestId: usageRequestId, silent: true });
-  emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage, cacheMode: resolveCacheCapability(provider, targetFormat).mode });
+  emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage, cacheMode: resolveCacheCapability(provider, targetFormat).mode, connectionId });
   if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency: { total: Date.now() - requestStartTime } }));
 
   try {

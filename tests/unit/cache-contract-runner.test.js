@@ -11,6 +11,7 @@ import { describe, it, expect } from "vitest";
 import { PROVIDERS } from "../../open-sse/providers/index.js";
 import { CACHE_MODE, resolveCacheCapability } from "../../open-sse/providers/cacheCapabilities.js";
 import { canonicalizeUsage } from "../../open-sse/utils/usageTracking.js";
+import { emitCacheUsage, connectionRef } from "../../open-sse/cache/l0.js";
 import {
   describeCacheContract,
   assertCapabilityDeclarations,
@@ -133,5 +134,51 @@ describe("mode coverage sanity", () => {
     expect(modes.has(CACHE_MODE.EXPLICIT)).toBe(true);
     expect(modes.has(CACHE_MODE.IMPLICIT)).toBe(true);
     expect(modes.has(CACHE_MODE.UNKNOWN)).toBe(true);
+  });
+});
+
+describe("cache observability is privacy-safe and never fabricates tokens", () => {
+  const usageWith = (u) => {
+    let seen = null;
+    emitCacheUsage((e) => { seen = e; }, {
+      cacheKey: "k",
+      provider: "anthropic",
+      model: "m",
+      usage: u,
+      cacheMode: "explicit",
+      connectionId: "conn_abc123",
+    });
+    return seen;
+  };
+
+  it("emits a hashed account reference, never the raw connection id", () => {
+    const e = usageWith({ cache_read_input_tokens: 100, prompt_tokens: 1000 });
+    expect(e.connectionRef).toBe(connectionRef("conn_abc123"));
+    expect(JSON.stringify(e)).not.toContain("conn_abc123");
+  });
+
+  it("reports prompt tokens, reasoning tokens and cache hit ratio", () => {
+    const e = usageWith({
+      prompt_tokens: 2000,
+      cache_read_input_tokens: 1500,
+      completion_tokens_details: { reasoning_tokens: 64 },
+    });
+    expect(e.promptTokens).toBe(2000);
+    expect(e.reasoningTokens).toBe(64);
+    expect(e.cacheHitRatio).toBe(0.75);
+  });
+
+  it("leaves an unreported field null instead of defaulting it to zero", () => {
+    const e = usageWith({ cache_read_input_tokens: 100 });
+    expect(e.promptTokens).toBeNull();
+    expect(e.reasoningTokens).toBeNull();
+    expect(e.cacheHitRatio).toBeNull();
+  });
+
+  it("reads Gemini thoughts as reasoning without double-counting", () => {
+    const e = usageWith({ promptTokenCount: 500, cachedContentTokenCount: 400, thoughtsTokenCount: 30 });
+    expect(e.promptTokens).toBe(500);
+    expect(e.reasoningTokens).toBe(30);
+    expect(e.cacheHitRatio).toBe(0.8);
   });
 });

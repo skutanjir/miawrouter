@@ -343,6 +343,15 @@ export function getSessionInfo(cacheKey) {
   };
 }
 
+// Privacy-safe account reference. Cache events correlate traffic per connection
+// so a provider cache hit can be attributed to the account that produced it,
+// but they must never carry a raw connection id, API key, or OAuth token.
+// A truncated hash is enough to correlate and useless to an attacker reading logs.
+export function connectionRef(connectionId) {
+  if (!connectionId) return null;
+  return crypto.createHash("sha256").update(String(connectionId)).digest("hex").slice(0, 16);
+}
+
 // Emit a cache_usage event when the provider reports cache read/write tokens
 // (including a reported-but-zero read: that marks a cold miss after breakpoints
 // were set, which routing may want to act on).
@@ -350,7 +359,11 @@ export function getSessionInfo(cacheKey) {
 // `cacheMode` distinguishes an UPSTREAM prompt-cache read from the router's own
 // L1/L2 response cache. They are different caches and must never be conflated in
 // metrics or reports.
-export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage = null, cacheMode = null } = {}) {
+//
+// Token fields are only ever COPIED from what the upstream reported. A missing
+// field stays missing (null) — it is never defaulted to 0, because "upstream did
+// not tell us" and "upstream said zero" are different facts about cache health.
+export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage = null, cacheMode = null, connectionId = null } = {}) {
   if (!usage || typeof usage !== "object") return;
   const cacheRead = usage.cache_read_input_tokens
     ?? usage.cached_tokens
@@ -364,6 +377,23 @@ export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage 
   const read = Number(cacheRead) || 0;
   const create = Number(cacheCreation) || 0;
   recordUsage(cacheKey, { cacheRead: read, cacheCreation: create });
+
+  const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const promptTokens = num(
+    usage.prompt_tokens ?? usage.promptTokens ?? usage.input_tokens ?? usage.inputTokens ?? usage.promptTokenCount,
+  );
+  const reasoningTokens = num(
+    usage.completion_tokens_details?.reasoning_tokens
+      ?? usage.output_tokens_details?.reasoning_tokens
+      ?? usage.reasoning_tokens
+      ?? usage.reasoningTokens
+      ?? usage.thoughtsTokenCount
+      ?? usage.usageMetadata?.thoughtsTokenCount,
+  );
+  // Share of the prompt the provider served from its own cache. null (not 0)
+  // when the upstream never reported a prompt size.
+  const cacheHitRatio = promptTokens && promptTokens > 0 ? Number((read / promptTokens).toFixed(4)) : null;
+
   try {
     onCacheEvent?.({
       type: "cache_usage",
@@ -372,8 +402,12 @@ export function emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage 
       provider,
       model,
       cacheMode,
+      connectionRef: connectionRef(connectionId),
       cacheRead: read,
       cacheCreation: create,
+      promptTokens,
+      reasoningTokens,
+      cacheHitRatio,
     });
   } catch { /* stats must not break requests */ }
 }

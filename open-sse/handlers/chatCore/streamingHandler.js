@@ -155,7 +155,7 @@ export function buildOnStreamComplete({ provider, model, connectionId, apiKey, r
 
     // Persist stream usage to DB (no console line; the "📊 done" line below is authoritative)
     saveUsageStats({ provider, model, tokens: usage, connectionId, apiKey, endpoint: clientRawRequest?.endpoint, requestId: usageRequestId, label: "STREAM USAGE", silent: true });
-    emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage, cacheMode: resolveCacheCapability(provider, targetFormat).mode });
+    emitCacheUsage(onCacheEvent, { cacheKey, provider, model, usage, cacheMode: resolveCacheCapability(provider, targetFormat).mode, connectionId });
     if (log?.line) log.line(reqTag, "📊", formatDoneLine({ usage, latency }));
   };
 

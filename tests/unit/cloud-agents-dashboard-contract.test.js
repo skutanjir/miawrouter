@@ -83,6 +83,11 @@ describe("Cloud Agents dashboard contract", () => {
 
   it("provides a canonical root test command", () => {
     const pkg = JSON.parse(read("package.json"));
-    expect(pkg.scripts.test).toBe("npm --prefix tests test --");
+    // The canonical root command must be the repo-root gate runner. Running
+    // vitest from the tests/ workspace resolves fixture paths against the wrong
+    // CWD and fails mass suites, so the script must go through scripts/run-tests.mjs
+    // with the repo root as the vitest root.
+    expect(pkg.scripts.test).toContain("scripts/run-tests.mjs");
+    expect(read("scripts/run-tests.mjs")).toContain('"--root"');
   });
 });

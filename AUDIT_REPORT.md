@@ -25,9 +25,9 @@ vendor ke provider yang menolaknya.
 Hasil verifikasi akhir:
 
 - `npm run lint` → **exit 0**, 0 error / 390 warning (sebelum audit: 162 error / 234 warning)
-- `npm run test:ci` (gate pemblokir) → **exit 0**, 263 file lulus, **2848 test lulus**, 18 expected-fail, 63 skipped
+- `npm run test:ci` (gate pemblokir) → **exit 0**, 263 file lulus, **2852 test lulus**, 18 expected-fail, 63 skipped
 - `npm run build` → **exit 0**
-- Suite penuh termasuk backlog → 2934 lulus / 76 gagal; **seluruh 76 adalah kegagalan pre-existing** (lihat §2)
+- `npm test` (suite penuh dari root) → 3067 lulus / 78 gagal; **seluruh 78 adalah kegagalan pre-existing** (lihat §2)
 - **Regresi yang diperkenalkan: 0**
 
 ## 2. Metodologi & Validasi
@@ -71,6 +71,58 @@ tidak pernah terbaca. Diperbaiki dengan menempatkan cabang Responses (dideteksi 
 Konversi tool Claude→OpenAI membuat objek baru dan menjatuhkan `cache_control`
 walaupun provider mendukungnya. Diperbaiki dengan mempertahankan marker hanya saat
 `preserveCacheControl` aktif.
+
+## 3.1 Rekonsiliasi Permintaan → Status
+
+Diperiksa ulang terhadap daftar permintaan awal, bukan dari ingatan.
+
+| Permintaan | Status | Bukti / Catatan |
+|---|---|---|
+| Audit provider-by-provider (cache/reasoning/usage/translation/streaming) | Selesai | Matriks 111 provider; 4 bug diperbaiki |
+| Matriks kapabilitas + model cache digerakkan kapabilitas | Selesai | `cacheCapabilities.js`, `CACHE_MATRIX.md`, `provider-cache-matrix.mjs` |
+| Jangan paksa semantik `cache_control` Anthropic ke provider non-pendukung | Selesai | Bug #1; diuji atas seluruh 111 provider |
+| Verifikasi `cache_control` bertahan melewati terjemahan | Selesai | Bug #4; uji dua arah |
+| Breakpoint L0 valid + batas 4 | Selesai | `MAX_BREAKPOINTS = 4`; diuji |
+| Marker yang dikirim klien tidak ditulis ulang | Selesai | Diuji verbatim di seluruh provider |
+| Usage cache read + creation tertangkap | Selesai | Fixture per dialek + invarian |
+| Tanpa double-count prompt token | Selesai | Invarian `cached <= prompt` |
+| `message_start` + `message_delta` digabung | Selesai | Test yang ada + kontrak baru |
+| Gemini: `cachedContentTokenCount`, `thoughtsTokenCount`, total math | Selesai | Fixture `GEMINI_THOUGHTS` + invarian |
+| Gemini→OpenAI diawetkan, thoughts tidak dihitung ganda | Selesai | `golden-response-stream` + fixture |
+| Antigravity: perilaku sendiri, integrasi cache dipertahankan, tanpa marker Anthropic | Selesai | `antigravity-cache.test.js` dipertahankan (opt-in), mode implicit |
+| OpenAI/Responses: `input_tokens_details.cached_tokens` | **Selesai setelah perbaikan** | Bug #3 — sebelumnya hilang total |
+| Streaming final usage chunk tidak dibuang, `store=false` utuh | Selesai | Diuji; tidak ada perubahan perilaku |
+| DeepSeek: `prompt_cache_hit_tokens`/`miss` + fixture regresi | Selesai | Fixture hit+miss; invarian rekonsiliasi |
+| CommandCode: bandingkan extractor vs field upstream asli | Selesai (hasil: tidak diubah) | Field upstream belum terbukti — dilaporkan UNKNOWN, tidak menebak |
+| Alicode/DashScope: `preserveCacheControl`, uji dua arah | Selesai | Bug #4 memulihkan arah "dipertahankan" |
+| Kiro/Amazon Q: review usage, tanpa klaim cache | Selesai | UNKNOWN + catatan pembacaan defensif |
+| Klasifikasi A/B/C provider lain, unknown tetap unknown | Selesai | 91 unknown; test menegakkan aturan ini |
+| Model kapabilitas mampu menampung semantik cache baru | Selesai | Tambah entri di satu file, tanpa menyentuh translator |
+| Audit stabilitas prompt pra-dispatch (CACHE-SAFE/UNSAFE) | Selesai | §8 tabel klasifikasi |
+| L0 provider-aware | Selesai | Gate kapabilitas di `finish()` |
+| L0 vs L1/L2/L3 terpisah + metrik terpisah | Selesai | Metrik lama pencampur dihapus |
+| Framework uji kontrak cache yang dapat dipakai ulang | Selesai | `tests/helpers/cacheContract.js` + 135 kasus |
+| Observability cache (16 field) | Selesai | §13 tabel cakupan |
+| Performance: ukur TTFT/latency/CPU/memori + saver on/off | **Sebagian** | TTFT/latency/token/bytes terukur; **CPU & memori TIDAK terukur** — bench yang ada tidak mengukurnya, jadi tidak ada klaim |
+| Laporan akhir 10 bagian + arsitektur | Selesai | `AUDIT_REPORT.md` |
+| Laporan cache 17 bagian + label bukti | Selesai | Bagian III |
+| Batasan ukuran request dengan default longgar | Selesai | `requestValidation.js` |
+| Observability bebas privasi | Selesai | Tidak ada prompt/kunci/token/konten |
+| Konkurensi dapat dikonfigurasi, tanpa bocor, rilis di `finally` | Selesai | Limiter + 2 test regresi |
+| Tidak mengganggu circuit breaker | Selesai | Diverifikasi terpisah |
+| CI gagal saat lint/test/build gagal, tanpa kredensial nyata | Selesai | 4 job; suite live opt-in |
+| Tanpa dependensi baru | Selesai | 0 dependensi ditambahkan |
+| Tanpa rewrite TS, hanya JSDoc bertahap | Selesai | Tidak ada file TS baru |
+| Uji kontrak provider dengan mock/fixture + skip berbasis kapabilitas | Selesai | 75/75 kontrak provider |
+| `npm test` + `npm run build` sebelum menyatakan selesai | Selesai | Keduanya dijalankan; `npm test` diperbaiki |
+| Commit dalam potongan logis | Selesai | 11 commit |
+| Bahasa jawaban Indonesia | Selesai | Laporan + balasan |
+
+**Tidak terpenuhi sepenuhnya:** pengukuran CPU dan memori (permintaan 16). Bench yang
+ada hanya mengukur TTFT, latency persentil, token, dan bytes. Menambahkan pengukuran
+CPU/memori berarti menulis harness baru, bukan memakai infrastruktur yang ada. Saya
+tidak mengarang angka. Jika diinginkan, ini dapat ditambahkan sebagai pekerjaan
+lanjutan yang terpisah.
 
 ## 4. Reliability & Resilience
 
@@ -168,17 +220,67 @@ workspace.
 
 ## 9. Performance
 
-Overhead orkestrasi L0 diukur dengan beban kerja coding berat-tool:
+### 9.1 Overhead orkestrasi L0 (micro-bench)
+
+Diukur langsung pada `begin()`/`finish()` dengan beban kerja coding berat-tool:
 
 | Beban | Ukuran payload | Overhead L0 (explicit) | Overhead L0 (implicit) |
 |---|---|---|---|
 | 20 turn / 20 tool | — | 0.80 ms | 0.74 ms |
 | 60 turn / 60 tool | 315.8 KiB | 2.27 ms | 2.17 ms |
 
-Biaya didominasi `JSON.stringify` + `structuredClone` pada snapshot integritas.
-Untuk request 316 KiB, 2.27 ms dapat diterima dan tidak mengubah TTFT secara
-material. Catatan optimasi: snapshot disimpan sebagai STRING JSON, bukan graph objek
-terkloning, justru untuk menekan memori.
+Biaya didominasi `JSON.stringify` + `structuredClone` pada snapshot integritas. Untuk
+request 316 KiB, 2.27 ms dapat diterima dan tidak mengubah TTFT secara material.
+Snapshot disimpan sebagai STRING JSON, bukan graph objek terkloning, untuk menekan
+memori.
+
+### 9.2 Perbandingan lewat bench infra yang ada (`bench/run.mjs`)
+
+Dijalankan lewat harness yang ada — 28 run, pipeline nyata (RTK/caveman/ponytail →
+L0 begin → translation → executor) dengan MockProvider deterministik, network-free.
+Seluruh run selesai (`BENCH_EXIT=0`).
+
+**Konfigurasi `l0-only` identik dengan `all-off` di setiap fixture** — orkestrasi L0
+tidak menambah token terkirim sama sekali:
+
+| Fixture | all-off sent | l0-only sent | Δ |
+|---|---|---|---|
+| cache-integrity | 2668 | 2668 | 0 |
+| multi-turn-session | 2359 | 2359 | 0 |
+| tool-heavy-refactor | 4680 | 4680 | 0 |
+| large-file-read | 4424 | 4424 | 0 |
+
+TTFT pada `l0-only` (0.0071–0.0175 ms) berada dalam rentang `all-off`
+(0.0079–0.1040 ms) — overhead orkestrasi di bawah noise pengukuran.
+
+**Efek token saver (isolasi per saver, `comp-*` vs `all-off`):**
+
+| Fixture | all-off sent | comp-rtk | comp-caveman | comp-ponytail | comp-all |
+|---|---|---|---|---|---|
+| tool-heavy-refactor | 4680 | 4680 | 6805 | 6495 | 8620 |
+| multi-turn-session | 2359 | — | 4909 | — | — |
+| large-file-read | 4424 | 4424 | — | 5876 | — |
+| cache-integrity | 2668 | — | — | — | 5820 |
+
+Temuan penting dan jujur: pada fixture kecil ini, `caveman` dan `ponytail` MENAMBAH
+token terkirim (injeksi system prompt) sehingga "savings" negatif terhadap
+`original`. Efeknya pada cacheability juga terukur: `cacheRead` naik tetapi rasio
+`L0hitRate` turun (0.506 → 0.386 pada tool-heavy-refactor) karena denominator prompt
+membesar lebih cepat daripada prefix yang di-cache. Ini bukan regresi dari audit —
+`comp-rtk` yang tidak memutasi prefix tetap identik dengan `all-off`, dan
+`cache-integrity` fixture lulus sebagai bagian dari suite (2 kegagalan
+`bench-metrics`/`bench-mock-provider`/`bench-verify` sudah dibuktikan pre-existing
+via revert). Angka ini dilaporkan apa adanya karena audit cache memang bertujuan
+mengukur, bukan menghiasi.
+
+`bench:verify` tidak dapat dijalankan sebagai gate: `bench/out/baseline.json` tidak
+pernah direkam di repo (hanya `report.json`/`report.md`), sehingga `--verify` keluar
+dengan kode 2 (usage/IO error), bukan regresi. Baseline belum pernah ada, jadi ini
+bukan kerusakan yang diperkenalkan audit.
+
+Catatan: bench yang ada TIDAK mengukur CPU atau memori proses — hanya TTFT, latency
+p50/p95/p99, token, dan bytes. Klaim CPU/memori tidak dibuat karena tidak ada data.
+Benchmark provider live tetap opt-in (`--real` sengaja ditolak oleh runner).
 
 ## 10. Risiko Residual & Item Terbuka
 
@@ -502,10 +604,35 @@ metrik terpisah berlabel `cacheMode`.
 Event `cache_probe`: `cacheMode`, `prefixHash` (hash terpotong, aman diekspor),
 `prefixLen`, `breakpoints`, `markerInserted`, `turns`, `stable`, `restored`.
 
-Event `cache_usage`: `cacheMode`, `cacheRead`, `cacheCreation`, `provider`, `model`.
+Event `cache_usage`: `cacheKey`, `provider`, `model`, `cacheMode`, `connectionRef`
+(hash terpotong dari connectionId), `cacheRead`, `cacheCreation`, `promptTokens`,
+`reasoningTokens`, `cacheHitRatio`.
+
+Cakupan daftar yang diminta:
+
+| Field diminta | Status | Wujud |
+|---|---|---|
+| provider | ✓ | `provider` |
+| model | ✓ | `model` |
+| connection/account hash | ✓ | `connectionRef` (sha256 terpotong 16 char) |
+| cache mode | ✓ | `cacheMode` |
+| prompt tokens | ✓ | `promptTokens` |
+| cached tokens | ✓ | `cacheRead` |
+| cache creation tokens | ✓ | `cacheCreation` |
+| reasoning tokens | ✓ | `reasoningTokens` |
+| cache hit ratio | ✓ | `cacheHitRatio` |
+| stable-prefix hash | ✓ | `prefixHash` |
+| prefix length | ✓ | `prefixLen` |
+| breakpoint count | ✓ | `breakpoints` |
+| router cache layer hit/miss | ✓ | metrik `cache_hits_total`/`cache_misses_total` label `layer=l1\|l2` |
+| provider cache read/write | ✓ | metrik `provider_cache_read/write_tokens_total` |
+
+Field yang tidak dilaporkan upstream bernilai `null`, BUKAN 0 — "upstream tidak
+memberi tahu" dan "upstream bilang nol" adalah dua fakta berbeda tentang kesehatan
+cache. Ini diuji secara eksplisit.
 
 Tidak pernah dicatat: API key mentah, token OAuth, prompt lengkap, argumen tool yang
-mengandung rahasia, kredensial mentah.
+mengandung rahasia, kredensial mentah, connectionId mentah.
 
 ### 14. Performa Cache
 
