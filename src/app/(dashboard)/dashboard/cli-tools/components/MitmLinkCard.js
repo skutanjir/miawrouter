@@ -10,18 +10,18 @@ import Image from "next/image";
 export default function MitmLinkCard({ tool }) {
   return (
     <Link href="/dashboard/mitm" className="block">
-      <Card padding="sm" className="overflow-hidden hover:border-primary/50 transition-colors cursor-pointer">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-8 flex items-center justify-center shrink-0">
+      <Card padding="sm" className="border border-border-subtle hover:border-primary/40 transition-colors">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="size-8 flex items-center justify-center shrink-0 rounded border border-border-subtle bg-bg">
               {tool.image ? (
                 <Image
                   src={tool.image}
                   alt={tool.name}
-                  width={32}
-                  height={32}
-                  className="size-8 object-contain rounded-lg"
-                  sizes="32px"
+                  width={24}
+                  height={24}
+                  className="size-6 object-contain rounded-xs"
+                  sizes="24px"
                   onError={(e) => {
                     e.target.style.display = "none";
                   }}
@@ -30,7 +30,7 @@ export default function MitmLinkCard({ tool }) {
                 />
               ) : (
                 <span
-                  className="material-symbols-outlined text-[26px]"
+                  className="material-symbols-outlined text-[20px]"
                   style={{
                     color: tool.color || "var(--color-primary)",
                   }}
@@ -40,14 +40,14 @@ export default function MitmLinkCard({ tool }) {
               )}
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-medium text-sm">{tool.name}</h3>
-                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full">MITM</span>
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-medium text-xs sm:text-sm text-text-main truncate">{tool.name}</h3>
+                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded">MITM</span>
               </div>
-              <p className="text-xs text-text-muted truncate">{tool.description}</p>
+              <p className="text-[11px] text-text-muted truncate">{tool.description}</p>
             </div>
           </div>
-          <span className="material-symbols-outlined text-text-muted text-[20px]">chevron_right</span>
+          <span className="material-symbols-outlined text-text-muted text-[16px] shrink-0">chevron_right</span>
         </div>
       </Card>
     </Link>

@@ -791,9 +791,9 @@ export default function APIPageClient({ machineId }) {
   return (
     <div className="flex flex-col gap-8">
       {/* Endpoint Card */}
-      <Card>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">api</span>
+      <Card className="border border-border-subtle">
+        <h2 className="text-sm font-semibold mb-3 flex items-center gap-2 text-text-main">
+          <span className="material-symbols-outlined text-primary text-[18px]">api</span>
           API Endpoint
         </h2>
 
@@ -977,7 +977,6 @@ export default function APIPageClient({ machineId }) {
                   }
                   handleOpenTsModal();
                 }}
-                className="bg-linear-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white!"
               >
                 Enable
               </Button>
@@ -1063,10 +1062,10 @@ export default function APIPageClient({ machineId }) {
       </Card>
 
       {/* API Keys */}
-      <Card id="require-api-key">
+      <Card id="require-api-key" className="border border-border-subtle">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">vpn_key</span>
+          <h2 className="text-sm font-semibold flex items-center gap-2 text-text-main">
+            <span className="material-symbols-outlined text-primary text-[18px]">vpn_key</span>
             API Keys
           </h2>
           <Button icon="add" onClick={() => setShowAddModal(true)}>
@@ -1074,10 +1073,10 @@ export default function APIPageClient({ machineId }) {
           </Button>
         </div>
 
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-border">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-border-subtle">
           <div>
-            <p id="require-api-key-label" className="font-medium">Require API key</p>
-            <p id="require-api-key-desc" className="text-sm text-text-muted">
+            <p id="require-api-key-label" className="text-xs font-semibold text-text-main">Require API key</p>
+            <p id="require-api-key-desc" className="text-xs text-text-muted mt-0.5">
               {requireApiKeyLocked === null
                 ? "Loading..."
                 : requireApiKeyLocked

@@ -6,6 +6,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers";
 import { Card, Button, Modal, Input, CardSkeleton, ModelSelectModal, ConfirmModal, CapacityBadges, Select, Toggle } from "@/shared/components";
+import { cn } from "@/shared/utils/cn";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/shared/constants/providers";
@@ -196,19 +197,32 @@ export default function CombosPage() {
   return (
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm text-text-muted mt-1">
-            Group models under one name, then pick a strategy per combo:
+      <div className="flex flex-col gap-4 rounded-lg border border-border-subtle bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold text-text-main">Combo Strategies</h2>
+          <p className="text-xs text-text-muted mt-0.5">
+            Group models under a single identifier and route requests by strategy:
           </p>
-          <ul className="text-sm text-text-muted mt-2 flex flex-col gap-1">
-            <li><span className="font-medium text-text-main">Fallback</span> — tries models in order (next on failure)</li>
-            <li><span className="font-medium text-text-main">Round Robin</span> — rotates models across requests to spread load</li>
-            <li><span className="font-medium text-text-main">Fusion</span> — queries all models in parallel, then a judge synthesizes one answer. Best quality, but costs the most: every request bills all panel models + the judge (N+1 calls)</li>
-            <li><span className="font-medium text-text-main">Race</span> — queries all models in parallel; the first successful response wins. Fastest latency, but costs N calls: every request bills all panel models</li>
-          </ul>
+          <div className="mt-2.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2 text-xs text-text-muted">
+            <div className="flex items-start gap-1.5">
+              <span className="font-mono text-[11px] font-semibold text-text-main">fallback:</span>
+              <span>Tries models in order until one succeeds.</span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="font-mono text-[11px] font-semibold text-text-main">round-robin:</span>
+              <span>Distributes requests across models.</span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="font-mono text-[11px] font-semibold text-text-main">fusion:</span>
+              <span>Queries models in parallel; judge synthesizes one answer.</span>
+            </div>
+            <div className="flex items-start gap-1.5">
+              <span className="font-mono text-[11px] font-semibold text-text-main">race:</span>
+              <span>Parallel dispatch; first successful response wins.</span>
+            </div>
+          </div>
         </div>
-        <Button icon="add" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto whitespace-nowrap">
+        <Button icon="add" onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto shrink-0">
           Create Combo
         </Button>
       </div>
@@ -303,20 +317,20 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
   const isFusion = current === "fusion";
 
   return (
-    <Card padding="sm" className="group">
+    <Card padding="sm" className="border border-border-subtle">
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
+        <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
+          <div className="size-7 rounded bg-primary/10 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-primary text-[17px]">layers</span>
           </div>
           <div className="min-w-0 flex-1">
-            <code className="block truncate font-mono text-sm font-medium">{combo.name}</code>
+            <code className="block truncate font-mono text-xs font-semibold text-text-main">{combo.name}</code>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
               {combo.models.length === 0 ? (
                 <span className="text-xs text-text-muted italic">No models</span>
               ) : (
                 combo.models.slice(0, 3).map((model, index) => (
-                  <code key={index} className="inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 font-mono text-xs text-text-muted dark:bg-white/5">
+                  <code key={index} className="inline-flex items-center gap-1 rounded bg-bg border border-border-subtle px-1.5 py-0.5 font-mono text-[11px] text-text-muted">
                     <span>{model}</span>
                     <CapacityBadges caps={getCaps?.(model)} />
                   </code>
@@ -332,7 +346,7 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
                 <span className="text-[11px] font-medium text-text-muted">Judge</span>
                 <button
                   onClick={() => setShowJudgeSelect(true)}
-                  className="inline-flex max-w-full items-center gap-1 rounded border border-dashed border-primary/40 px-1.5 py-0.5 font-mono text-[11px] text-primary hover:border-primary hover:bg-primary/5 transition-colors"
+                  className="inline-flex max-w-full items-center gap-1 rounded border border-border-subtle bg-bg px-1.5 py-0.5 font-mono text-[11px] text-primary hover:border-primary transition-colors"
                   title="Pick the model that fuses panel answers"
                 >
                   <span className="material-symbols-outlined text-[13px]">gavel</span>
@@ -355,12 +369,12 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
         {/* Actions */}
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3 sm:shrink-0">
           {/* Strategy selector — always visible */}
-          <div className="w-full sm:w-[200px]">
+          <div className="w-full sm:w-[190px]">
             <Select
               options={STRATEGY_OPTIONS}
               value={current}
               onChange={(e) => onSetStrategy({ fallbackStrategy: e.target.value })}
-              selectClassName="py-1.5 text-xs"
+              selectClassName="py-1 text-xs font-medium"
             />
           </div>
 
@@ -414,19 +428,13 @@ function ComboCard({ combo, getCaps, activeProviders = [], copied, onCopy, onEdi
 function CapacityAdapterSection({ capacityAdapter, onChange, activeProviders, getCaps }) {
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">Vision Adapter</p>
-          <p className="text-xs text-text-muted mt-0.5">
-            Your model can&apos;t read image/audio? Auto-switches to a model in the pool below.
-          </p>
-          <ul className="mt-1.5 text-[11px] text-text-muted flex flex-col gap-0.5">
-            <li><span className="font-medium text-text-main">Vision</span> — images (png, jpg, webp, …)</li>
-            <li><span className="font-medium text-text-main">Audio</span> — audio input</li>
-          </ul>
-        </div>
+      <div className="flex flex-col gap-1 px-1">
+        <h3 className="text-sm font-semibold text-text-main">Vision Adapter</h3>
+        <p className="text-xs text-text-muted">
+          Routes multimodal inputs (images or audio) to capable pool models when the primary model lacks support.
+        </p>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         {CAPACITY_ADAPTER_CAPS.map((cap) => (
           <CapacityAdapterCap
             key={cap.key}
@@ -467,31 +475,31 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
   };
 
   return (
-    <Card padding="sm" className={`group ${!enabled ? "opacity-50" : ""}`}>
+    <Card padding="sm" className={cn("border border-border-subtle transition-opacity", !enabled && "opacity-60")}>
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Master toggle + icon + label + chips */}
-        <div className="flex min-w-0 flex-1 items-start gap-2.5 sm:items-center">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
           <Toggle
             checked={enabled}
             onChange={(v) => patch({ enabled: v })}
             aria-label={`Enable ${cap.label} adapter`}
           />
-          <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-primary text-[18px]">{cap.icon}</span>
+          <div className="size-7 rounded bg-primary/10 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-primary text-[17px]">{cap.icon}</span>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <code className="font-mono text-sm font-medium">{cap.label}</code>
-              <span className="text-[10px] text-text-muted">— {cap.desc}</span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-xs font-semibold text-text-main">{cap.label}</span>
+              <span className="text-[11px] text-text-muted">{cap.desc}</span>
             </div>
             <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
               {models.length === 0 ? (
-                <span className="text-xs text-text-muted italic">No models</span>
+                <span className="text-xs text-text-muted italic">No fallback models configured</span>
               ) : (
                 models.slice(0, 3).map((model, index) => (
                   <code
                     key={`${model}-${index}`}
-                    className="group/chip inline-flex items-center gap-1 rounded bg-black/5 px-1.5 py-0.5 font-mono text-xs text-text-muted dark:bg-white/5"
+                    className="group/chip inline-flex items-center gap-1 rounded bg-bg border border-border-subtle px-1.5 py-0.5 font-mono text-[11px] text-text-muted"
                   >
                     <span>{model}</span>
                     <CapacityBadges caps={getCaps?.(model)} />
@@ -523,7 +531,7 @@ function CapacityAdapterCap({ cap, entry, onChange, activeProviders, getCaps }) 
               disabled={!enabled}
               aria-label={`Round-robin ${cap.label} adapter`}
             />
-            <span>Round</span>
+            <span>Round robin</span>
           </label>
           <Button
             icon="add"

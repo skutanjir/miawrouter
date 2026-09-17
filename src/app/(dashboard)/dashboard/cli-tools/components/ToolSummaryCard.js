@@ -16,18 +16,18 @@ export default function ToolSummaryCard({ toolId, tool, status }) {
   const s = getStatus(status);
   return (
     <Link href={`/dashboard/cli-tools/${toolId}`} className="block">
-      <Card padding="sm" className="h-full overflow-hidden hover:border-primary/50 transition-colors cursor-pointer">
-        <div className="flex h-full flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="size-8 flex items-center justify-center shrink-0">
+      <Card padding="sm" className="h-full border border-border-subtle hover:border-primary/40 transition-colors">
+        <div className="flex h-full items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="size-8 flex items-center justify-center shrink-0 rounded border border-border-subtle bg-bg">
               {tool.image ? (
                 <Image
                   src={tool.image}
                   alt={tool.name}
-                  width={32}
-                  height={32}
-                  className="size-8 object-contain rounded-lg"
-                  sizes="32px"
+                  width={24}
+                  height={24}
+                  className="size-6 object-contain rounded-xs"
+                  sizes="24px"
                   onError={(e) => {
                     e.target.style.display = "none";
                   }}
@@ -36,7 +36,7 @@ export default function ToolSummaryCard({ toolId, tool, status }) {
                 />
               ) : (
                 <span
-                  className="material-symbols-outlined text-[26px]"
+                  className="material-symbols-outlined text-[20px]"
                   style={{
                     color: tool.color || "var(--color-primary)",
                   }}
@@ -45,12 +45,12 @@ export default function ToolSummaryCard({ toolId, tool, status }) {
                 </span>
               )}
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="font-medium text-sm truncate">{tool.name}</h3>
-              <span className={`inline-block mt-1 px-1.5 py-0.5 text-[10px] font-medium rounded-full ${s.cls}`}>{s.label}</span>
+            <div className="min-w-0">
+              <h3 className="font-medium text-xs sm:text-sm text-text-main truncate">{tool.name}</h3>
+              <span className={`inline-block mt-0.5 px-1.5 py-0.5 text-[10px] font-medium rounded ${s.cls}`}>{s.label}</span>
             </div>
-            <span className="material-symbols-outlined text-text-muted text-[18px] shrink-0">chevron_right</span>
           </div>
+          <span className="material-symbols-outlined text-text-muted text-[16px] shrink-0">chevron_right</span>
         </div>
       </Card>
     </Link>
