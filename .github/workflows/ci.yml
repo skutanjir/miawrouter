@@ -1,0 +1,85 @@
+name: CI
+
+# Quality gate for pull requests and pushes to the default branch.
+#
+# Deliberately credential-free: no provider API keys, no network fixtures.
+# Everything here runs against mocked upstreams so forks and PRs from
+# contributors without secrets still validate fully.
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Install test dependencies
+        run: npm --prefix tests ci
+      # Blocking gate. Runs the whole suite minus the documented pre-existing
+      # failures in tests/known-failing.json, so red means "this PR broke it".
+      # Runs from the repo root: several suites resolve fixture paths relative
+      # to the working directory, so `--root .` is required.
+      - run: npm run test:ci
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+  # Non-blocking. Runs the quarantined pre-existing failures so the debt is
+  # visible on every build instead of rotting in a JSON file. Remove entries
+  # from tests/known-failing.json as they are fixed.
+  backlog-tests:
+    name: Tests (known pre-existing failures)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix tests ci
+      - run: npm run test:all
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"

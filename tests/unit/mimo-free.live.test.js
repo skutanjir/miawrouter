@@ -5,6 +5,11 @@
  */
 import { describe, it, expect } from "vitest";
 import { proxyAwareFetch } from "../../open-sse/utils/proxyFetch.js";
+
+// Opt-in only, same convention as tests/translator/real/*:  RUN_LIVE=1 npx vitest run ...
+// Without the flag this suite is skipped so credential-free CI never depends on
+// an upstream free endpoint staying up.
+const RUN_LIVE = process.env.RUN_LIVE === "1";
 import { __test__ } from "../../open-sse/executors/mimo-free.js";
 
 const { BOOTSTRAP_URL, CHAT_URL, generateFingerprint, MIMO_SYSTEM_MARKER } = __test__;
@@ -43,7 +48,7 @@ async function chatWith(jwt, ua) {
   return proxyAwareFetch(CHAT_URL, { method: "POST", headers, body: JSON.stringify(body) });
 }
 
-describe("MiMo Free bootstrap (live)", () => {
+describe.skipIf(!RUN_LIVE)("MiMo Free bootstrap (live)", () => {
   it("bootstrap returns 200 with JWT", async () => {
     const { status, jwt } = await bootstrapWith(CHROME_UA);
     expect(status).toBe(200);
@@ -51,7 +56,7 @@ describe("MiMo Free bootstrap (live)", () => {
   });
 });
 
-describe("MiMo Free anti-abuse gate (live)", () => {
+describe.skipIf(!RUN_LIVE)("MiMo Free anti-abuse gate (live)", () => {
   it("chat WITH Chrome User-Agent → 200", async () => {
     const { jwt } = await bootstrapWith(CHROME_UA);
     const r = await chatWith(jwt, CHROME_UA);
