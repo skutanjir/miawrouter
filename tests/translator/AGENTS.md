@@ -86,8 +86,6 @@ Grouped per CLI/provider test file. Each row is an `it.fails` case.
 | Bug | Source |
 |---|---|
 | Always injects "You are Claude Code" system prompt | `request/openai-to-claude.js:124-134` |
-| `reasoning_content` not mapped to a thinking block | `request/openai-to-claude.js:268-273` |
-| `tool_choice:"none"` → `auto` | `request/openai-to-claude.js:298` |
 | `input_audio` dropped | `request/openai-to-claude.js` (no audio branch) |
 
 **Codex Responses (`bugs-codexCli-responses.test.js`)**
@@ -107,7 +105,6 @@ Grouped per CLI/provider test file. Each row is an `it.fails` case.
 | Bug | Source |
 |---|---|
 | `JSON.parse(arguments)` throws on bad JSON (no try/catch) | `request/openai-to-kiro.js:214-216` |
-| `max_tokens` hardcoded to 32000 | `request/openai-to-kiro.js:309` |
 | Remote image → `[Image: url]` text | `request/openai-to-kiro.js:132-134` |
 
 **Gemini / Cursor / CommandCode (`bugs-gemini-cursor-commandcode.test.js`)**
@@ -115,7 +112,6 @@ Grouped per CLI/provider test file. Each row is an `it.fails` case.
 |---|---|
 | Only the last system message kept | `request/openai-to-gemini.js:92-96` |
 | Cursor drops image content | `request/openai-to-cursor.js:12-24` |
-| Cursor `max_tokens` hardcoded to 32000 | `request/openai-to-cursor.js:179` |
 | CommandCode bad JSON args → `{}` silently | `request/openai-to-commandcode.js:53-57` |
 | CommandCode image → `[image omitted]` | `request/openai-to-commandcode.js:41-42` |
 

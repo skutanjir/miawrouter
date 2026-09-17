@@ -170,29 +170,11 @@ export default function BasicChatPageClient() {
   const [providerGroups, setProviderGroups] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [sessions, setSessions] = useState(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const saved = safeParse(globalThis.localStorage.getItem(STORAGE_KEYS.sessions), []);
-      return Array.isArray(saved) ? saved.map((session) => ({
-        ...session,
-        messages: Array.isArray(session.messages) ? session.messages : [],
-      })) : [];
-    } catch { return []; }
-  });
-  const [activeSessionId, setActiveSessionId] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return globalThis.localStorage.getItem(STORAGE_KEYS.activeSessionId) || "";
-  });
-  const [activeProviderId, setActiveProviderId] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return globalThis.localStorage.getItem(STORAGE_KEYS.activeProviderId) || "";
-  });
+  const [sessions, setSessions] = useState([]);
+  const [activeSessionId, setActiveSessionId] = useState("");
+  const [activeProviderId, setActiveProviderId] = useState("");
   const [activeModelId, setActiveModelId] = useState("");
-  const [draft, setDraft] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return globalThis.localStorage.getItem(STORAGE_KEYS.draft) || "";
-  });
+  const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState([]);
   const [isSending, setIsSending] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState("");
@@ -207,6 +189,21 @@ export default function BasicChatPageClient() {
   const historyMenuRef = useRef(null);
 
   useEffect(() => {
+    try {
+      const saved = safeParse(globalThis.localStorage?.getItem(STORAGE_KEYS.sessions), []);
+      if (Array.isArray(saved) && saved.length > 0) {
+        setSessions(saved.map((session) => ({
+          ...session,
+          messages: Array.isArray(session.messages) ? session.messages : [],
+        })));
+      }
+      const savedActiveSessionId = globalThis.localStorage?.getItem(STORAGE_KEYS.activeSessionId) || "";
+      if (savedActiveSessionId) setActiveSessionId(savedActiveSessionId);
+      const savedActiveProviderId = globalThis.localStorage?.getItem(STORAGE_KEYS.activeProviderId) || "";
+      if (savedActiveProviderId) setActiveProviderId(savedActiveProviderId);
+      const savedDraft = globalThis.localStorage?.getItem(STORAGE_KEYS.draft) || "";
+      if (savedDraft) setDraft(savedDraft);
+    } catch {}
     setIsHydrated(true);
   }, []);
 
@@ -747,7 +744,7 @@ export default function BasicChatPageClient() {
   const modelSubLabel = activeModel ? activeModel.requestModel : "Choose from connected providers";
 
   return (
-    <div className="relative flex-1 flex flex-col h-full min-h-0 min-w-0 bg-[#212121] text-white overflow-hidden">
+    <div className="relative flex-1 flex flex-col h-full min-h-0 min-w-0 bg-[#212121] text-white">
       <div className="relative mx-auto flex flex-1 h-full min-h-0 w-full max-w-4xl flex-col">
         <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <div ref={modelMenuRef} className="relative">
