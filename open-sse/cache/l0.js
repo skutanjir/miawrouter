@@ -14,9 +14,22 @@
 import crypto from "crypto";
 import { CLAUDE_BLOCK } from "../translator/schema/index.js";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
+import { PROVIDERS } from "../config/providers.js";
 
 export const MAX_BREAKPOINTS = 4; // Anthropic's cache-breakpoint ceiling
 export const STABLE_TURNS = 2;    // same prefix twice in a row → safe to breakpoint
+
+export function supportsPromptCacheControl(provider, format = "") {
+  if (!provider && !format) return false;
+  if (format === "claude") return true;
+  const p = String(provider || "").toLowerCase();
+  if (p === "anthropic" || p === "claude") return true;
+  const entry = PROVIDERS[p];
+  if (entry?.transport?.format === "claude") return true;
+  if (entry?.quirks?.preserveCacheControl) return true;
+  if (entry?.features?.promptCache || entry?.features?.cacheControl) return true;
+  return false;
+}
 
 // L0's own breakpoint marker. Client-provided cache_control blocks are never
 // rewritten — only preserved byte-identically.
@@ -118,7 +131,7 @@ export function begin(body) {
  * @param {object} state - result of begin()
  * @param {object} ctx - { cacheKey, provider, model, onCacheEvent }
  */
-export function finish(body, state, { cacheKey = "", provider = "", model = "", onCacheEvent = null } = {}) {
+export function finish(body, state, { cacheKey = "", provider = "", model = "", format = "", onCacheEvent = null } = {}) {
   if (!body || !state) return { body, info: null };
   let result = body;
   const info = { turns: 0, stable: false, restored: false, breakpoints: 0, prefixLen: state.prefixLen };
@@ -181,7 +194,8 @@ export function finish(body, state, { cacheKey = "", provider = "", model = "", 
 
   info.turns = rec.turns;
   info.stable = rec.turns >= STABLE_TURNS;
-  if (info.stable) {
+  const canInject = supportsPromptCacheControl(provider, format);
+  if (info.stable && canInject) {
     if (result === body) result = structuredClone(body);
     insertBreakpoints(result, MAX_BREAKPOINTS);
   }

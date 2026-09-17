@@ -148,10 +148,14 @@ export function buildModelRotationUpdate(connection, model, state) {
  * Reads flat field `modelLock_${model}` (or `modelLock___all` when model=null).
  */
 export function isModelLockActive(connection, model) {
+  if (!connection) return false;
+  const now = Date.now();
   const key = getModelLockKey(model);
-  const expiry = connection[key] || connection[MODEL_LOCK_ALL];
-  if (!expiry) return false;
-  return new Date(expiry).getTime() > Date.now();
+  const modelExpiry = connection[key];
+  if (modelExpiry && new Date(modelExpiry).getTime() > now) return true;
+  const allExpiry = connection[MODEL_LOCK_ALL];
+  if (allExpiry && new Date(allExpiry).getTime() > now) return true;
+  return false;
 }
 
 /**
@@ -184,6 +188,7 @@ export function buildModelLockUpdate(model, cooldownMs) {
  */
 export function buildClearModelLocksUpdate(connection) {
   const cleared = {};
+  if (!connection) return cleared;
   for (const key of Object.keys(connection)) {
     if (key.startsWith(MODEL_LOCK_PREFIX)) cleared[key] = null;
   }

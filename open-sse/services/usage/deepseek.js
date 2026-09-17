@@ -84,6 +84,9 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
       };
     }
 
+    const isAvailable = data.is_available !== false;
+    const plan = isAvailable ? "DeepSeek" : "Insufficient Balance";
+
     const quotas = {};
     for (const b of balances) {
       const total = Math.max(0, b.totalBalance);
@@ -92,13 +95,14 @@ export async function getDeepseekUsage(apiKey = null, proxyOptions = null) {
       quotas[`Balance (${b.currency})`] = {
         used: 0,
         total,
-        remainingPercentage: total > 0 ? 100 : 0,
+        remainingPercentage: isAvailable && total > 0 ? 100 : 0,
         resetAt: null,
-        unlimited: total > 0,
+        unlimited: isAvailable && total > 0,
       };
     }
 
     return {
+      plan,
       quotas,
     };
   } catch (error) {

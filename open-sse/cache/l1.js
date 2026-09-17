@@ -73,24 +73,39 @@ export function isCacheable(body, { stream = false } = {}) {
   if (stream) return false;
   if (!body || typeof body !== "object" || Array.isArray(body)) return false;
   if (body.store === false) return false; // explicit no-store
-  const temperature = Number(body.temperature);
-  if (body.seed == null && (body.temperature == null || temperature !== 0)) return false;
-  if (Array.isArray(body.tools) && body.tools.length > 0) return false;
+
+  const req = body.request && typeof body.request === "object" ? body.request : body;
+  const rawTemp = req.generationConfig?.temperature ?? body.temperature;
+  const temperature = Number(rawTemp);
+  const seed = req.generationConfig?.seed ?? req.seed ?? body.seed;
+  if (seed == null && (rawTemp == null || temperature !== 0)) return false;
+
+  const tools = req.tools ?? body.tools;
+  if (Array.isArray(tools) && tools.length > 0) return false;
   if (body.tool_choice && body.tool_choice !== "none") return false;
+  if (req.toolConfig?.functionCallingConfig?.mode === "ANY") return false;
 
   const items = Array.isArray(body.messages) ? body.messages
     : Array.isArray(body.input) ? body.input
+    : Array.isArray(body.contents) ? body.contents
+    : Array.isArray(body.request?.contents) ? body.request.contents
     : null;
   if (!items) return false;
   for (const item of items) {
     if (!item || typeof item !== "object") continue;
     if (Array.isArray(item.tool_calls) && item.tool_calls.length > 0) return false;
-    if (item.role === "tool") return false;
+    if (item.role === "tool" || item.role === "function") return false;
     if (typeof item.type === "string" && /function_call|custom_tool_call|function_call_output/.test(item.type)) return false;
     if (Array.isArray(item.content)) {
       for (const block of item.content) {
         if (!block || typeof block !== "object") continue;
         if (typeof block.type === "string" && /tool_use|tool_result|tool_call/.test(block.type)) return false;
+      }
+    }
+    if (Array.isArray(item.parts)) {
+      for (const part of item.parts) {
+        if (!part || typeof part !== "object") continue;
+        if (part.functionCall || part.functionResponse) return false;
       }
     }
   }

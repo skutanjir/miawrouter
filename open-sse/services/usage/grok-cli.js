@@ -82,9 +82,11 @@ function subscriptionTier(user, config) {
 function resolvePlan(user, config) {
   const tier = subscriptionTier(user, config);
   if (tier) {
+    if (tier === "super_grok") return "Super Grok";
+    if (tier === "premium_plus") return "Premium Plus";
     return tier;
   }
-  return "";
+  return "Grok Code";
 }
 
 function makeQuota({ used, total, resetAt, unlimited = false }) {
@@ -375,7 +377,7 @@ export async function getGrokCliUsage(accessToken, providerSpecificData = null, 
       const grpcQuotas = quotasFromGrpcCredits(grpc);
       if (grpcQuotas) {
         return {
-          plan: parsed.plan,
+          plan: parsed.plan === "XPremiumPlus" ? "SuperGrok Heavy" : (parsed.plan || "SuperGrok Heavy"),
           quotas: grpcQuotas,
         };
       }

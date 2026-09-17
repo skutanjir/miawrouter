@@ -469,7 +469,13 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // proceeds without breakpoints.
   if (cacheState) {
     try {
-      const l0 = finishCacheOrchestration(translatedBody, cacheState, { cacheKey, provider, model, onCacheEvent });
+      const l0 = finishCacheOrchestration(translatedBody, cacheState, {
+        cacheKey,
+        provider,
+        model,
+        format: finalFormat,
+        onCacheEvent,
+      });
       if (l0.body !== translatedBody) translatedBody = l0.body;
       if (l0.info) {
         log?.debug?.("CACHE", `key=${cacheKey.slice(0, 24)}… turns=${l0.info.turns} stable=${l0.info.stable} bp=${l0.info.breakpoints}${l0.info.restored ? " prefix-restored" : ""}`);

@@ -73,10 +73,72 @@ export function countTextTokens(text, model) {
 // retry paths). Bodies are request-scoped, so a WeakMap adds no leak risk.
 const bodyTokenCache = new WeakMap();
 
+export function extractBodyText(body) {
+  if (body == null) return "";
+  if (typeof body === "string") return body;
+
+  const textParts = [];
+
+  if (body.system) {
+    if (typeof body.system === "string") textParts.push(body.system);
+    else if (Array.isArray(body.system)) {
+      for (const part of body.system) {
+        if (typeof part === "string") textParts.push(part);
+        else if (part?.text) textParts.push(part.text);
+      }
+    }
+  }
+
+  if (Array.isArray(body.messages)) {
+    for (const msg of body.messages) {
+      if (typeof msg.content === "string") {
+        textParts.push(msg.content);
+      } else if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
+          if (typeof block === "string") textParts.push(block);
+          else if (block?.text) textParts.push(block.text);
+          else if (block?.thinking) textParts.push(block.thinking);
+          else if (block?.type === "tool_use" || block?.type === "function") {
+            if (block.name) textParts.push(block.name);
+            if (block.input) textParts.push(typeof block.input === "string" ? block.input : JSON.stringify(block.input));
+          } else if (block?.type === "tool_result" && block.content) {
+            if (typeof block.content === "string") textParts.push(block.content);
+            else textParts.push(JSON.stringify(block.content));
+          }
+        }
+      }
+      if (msg.reasoning_content) textParts.push(msg.reasoning_content);
+      if (Array.isArray(msg.tool_calls)) {
+        for (const tc of msg.tool_calls) {
+          if (tc.function?.name) textParts.push(tc.function.name);
+          if (tc.function?.arguments) textParts.push(tc.function.arguments);
+        }
+      }
+    }
+  }
+
+  if (Array.isArray(body.tools)) {
+    for (const t of body.tools) {
+      if (t.name) textParts.push(t.name);
+      if (t.description) textParts.push(t.description);
+      if (t.function?.name) textParts.push(t.function.name);
+      if (t.function?.description) textParts.push(t.function.description);
+      if (t.input_schema) textParts.push(JSON.stringify(t.input_schema));
+      if (t.function?.parameters) textParts.push(JSON.stringify(t.function.parameters));
+    }
+  }
+
+  if (textParts.length === 0) {
+    return JSON.stringify(body);
+  }
+
+  return textParts.join(" ");
+}
+
 /**
  * Count tokens for a whole request body (messages, system, tools, …).
- * Stringifies then counts so any body shape is covered. Result is memoized
- * per body object + model pair.
+ * Extracts readable prompt context (or stringifies arbitrary bodies) and counts tokens.
+ * Result is memoized per body object + model pair.
  * @param {object} body - request body (may carry its own .model)
  * @param {string} [model] - overrides body.model
  * @returns {number}
@@ -90,7 +152,8 @@ export function countBodyTokens(body, model) {
   }
   let tokens;
   try {
-    tokens = countTextTokens(JSON.stringify(body), effectiveModel);
+    const textToCount = extractBodyText(body);
+    tokens = countTextTokens(textToCount, effectiveModel);
   } catch {
     return 0;
   }
