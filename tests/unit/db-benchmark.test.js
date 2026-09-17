@@ -1,9 +1,26 @@
 // Benchmark: SQLite vs lowdb on equivalent workloads.
-// Run: cd app/tests && npm test -- db-benchmark
+//
+// The comparison baseline is the legacy lowdb store, which the SQLite migration
+// removed from the app's dependencies. Adding it back just to keep a benchmark
+// green would put dead weight in the shipped tree, so the suite skips itself
+// with that reason attached instead of failing collection. The current
+// benchmark harness lives in bench/ (run.mjs / verify.mjs).
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, beforeAll, afterAll, vi } from "vitest";
+
+const HAS_LOWDB = (() => {
+  try {
+    createRequire(import.meta.url).resolve("lowdb");
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+const describeBench = HAS_LOWDB ? describe : describe.skip;
 
 const N_ITEMS = 500;
 const N_QUERIES = 200;
@@ -25,6 +42,7 @@ async function bench(label, fn) {
 }
 
 beforeAll(async () => {
+  if (!HAS_LOWDB) return;
   // SQLite setup
   tempSqlite = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-bench-sqlite-"));
   process.env.DATA_DIR = tempSqlite;
@@ -49,7 +67,7 @@ afterAll(() => {
   else process.env.DATA_DIR = originalDataDir;
 });
 
-describe("DB Benchmark — SQLite vs Lowdb", () => {
+describeBench("DB Benchmark — SQLite vs Lowdb", () => {
   it(`INSERT ${N_ITEMS} provider connections`, async () => {
     console.log(`\n[INSERT ${N_ITEMS}]`);
 

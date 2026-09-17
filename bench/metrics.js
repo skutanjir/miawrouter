@@ -79,7 +79,7 @@ export function deltaPercent(current, base) {
 /** Percentage-point difference current - base (for rates). null when either side missing. */
 export function deltaPp(current, base) {
   if (current === null || current === undefined || base === null || base === undefined) return null;
-  return Number(current) - Number(base);
+  return round(Number(current) - Number(base), 6);
 }
 
 /**

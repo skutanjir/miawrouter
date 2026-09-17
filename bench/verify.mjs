@@ -42,12 +42,15 @@ export const DEFAULT_THRESHOLDS = Object.freeze({
 export function compareRun(current, base, thresholds = {}) {
   const t = { ...DEFAULT_THRESHOLDS, ...thresholds };
   const checks = [];
+  const runId = current?.runId ?? current?.id ?? "unknown";
 
   // Hit rates (percentage points) — per layer that reports a rate.
+  // Note: hitRate is in [0, 1] (e.g. 0.80 = 80%), so a threshold in percentage
+  // points (e.g. 5pp) corresponds to 5 / 100 = 0.05.
   for (const layer of ["L0", "L1", "L2"]) {
     const cur = current?.layers?.[layer]?.hitRate ?? null;
     const baseVal = base?.layers?.[layer]?.hitRate ?? null;
-    checks.push(checkPp(`layers.${layer}.hitRate`, cur, baseVal, t.hitRatePp, "lower-is-worse below threshold"));
+    checks.push(checkPp(`layers.${layer}.hitRate`, cur, baseVal, t.hitRatePp / 100, "lower-is-worse below threshold"));
   }
 
   // p95 latency (relative increase allowed).
@@ -60,7 +63,7 @@ export function compareRun(current, base, thresholds = {}) {
   checks.push(checkPp("tokens.savingsPct", current?.tokens?.savingsPct ?? null, base?.tokens?.savingsPct ?? null, t.tokenSavingsPp, "lower-is-worse below threshold"));
 
   return {
-    runId: current?.runId ?? "unknown",
+    runId,
     passed: checks.every((c) => c.skipped || c.pass),
     checks,
   };
@@ -111,16 +114,17 @@ export function verifyReport({ report, baseline, thresholds = {} }) {
   const skipped = [];
 
   for (const run of report.runs || []) {
-    const base = baselineRuns[run.runId];
+    const runId = run.runId ?? run.id;
+    const base = baselineRuns[runId];
     if (!base) {
-      skipped.push({ runId: run.runId, detail: "run missing from baseline (baseline must be re-recorded with --record-baseline)" });
+      skipped.push({ runId, detail: "run missing from baseline (baseline must be re-recorded with --record-baseline)" });
       continue;
     }
     const res = compareRun(run, base, thresholds);
     results.push(res);
     for (const c of res.checks) {
-      if (c.skipped) skipped.push({ runId: run.runId, metric: c.metric, detail: c.detail });
-      else if (!c.pass) regressions.push({ runId: run.runId, metric: c.metric, current: c.current, baseline: c.baseline, detail: c.detail });
+      if (c.skipped) skipped.push({ runId: res.runId, metric: c.metric, detail: c.detail });
+      else if (!c.pass) regressions.push({ runId: res.runId, metric: c.metric, current: c.current, baseline: c.baseline, detail: c.detail });
     }
   }
 
