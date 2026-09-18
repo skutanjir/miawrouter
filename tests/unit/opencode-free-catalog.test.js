@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import opencodeRegistry from "../../open-sse/providers/registry/opencode.js";
 import opencodeZenRegistry from "../../open-sse/providers/registry/opencode-zen.js";
 import { FREE_TIER_MODEL_RECORDS } from "../../open-sse/config/freeTierCatalog.js";
+import { OpenCodeExecutor } from "../../open-sse/executors/opencode.js";
+import { AI_PROVIDERS } from "../../src/shared/constants/providers.js";
 
 // Snapshot of https://opencode.ai/zen/v1/models free ids, verified 2026-09-18.
 // Both the keyless `opencode` provider and the API-key `opencode-zen` provider
@@ -74,5 +76,50 @@ describe("OpenCode free model catalog", () => {
       (r) => r.provider === "opencode" || r.provider === "opencode-zen",
     ).map((r) => r.modelId);
     for (const dead of DEAD_FREE_IDS) expect(ids).not.toContain(dead);
+  });
+});
+
+// The keyless provider is unusable, not merely degraded: upstream's Console
+// inference backend gates the free tier to the OpenCode client and answers every
+// other caller with `403 FreeTierError`, header identity included. These guards
+// stop a future "why is oc missing?" edit from silently re-advertising it.
+describe("OpenCode keyless provider is hidden", () => {
+  it("hides the keyless provider from registry pickers", () => {
+    expect(opencodeRegistry.hidden).toBe(true);
+  });
+
+  it("drops it from the model-selector no-auth list", () => {
+    // FREE_PROVIDERS intentionally keeps hidden entries so the detail page can
+    // still resolve them (same convention as bluesminds/iflow/gitlab); the
+    // selector filters on `hidden`, which it previously did not.
+    expect(AI_PROVIDERS.opencode).toMatchObject({ alias: "oc", noAuth: true, hidden: true });
+    expect(opencodeRegistry.hidden).toBe(true);
+  });
+
+  it("keeps the provider records that other code still resolves", () => {
+    expect(AI_PROVIDERS.opencode).toMatchObject({ alias: "oc", noAuth: true });
+    expect(opencodeRegistry.models.length).toBeGreaterThan(0);
+  });
+
+  it("points users at the routes that do work", () => {
+    const notice = opencodeRegistry.display.notice;
+    expect(notice.text).toMatch(/OpenCode CLI/);
+    expect(notice.text).toMatch(/opencode-zen|OpenCode Zen|API key/);
+    expect(notice.apiKeyUrl).toBe("https://opencode.ai/auth");
+  });
+
+  it("still maps 403 FreeTierError to an actionable message", () => {
+    const executor = new OpenCodeExecutor();
+    const parsed = executor.parseError(
+      { status: 403 },
+      JSON.stringify({
+        error: {
+          type: "FreeTierError",
+          message: "OpenCode's free tier can only be used from within OpenCode",
+        },
+      }),
+    );
+    expect(parsed.status).toBe(403);
+    expect(parsed.message).toMatch(/OpenCode CLI/);
   });
 });

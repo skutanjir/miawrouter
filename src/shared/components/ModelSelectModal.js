@@ -18,7 +18,9 @@ const PROVIDER_ORDER = [
 ];
 
 // Providers that need no auth — always show in model selector
-const NO_AUTH_PROVIDER_IDS = Object.keys(FREE_PROVIDERS).filter(id => FREE_PROVIDERS[id].noAuth);
+const NO_AUTH_PROVIDER_IDS = Object.keys(FREE_PROVIDERS).filter(
+  id => FREE_PROVIDERS[id].noAuth && !FREE_PROVIDERS[id].hidden,
+);
 
 export default function ModelSelectModal({
   isOpen,
