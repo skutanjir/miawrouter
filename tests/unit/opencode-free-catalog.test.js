@@ -122,4 +122,12 @@ describe("OpenCode keyless provider is hidden", () => {
     expect(parsed.status).toBe(403);
     expect(parsed.message).toMatch(/OpenCode CLI/);
   });
+
+  it("refuses to call upstream instead of paying a guaranteed 403", async () => {
+    const executor = new OpenCodeExecutor();
+    await expect(executor.execute()).rejects.toMatchObject({
+      status: 403,
+      code: "free_tier_unavailable",
+    });
+  });
 });

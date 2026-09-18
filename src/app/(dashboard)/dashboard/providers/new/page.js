@@ -7,10 +7,12 @@ import { Card, Button, Input, Select, Toggle } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { AI_PROVIDERS, AUTH_METHODS } from "@/shared/constants/config";
 
-const providerOptions = Object.values(AI_PROVIDERS).map((p) => ({
-  value: p.id,
-  label: p.name,
-}));
+const providerOptions = Object.values(AI_PROVIDERS)
+  .filter((p) => !p.hidden)
+  .map((p) => ({
+    value: p.id,
+    label: p.name,
+  }));
 
 const authMethodOptions = Object.values(AUTH_METHODS).map((m) => ({
   value: m.id,

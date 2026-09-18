@@ -10,6 +10,19 @@ export class OpenCodeExecutor extends BaseExecutor {
     super("opencode", PROVIDERS.opencode);
   }
 
+  // No request shape reaches this upstream: the Console backend decides from
+  // account identity, not headers. Refuse locally so callers get an actionable
+  // error instead of a guaranteed-403 round trip. See registry/opencode.js.
+  async execute() {
+    const err = new Error(
+      "OpenCode Free only works inside the OpenCode client. Use the OpenCode CLI, connect opencode-zen with a Zen API key, or pick a keyless free provider such as pol."
+    );
+    err.name = "FreeTierUnavailableError";
+    err.status = 403;
+    err.code = "free_tier_unavailable";
+    throw err;
+  }
+
   transformRequest(model, body) {
     return injectReasoningContent({ provider: this.provider, model, body });
   }
