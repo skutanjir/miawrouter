@@ -146,7 +146,6 @@ const parseOpenAIStyleModels = (data) => {
 // Header sent by fetchCompatibleModelIds to detect cross-instance /models fetches
 // and break recursive loops between MiawRouter instances connected to each other.
 const INTERNAL_MODELS_FETCH_HEADER = "x-miaw-internal-models-fetch";
-const LEGACY_INTERNAL_MODELS_FETCH_HEADER = "x-9r-internal-models-fetch";
 
 // LLM kind sentinel — combos/models with no explicit kind default to LLM
 const LLM_KIND = "llm";
@@ -587,8 +586,7 @@ export async function GET(request) {
 
     // Detect cross-instance recursive /models fetch (another MiawRouter fetching our /models)
     const skipDynamicFetch =
-  request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1" ||
-  request?.headers?.get(LEGACY_INTERNAL_MODELS_FETCH_HEADER) === "1";
+  request?.headers?.get(INTERNAL_MODELS_FETCH_HEADER) === "1";
     const data = await buildModelsList([LLM_KIND], { skipDynamicFetch });
     return Response.json({ object: "list", data }, {
       headers: { "Access-Control-Allow-Origin": "*" },

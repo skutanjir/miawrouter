@@ -46,10 +46,8 @@ const readSettings = async () => {
   }
 };
 
-// New writes use "custom:MiawRouter"; legacy "custom:MiawRouter" ids stay readable.
 const MODEL_PREFIX = "custom:MiawRouter";
-const LEGACY_MODEL_PREFIX = "custom:MiawRouter";
-const isOurs = (id) => typeof id === "string" && (id.startsWith(MODEL_PREFIX) || id.startsWith(LEGACY_MODEL_PREFIX));
+const isOurs = (id) => typeof id === "string" && id.startsWith(MODEL_PREFIX);
 
 // Check if settings has MiawRouter customModels
 const hasMiawRouterConfig = (settings) => {
@@ -116,7 +114,7 @@ export async function POST(request) {
       settings.customModels = [];
     }
 
-    // Remove all existing MiawRouter (legacy MiawRouter) configs
+    // Remove all existing MiawRouter configs
     settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
 
     // Normalize baseUrl to ensure /v1 suffix
@@ -196,7 +194,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove MiawRouter customModels (legacy MiawRouter too)
+    // Remove MiawRouter customModels
     if (settings.customModels) {
       settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
       

@@ -80,19 +80,6 @@ if (args[0] === "xai" && args[1] === "video") {
   return;
 }
 
-// `// its authenticated export API and imports into the running MiawRouter gateway.
-// Pure HTTP + read-only legacy data-dir access — no server spawn, no source-tree writes.
-if (args[0] === "migrate") {
-  const { run } = require("./src/cli/commands/migrate");
-  run(args.slice(1))
-    .then((code) => process.exit(code))
-    .catch((err) => {
-      console.error(`❌ ${err?.message || err}`);
-      process.exit(1);
-    });
-  return;
-}
-
 // Self-heal SQLite runtime deps (sql.js + better-sqlite3) into the data dir
 // runtime folder (new: ~/.miawrouter/runtime; legacy ~/.miawrouter/runtime is
 // read back so existing installs keep working). Best-effort — sql.js is
@@ -171,10 +158,6 @@ Commands:
   xai video --prompt "..." --output video.mp4
                       Generate a Grok Imagine video via the running gateway
                       (see: ${APP_NAME} xai video --help)
-  migrate
-                      Migrate providers/keys/combos from a legacy miawrouter
-                      install via its authenticated export API
-                      (see: ${APP_NAME} migrate --help)
 `);
     process.exit(0);
   } else if (args[i] === "--version" || args[i] === "-v") {

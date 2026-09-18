@@ -50,7 +50,7 @@ Follow-up fixes landed and are reflected here:
 
 - **Lockfile retained.** `package-lock.json` is now intentionally kept in the tree, so reproducible installs are possible from the root package.
 - **Health endpoint emits no wildcard CORS.** `GET /api/health` returns `{ok:true}` with no `Access-Control-Allow-Origin` header; `OPTIONS` returns 204.
-- **CLI token re-auth uses canonical validation.** The settings database export/import routes check `hasValidCliToken` from `dashboardGuard` instead of treating any non-empty `x-9r-cli-token` as a bypass, alongside the dashboard password check.
+- **CLI token re-auth uses canonical validation.** The settings database export/import routes check `hasValidCliToken` from `dashboardGuard` instead of treating any non-empty `x-miaw-cli-token` as a bypass, alongside the dashboard password check.
 - **OIDC test probing always requires a dashboard session.** `/api/auth/oidc/test` calls `verifyDashboardAuthToken` regardless of `requireLogin`, and draft credentials supplied in the request body never mix with stored client secrets.
 - **Dashboard JWTs carry a persisted `sessionVersion`.** The version is stored in settings, bumped monotonically on password writes and on DB imports, embedded in every issued token, and checked during verification; a DB error during verification fails closed (invalidates the session).
 

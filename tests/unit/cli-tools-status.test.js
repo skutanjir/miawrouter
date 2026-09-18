@@ -7,7 +7,7 @@ function getStatus(status, tool) {
   }
   if (!status) return { label: "Unknown", state: "unknown", cls: "bg-surface-2 text-text-muted border-border-subtle" };
   if (!status.installed) return { label: "Not installed", state: "missing", cls: "bg-surface-2 text-text-muted border-border-subtle" };
-  if (status.hasMiawRouter || status.hasMiawRouter || status.configured) {
+  if (status.hasMiawRouter || status.configured) {
     return { label: "Connected", state: "connected", cls: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" };
   }
   return { label: "Not configured", state: "unconfigured", cls: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" };
@@ -39,7 +39,7 @@ describe("CLI Tools status derivation", () => {
   });
 
   it("derives Not configured when installed but not configured", () => {
-    const status = { installed: true, hasMiawRouter: false, hasMiawRouter: false };
+    const status = { installed: true, hasMiawRouter: false };
     expect(getStatus(status, { configType: "custom" }).label).toBe("Not configured");
   });
 

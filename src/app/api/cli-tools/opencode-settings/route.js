@@ -12,11 +12,9 @@ const execAsync = promisify(exec);
 const getConfigDir = () => path.join(os.homedir(), ".config", "opencode");
 const getConfigPath = () => path.join(getConfigDir(), "opencode.json");
 
-// New writes use "miawrouter"; legacy "miawrouter" provider/model slots stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "miawrouter";
 const modelKey = (m) => `${PROVIDER_KEY}/${m}`;
-const isOurs = (s) => typeof s === "string" && (s.startsWith(`${PROVIDER_KEY}/`) || s.startsWith(`${LEGACY_PROVIDER_KEY}/`));
+const isOurs = (s) => typeof s === "string" && s.startsWith(`${PROVIDER_KEY}/`);
 const stripOurs = (s) => (isOurs(s) ? s.slice(s.indexOf("/") + 1) : s);
 
 // Check if opencode CLI is installed (via which/where or config file exists)
@@ -57,7 +55,7 @@ const readConfig = async () => {
 
 const hasMiawRouterConfig = (config) => {
   if (!config?.provider) return false;
-  return !!config.provider[PROVIDER_KEY] || !!config.provider[LEGACY_PROVIDER_KEY];
+  return !!config.provider[PROVIDER_KEY];
 };
 
 // GET - Check opencode CLI and read current settings
@@ -74,7 +72,7 @@ export async function GET() {
     }
 
     const config = await readConfig();
-    const providerConfig = config?.provider?.[PROVIDER_KEY] || config?.provider?.[LEGACY_PROVIDER_KEY];
+    const providerConfig = config?.provider?.[PROVIDER_KEY];
     const modelMap = providerConfig?.models || {};
 
     const subagents = {
@@ -140,8 +138,8 @@ export async function POST(request) {
     // Ensure provider object
     if (!config.provider) config.provider = {};
 
-    // Preserve any existing miawrouter (or legacy miawrouter) provider entry and its models
-    const existingProvider = config.provider[PROVIDER_KEY] || config.provider[LEGACY_PROVIDER_KEY]
+    // Preserve the existing provider entry and its models
+    const existingProvider = config.provider[PROVIDER_KEY]
       || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
 
     // Merge options (overwrite baseURL/apiKey)
@@ -168,9 +166,7 @@ export async function POST(request) {
       existingProvider.models[m] = { name: m, modalities: { input: ["text", "image"], output: ["text"] } };
     }
 
-    // Save merged provider under the new key (drop any legacy duplicate slot)
     config.provider[PROVIDER_KEY] = existingProvider;
-    if (LEGACY_PROVIDER_KEY in config.provider) delete config.provider[LEGACY_PROVIDER_KEY];
 
     // Set the active model: prefer explicit activeModel, else first of modelsArray
     // If activeModel is explicitly empty string, clear the model
@@ -273,19 +269,16 @@ export async function DELETE(request) {
       throw error;
     }
 
-    // If specific model provided, remove just that model (from either slot)
+    // If specific model provided, remove just that model
     const ourProvider = config.provider?.[PROVIDER_KEY];
-    const legacyProvider = config.provider?.[LEGACY_PROVIDER_KEY];
-    if (modelToRemove && (ourProvider || legacyProvider)) {
-      const models = ourProvider?.models || legacyProvider?.models || {};
+    if (modelToRemove && ourProvider) {
+      const models = ourProvider.models || {};
       delete models[modelToRemove];
-      ourProvider && (ourProvider.models = models);
-      legacyProvider && (legacyProvider.models = models);
+      ourProvider.models = models;
 
       // If no models left, remove the provider
       if (Object.keys(models).length === 0) {
         delete config.provider[PROVIDER_KEY];
-        delete config.provider[LEGACY_PROVIDER_KEY];
         if (isOurs(config.model)) delete config.model;
       } else if (isOurs(config.model) && stripOurs(config.model) === modelToRemove) {
         // If removed model was active, switch to first remaining model
@@ -293,10 +286,9 @@ export async function DELETE(request) {
         config.model = modelKey(remainingModels[0]);
       }
     } else {
-      // No specific model - remove entire miawrouter provider (legacy slot too)
+      // No specific model - remove the entire miawrouter provider
       if (config.provider) {
         delete config.provider[PROVIDER_KEY];
-        delete config.provider[LEGACY_PROVIDER_KEY];
       }
       if (isOurs(config.model)) delete config.model;
     }

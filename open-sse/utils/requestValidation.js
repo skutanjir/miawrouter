@@ -70,8 +70,12 @@ export function validateChatRequest(body) {
   const hasMessages = "messages" in body;
   const hasInput = "input" in body;
   const hasPrompt = "prompt" in body;
+  const hasAntigravityRequest = body.userAgent === "antigravity"
+    && body.request !== null
+    && typeof body.request === "object"
+    && Array.isArray(body.request.contents);
 
-  if (!hasMessages && !hasInput && !hasPrompt) {
+  if (!hasMessages && !hasInput && !hasPrompt && !hasAntigravityRequest) {
     return {
       ok: false,
       status: 400,

@@ -40,14 +40,6 @@ miawrouter --skip-update      # skip the auto-update check
 miawrouter --help             # show all options
 ```
 
-### Migrate from a legacy installation
-
-```bash```
-
-Reads providers, keys, and combos from a legacy install through its authenticated export API and imports them into the running MiawRouter gateway. See `miawrouter migrate --help`.
-
----
-
 ## Point a CLI tool at MiawRouter
 
 ```

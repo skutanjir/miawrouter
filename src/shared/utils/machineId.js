@@ -10,9 +10,7 @@ import { loadOrCreateSecretFile, MACHINE_ID_SALT_WEAK } from '@/shared/utils/sec
 const MACHINE_ID_FILE = path.join(DATA_DIR, 'machine-id');
 const AUTH_DIR = path.join(DATA_DIR, 'auth');
 const CLI_SECRET_FILE = path.join(AUTH_DIR, 'cli-secret');
-// New writes use miaw salt; legacy 9r salt kept so old CLI tokens still verify.
 const CLI_AUTH_SALT = 'miaw-cli-auth';
-const LEGACY_CLI_AUTH_SALT = '9r-cli-auth';
 let cachedRawId = null;
 let cachedCliSecret = null;
 
@@ -55,7 +53,7 @@ export async function getConsistentMachineId(salt = null) {
   const saltValue = salt
     || loadOrCreateSecretFile("machine-id-salt", "MACHINE_ID_SALT", MACHINE_ID_SALT_WEAK);
   const raw = loadRawMachineId();
-  const extra = (saltValue === CLI_AUTH_SALT || saltValue === LEGACY_CLI_AUTH_SALT) ? loadCliSecret() : '';
+  const extra = saltValue === CLI_AUTH_SALT ? loadCliSecret() : '';
   return crypto.createHash('sha256').update(raw + saltValue + extra).digest('hex').substring(0, 16);
 }
 

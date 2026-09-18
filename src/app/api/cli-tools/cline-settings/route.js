@@ -49,7 +49,7 @@ const hasMiawRouterConfig = (globalState) => {
   const isOpenAi =
     globalState.actModeApiProvider === "openai" || globalState.planModeApiProvider === "openai";
   const baseUrl = globalState.openAiBaseUrl || "";
-  return isOpenAi && (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("miawrouter") || baseUrl.includes("miawrouter"));
+  return isOpenAi && (baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("miawrouter"));
 };
 
 export async function GET() {

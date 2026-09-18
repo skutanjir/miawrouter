@@ -3,28 +3,18 @@ import { getSettings, validateApiKey } from "@/lib/localDb";
 import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 
-// CLI token header/salt: new writes use miaw names; legacy x-9r-* / 9r-* still
-// accepted so an already-installed miawrouter CLI keeps authenticating.
 const CLI_TOKEN_HEADER = "x-miaw-cli-token";
-const LEGACY_CLI_TOKEN_HEADER = "x-9r-cli-token";
 const CLI_TOKEN_SALT = "miaw-cli-auth";
-const LEGACY_CLI_TOKEN_SALT = "9r-cli-auth";
 
 let cachedCliToken = null;
-let cachedLegacyCliToken = null;
 async function getCliToken() {
   if (!cachedCliToken) cachedCliToken = await getConsistentMachineId(CLI_TOKEN_SALT);
   return cachedCliToken;
 }
-async function getLegacyCliToken() {
-  if (!cachedLegacyCliToken) cachedLegacyCliToken = await getConsistentMachineId(LEGACY_CLI_TOKEN_SALT);
-  return cachedLegacyCliToken;
-}
-
 export async function hasValidCliToken(request) {
-  const token = request.headers.get(CLI_TOKEN_HEADER) || request.headers.get(LEGACY_CLI_TOKEN_HEADER);
+  const token = request.headers.get(CLI_TOKEN_HEADER);
   if (!token) return false;
-  return token === await getCliToken() || token === await getLegacyCliToken();
+  return token === await getCliToken();
 }
 
 // Public API paths — no auth required (LLM API has its own key auth inside handler).
@@ -124,9 +114,9 @@ export function isAllowedLocalOrigin(origin) {
 export function isLocalRequest(request) {
   // Stamped by custom-server.js when forwarding headers exist: request came through
   // a reverse proxy, so the loopback socket is the proxy hop, not the end-user.
-  if (request.headers.get("x-miaw-via-proxy") || request.headers.get("x-9r-via-proxy")) return false;
+  if (request.headers.get("x-miaw-via-proxy")) return false;
   // Trusted peer IP from TCP socket (custom-server.js); unspoofable. Primary anchor for "local".
-  const realIp = request.headers.get("x-miaw-real-ip") || request.headers.get("x-9r-real-ip");
+  const realIp = request.headers.get("x-miaw-real-ip");
   if (realIp) {
     if (!isLoopbackHostname(realIp)) return false;
   } else if (!isLoopbackHostname(request.headers.get("host"))) {
@@ -227,7 +217,7 @@ function withCorsHeaders(response, request) {
     const allowOrigin = origin === "null" ? "null" : origin;
     response.headers.set("Access-Control-Allow-Origin", allowOrigin);
     response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-miaw-cli-token, x-9r-cli-token");
+    response.headers.set("Access-Control-Allow-Headers", "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-miaw-cli-token");
     response.headers.set("Access-Control-Allow-Credentials", "true");
   }
   return response;
@@ -257,7 +247,7 @@ export async function proxy(request) {
   if (request.method === "OPTIONS") {
     const headers = {
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-      "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-miaw-cli-token, x-9r-cli-token",
+      "Access-Control-Allow-Headers": "Authorization, Content-Type, Accept, Origin, User-Agent, X-Requested-With, X-CSRF-Token, X-Title, HTTP-Referer, anthropic-version, x-api-key, x-goog-api-key, x-miaw-cli-token",
       "Access-Control-Allow-Credentials": "true",
       "Access-Control-Max-Age": "86400",
     };

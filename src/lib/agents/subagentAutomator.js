@@ -8,6 +8,15 @@ import path from "node:path";
 import os from "node:os";
 import { parseTOML, stringifyTOML } from "confbox";
 import { applyGrokBuildConfig } from "@/lib/grokBuildConfig";
+import {
+  HERMES_PROVIDER_KEY,
+  buildHermesModelBlock,
+  buildHermesSubagentBlock,
+  buildHermesProviderBlock,
+  upsertHermesProviderBlock,
+  upsertHermesModelBlock,
+  upsertHermesSubagentBlock,
+} from "@/lib/hermesConfig";
 
 const HOME = os.homedir();
 
@@ -385,24 +394,21 @@ export async function configureHermesSubagents({ baseUrl, apiKey, roles }) {
     existingYaml = "";
   }
 
-  const modelBlock = `model:\n  default: "${roles.general}"\n  provider: "custom"\n  base_url: "${normalizedBaseUrl}"\n`;
-  const subagentBlock = `subagents:\n  enabled: true\n  default_model: "${roles.general}"\n  models:\n    explorer: "${roles.explorer}"\n    reviewer: "${roles.reviewer}"\n    planner: "${roles.planner}"\n    fast: "${roles.fast}"\n`;
-
-  let updatedYaml = existingYaml;
-  const MODEL_BLOCK_RE = /^model:[ \t]*\r?\n((?:[ \t]+.*\r?\n?|[ \t]*\r?\n)*)/m;
-  const SUBAGENT_BLOCK_RE = /^subagents:[ \t]*\r?\n((?:[ \t]+.*\r?\n?|[ \t]*\r?\n)*)/m;
-
-  if (MODEL_BLOCK_RE.test(updatedYaml)) {
-    updatedYaml = updatedYaml.replace(MODEL_BLOCK_RE, modelBlock);
-  } else {
-    updatedYaml = `${modelBlock}\n${updatedYaml}`;
-  }
-
-  if (SUBAGENT_BLOCK_RE.test(updatedYaml)) {
-    updatedYaml = updatedYaml.replace(SUBAGENT_BLOCK_RE, subagentBlock);
-  } else {
-    updatedYaml = `${updatedYaml.trim()}\n\n${subagentBlock}`;
-  }
+  let updatedYaml = upsertHermesModelBlock(
+    existingYaml,
+    buildHermesModelBlock(roles.general, normalizedBaseUrl),
+  );
+  updatedYaml = upsertHermesSubagentBlock(
+    updatedYaml,
+    buildHermesSubagentBlock(roles.general, roles),
+  );
+  // The model block selects a provider by name, so the provider entry it points
+  // at must exist and must resolve to MiawRouter.
+  updatedYaml = upsertHermesProviderBlock(
+    updatedYaml,
+    HERMES_PROVIDER_KEY,
+    buildHermesProviderBlock(roles.general, normalizedBaseUrl, keyToUse),
+  );
 
   await fs.writeFile(configPath, updatedYaml.trim() + "\n", "utf8");
 
@@ -426,7 +432,7 @@ export async function configureHermesSubagents({ baseUrl, apiKey, roles }) {
     baseUrl: normalizedBaseUrl,
     apiKey: keyToUse,
     model: roles.general,
-    provider: "custom",
+    provider: HERMES_PROVIDER_KEY,
     nativeDesktop: true,
     subagents: {
       enabled: true,

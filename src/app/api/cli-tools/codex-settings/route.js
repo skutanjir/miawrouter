@@ -14,10 +14,8 @@ const getCodexDir = () => path.join(os.homedir(), ".codex");
 const getCodexConfigPath = () => path.join(getCodexDir(), "config.toml");
 const getCodexAuthPath = () => path.join(getCodexDir(), "auth.json");
 
-// New writes use "miawrouter"; legacy "miawrouter" config slots stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "miawrouter";
-const isOurs = (s) => s === PROVIDER_KEY || s === LEGACY_PROVIDER_KEY;
+const isOurs = (s) => s === PROVIDER_KEY;
 
 // Flatten confbox-parsed TOML into a writable object, preserving nested tables
 const parsedToWritable = (obj) => obj ?? {};
@@ -82,9 +80,7 @@ const readConfig = async () => {
 const hasMiawRouterConfig = (config) => {
   if (!config) return false;
   return config.includes(`model_provider = "${PROVIDER_KEY}"`)
-    || config.includes(`[model_providers.${PROVIDER_KEY}]`)
-    || config.includes(`model_provider = "${LEGACY_PROVIDER_KEY}"`)
-    || config.includes(`[model_providers.${LEGACY_PROVIDER_KEY}]`);
+    || config.includes(`[model_providers.${PROVIDER_KEY}]`);
 };
 
 // GET - Check codex CLI and read current settings
@@ -156,7 +152,6 @@ export async function POST(request) {
     // Update or create miawrouter provider section (no api_key - Codex reads from auth.json)
     // Ensure /v1 suffix is added only once
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
-    deleteNestedSection(parsed, `model_providers.${LEGACY_PROVIDER_KEY}`);
     setNestedSection(parsed, `model_providers.${PROVIDER_KEY}`, {
       name: "MiawRouter",
       base_url: normalizedBaseUrl,
@@ -305,15 +300,14 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove MiawRouter related root fields only if they point to miawrouter (legacy too)
+    // Remove MiawRouter root fields only if they point at our provider.
     if (isOurs(parsed.model_provider)) {
       delete parsed.model;
       delete parsed.model_provider;
     }
 
-    // Remove miawrouter provider section (legacy slot too)
+    // Remove the miawrouter provider section
     deleteNestedSection(parsed, `model_providers.${PROVIDER_KEY}`);
-    deleteNestedSection(parsed, `model_providers.${LEGACY_PROVIDER_KEY}`);
 
     // Remove subagent configuration
     deleteNestedSection(parsed, "agents.subagent");

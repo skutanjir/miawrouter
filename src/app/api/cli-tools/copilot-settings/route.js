@@ -30,18 +30,16 @@ const readConfig = async () => {
   }
 };
 
-// New writes use "MiawRouter"; legacy "MiawRouter" entry name stays readable.
 const ENTRY_NAME = "MiawRouter";
-const LEGACY_ENTRY_NAME = "MiawRouter";
 
 const hasMiawRouterConfig = (config) => {
   if (!Array.isArray(config)) return false;
-  return config.some((entry) => entry.name === ENTRY_NAME || entry.name === LEGACY_ENTRY_NAME);
+  return config.some((entry) => entry.name === ENTRY_NAME);
 };
 
 const getMiawRouterEntry = (config) => {
   if (!Array.isArray(config)) return null;
-  return config.find((entry) => entry.name === ENTRY_NAME || entry.name === LEGACY_ENTRY_NAME) || null;
+  return config.find((entry) => entry.name === ENTRY_NAME) || null;
 };
 
 // GET - Read current copilot config
@@ -102,8 +100,8 @@ export async function POST(request) {
       })),
     };
 
-    // Replace existing MiawRouter (or legacy MiawRouter) entry or append
-    const idx = config.findIndex((e) => e.name === ENTRY_NAME || e.name === LEGACY_ENTRY_NAME);
+    // Replace the existing MiawRouter entry or append
+    const idx = config.findIndex((e) => e.name === ENTRY_NAME);
     if (idx >= 0) {
       config[idx] = newEntry;
     } else {
@@ -140,7 +138,7 @@ export async function DELETE() {
       throw error;
     }
 
-    config = config.filter((e) => e.name !== ENTRY_NAME && e.name !== LEGACY_ENTRY_NAME);
+    config = config.filter((e) => e.name !== ENTRY_NAME);
     await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 
     return NextResponse.json({

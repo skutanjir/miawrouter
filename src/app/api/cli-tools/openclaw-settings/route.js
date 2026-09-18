@@ -9,11 +9,9 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-// New writes use "miawrouter"; legacy "miawrouter" provider/model slots stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "miawrouter";
 const modelKey = (m) => `${PROVIDER_KEY}/${m}`;
-const isOurs = (s) => typeof s === "string" && (s.startsWith(`${PROVIDER_KEY}/`) || s.startsWith(`${LEGACY_PROVIDER_KEY}/`));
+const isOurs = (s) => typeof s === "string" && s.startsWith(`${PROVIDER_KEY}/`);
 
 // OpenClaw 2026.5.x writes agents[].model as either a plain string
 // (legacy) or as an object `{ primary, fallbacks }`. Normalize to the
@@ -65,7 +63,7 @@ const readSettings = async () => {
 // Check if settings has MiawRouter config
 const hasMiawRouterConfig = (settings) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
-  return !!settings.models.providers[PROVIDER_KEY] || !!settings.models.providers[LEGACY_PROVIDER_KEY];
+  return !!settings.models.providers[PROVIDER_KEY];
 };
 
 // Read per-agent models.json and return current model id (without "miawrouter/" prefix)
@@ -74,7 +72,7 @@ const readAgentModel = async (agentDir) => {
     const modelsPath = path.join(agentDir, "models.json");
     const content = await fs.readFile(modelsPath, "utf-8");
     const data = JSON.parse(content);
-    const models = data?.providers?.[PROVIDER_KEY]?.models || data?.providers?.[LEGACY_PROVIDER_KEY]?.models;
+    const models = data?.providers?.[PROVIDER_KEY]?.models;
     return models?.[0]?.id || null;
   } catch {
     return null;
@@ -171,7 +169,7 @@ export async function POST(request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const fullModelId = modelKey(model);
 
-    // Remove all old miawrouter/* (and legacy miawrouter/*) entries from agents.defaults.models
+    // Remove all previous miawrouter/* entries from agents.defaults.models
     Object.keys(settings.agents.defaults.models)
       .filter((k) => isOurs(k))
       .forEach((k) => { delete settings.agents.defaults.models[k]; });
@@ -188,7 +186,7 @@ export async function POST(request) {
       settings.agents.defaults.models[modelKey(m)] = {};
     });
 
-    // Remove old miawrouter model from each agent in agents.list. The
+    // Remove any stale miawrouter model from each agent in agents.list. The
     // model field may be a plain string or `{ primary, fallbacks }`.
     if (settings.agents.list) {
       settings.agents.list = settings.agents.list.map((agent) => {
@@ -207,7 +205,6 @@ export async function POST(request) {
       api: "openai-completions",
       models: [...allModelIds].map((m) => ({ id: m, name: m.split("/").pop() || m })),
     };
-    if (LEGACY_PROVIDER_KEY in settings.models.providers) delete settings.models.providers[LEGACY_PROVIDER_KEY];
 
     // Set per-agent model in agents.list and write models.json
     if (settings.agents.list) {
@@ -261,10 +258,9 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove miawrouter from models.providers (legacy miawrouter slot too)
+    // Remove miawrouter from models.providers
     if (settings.models && settings.models.providers) {
       delete settings.models.providers[PROVIDER_KEY];
-      delete settings.models.providers[LEGACY_PROVIDER_KEY];
       
       // Remove providers object if empty
       if (Object.keys(settings.models.providers).length === 0) {

@@ -7,6 +7,20 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 import os from "os";
+// YAML block builders/upserts are shared with the subagent automator.
+import {
+  HERMES_PROVIDER_KEY as PROVIDER_KEY,
+  buildHermesModelBlock as buildModelBlock,
+  buildHermesSubagentBlock as buildSubagentBlock,
+  buildHermesProviderBlock as buildProviderBlock,
+  upsertHermesProviderBlock as upsertProviderBlock,
+  removeHermesProviderBlock as removeProviderBlock,
+  upsertHermesModelBlock as upsertModelBlock,
+  upsertHermesSubagentBlock as upsertSubagentBlock,
+  removeHermesModelBlocks as removeModelBlock,
+  parseHermesModelBlock as parseModelBlock,
+  parseHermesSubagentBlock as parseSubagentBlock,
+} from "@/lib/hermesConfig";
 
 const execAsync = promisify(exec);
 
@@ -30,66 +44,6 @@ const getHermesDesktopConfigDir = () => {
 };
 
 const getHermesDesktopConfigPath = () => path.join(getHermesDesktopConfigDir(), "config.json");
-
-// Match top-level "model:" block (until next non-indented, non-empty line)
-const MODEL_BLOCK_RE = /^model:[ \t]*\r?\n((?:[ \t]+.*\r?\n?|[ \t]*\r?\n)*)/m;
-const SUBAGENT_BLOCK_RE = /^subagents:[ \t]*\r?\n((?:[ \t]+.*\r?\n?|[ \t]*\r?\n)*)/m;
-
-const buildModelBlock = (model, baseUrl) =>
-  `model:\n  default: "${model}"\n  provider: "custom"\n  base_url: "${baseUrl}"\n`;
-
-const buildSubagentBlock = (model, subagents = {}) => {
-  const explorer = subagents.explorer || model;
-  const reviewer = subagents.reviewer || model;
-  const planner = subagents.planner || model;
-  const fast = subagents.fast || model;
-  return `subagents:\n  enabled: true\n  default_model: "${model}"\n  models:\n    explorer: "${explorer}"\n    reviewer: "${reviewer}"\n    planner: "${planner}"\n    fast: "${fast}"\n`;
-};
-
-// Parse current model block back to fields (best-effort, simple key:value)
-const parseModelBlock = (yaml) => {
-  const match = yaml.match(MODEL_BLOCK_RE);
-  if (!match) return null;
-  const body = match[1] || "";
-  const get = (key) => {
-    const m = body.match(new RegExp(`^[ \\t]+${key}:[ \\t]*["']?([^"'\\r\\n]+)["']?`, "m"));
-    return m ? m[1].trim() : null;
-  };
-  return {
-    default: get("default"),
-    provider: get("provider"),
-    base_url: get("base_url"),
-  };
-};
-
-const parseSubagentBlock = (yaml) => {
-  const match = yaml.match(SUBAGENT_BLOCK_RE);
-  if (!match) return null;
-  const body = match[1] || "";
-  const get = (key) => {
-    const m = body.match(new RegExp(`^[ \\t]+${key}:[ \\t]*["']?([^"'\\r\\n]+)["']?`, "m"));
-    return m ? m[1].trim() : null;
-  };
-  return {
-    default_model: get("default_model"),
-    explorer: get("explorer"),
-    reviewer: get("reviewer"),
-    planner: get("planner"),
-    fast: get("fast"),
-  };
-};
-
-const upsertModelBlock = (yaml, newBlock) => {
-  if (MODEL_BLOCK_RE.test(yaml)) return yaml.replace(MODEL_BLOCK_RE, newBlock);
-  return yaml.length > 0 ? `${newBlock}\n${yaml}` : newBlock;
-};
-
-const upsertSubagentBlock = (yaml, newBlock) => {
-  if (SUBAGENT_BLOCK_RE.test(yaml)) return yaml.replace(SUBAGENT_BLOCK_RE, newBlock);
-  return yaml.length > 0 ? `${yaml.trim()}\n\n${newBlock}` : newBlock;
-};
-
-const removeModelBlock = (yaml) => yaml.replace(MODEL_BLOCK_RE, "").replace(SUBAGENT_BLOCK_RE, "").replace(/^\n+/, "");
 
 // .env helpers — upsert/remove single KEY=VALUE line
 const upsertEnvVar = (envText, key, value) => {
@@ -249,10 +203,12 @@ export async function POST(request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const keyToUse = apiKey || "sk_miawrouter";
 
-    // 1. Update config.yaml — upsert model block and subagents block
+    // 1. Update config.yaml — upsert model block, subagents block, and the
+    // provider entry the model block points at.
     const existingYaml = await readConfigYaml();
     let newYaml = upsertModelBlock(existingYaml, buildModelBlock(model, normalizedBaseUrl));
     newYaml = upsertSubagentBlock(newYaml, buildSubagentBlock(model, subagentModels));
+    newYaml = upsertProviderBlock(newYaml, PROVIDER_KEY, buildProviderBlock(model, normalizedBaseUrl, keyToUse));
     await fs.writeFile(getHermesConfigPath(), newYaml);
 
     // 2. Update .env — upsert OPENAI_API_KEY
@@ -266,7 +222,7 @@ export async function POST(request) {
       baseUrl: normalizedBaseUrl,
       apiKey: keyToUse,
       model,
-      provider: "custom",
+      provider: PROVIDER_KEY,
       nativeDesktop: true,
       subagents: {
         enabled: true,
@@ -319,7 +275,7 @@ export async function DELETE() {
       }
       throw error;
     }
-    const newYaml = removeModelBlock(yaml);
+    const newYaml = removeProviderBlock(removeModelBlock(yaml), PROVIDER_KEY);
     await fs.writeFile(configPath, newYaml);
 
     // Clean desktop configs

@@ -164,9 +164,17 @@ describe("Tool Subagent Configurations", () => {
       expect(yaml).toContain('explorer: "ag/gemini-3.8-flash-high"');
       expect(yaml).toContain('reviewer: "cc/claude-sonnet-4-6"');
 
+      // The model block names a provider, so that provider entry must exist and
+      // must resolve to MiawRouter instead of a stale sibling entry.
+      const providerName = yaml.match(/^model:\s*\n(?:[ \t]+.*\r?\n)*?[ \t]+provider:[ \t]*["']?([^"'\r\n]+)["']?/m)?.[1]?.trim();
+      expect(providerName).toBe("miawrouter");
+      const providerBlock = yaml.match(/^ {2}miawrouter:[ \t]*\r?\n((?:[ \t]+.*\r?\n?)*)/m)?.[1];
+      expect(providerBlock).toContain("http://127.0.0.1:21128/v1");
+
       // Verify native desktop json
       const desktop = JSON.parse(await fs.readFile(TOOL_PATHS.hermes.desktopJson, "utf8"));
       expect(desktop.nativeDesktop).toBe(true);
+      expect(desktop.provider).toBe("miawrouter");
       expect(desktop.subagents.models.explorer).toBe("ag/gemini-3.8-flash-high");
       expect(desktop.subagents.models.reviewer).toBe("cc/claude-sonnet-4-6");
 

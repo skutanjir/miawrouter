@@ -77,7 +77,7 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to apply configuration");
-      setAutoConfigStatus((current) => ({ ...current, ...data, hasMiawRouter: true, hasMiawRouter: true }));
+      setAutoConfigStatus((current) => ({ ...current, ...data, hasMiawRouter: true }));
       setAutoConfigMessage({ type: "success", text: `Saved to ${data.configPath || tool.autoConfig.configPath}` });
     } catch (error) {
       setAutoConfigMessage({ type: "error", text: error.message });

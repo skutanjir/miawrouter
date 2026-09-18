@@ -60,7 +60,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
     if (status?.subagents) {
       setSubagents((prev) => ({ ...prev, ...status.subagents }));
     } else if (status?.config?.agent) {
-      const clean = (m) => m?.replace(/^(miawrouter|miawrouter)\//, "") || "";
+      const clean = (m) => m?.replace(/^miawrouter\//, "") || "";
       setSubagents({
         explorer: clean(status.config.agent.explorer?.model),
         reviewer: clean(status.config.agent.reviewer?.model),
@@ -106,7 +106,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
     if (!status?.installed) return null;
     if (!status.config) return "not_configured";
     if (!status.hasMiawRouter) return "not_configured";
-    const url = status.config?.provider?.["miawrouter"]?.options?.baseURL || status.config?.provider?.["miawrouter"]?.options?.baseURL || "";
+    const url = status.config?.provider?.["miawrouter"]?.options?.baseURL || "";
     return matchKnownEndpoint(url, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
   };
 
@@ -174,7 +174,6 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
       if (res.ok) {
         setMessage({ type: "success", text: "Settings reset successfully!" });
         setSelectedModel("");
-        setSubagentModel("");
         setSelectedModels([]);
         setActiveModel("");
         checkStatus();
@@ -336,12 +335,12 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                 </div>
 
                 {/* Current configured */}
-                {((status?.config?.provider?.["miawrouter"]?.options?.baseURL) || (status?.config?.provider?.["miawrouter"]?.options?.baseURL)) && (
+                {status?.config?.provider?.["miawrouter"]?.options?.baseURL && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {status.config.provider["miawrouter"]?.options?.baseURL || status.config.provider["miawrouter"]?.options?.baseURL}
+                      {status.config.provider["miawrouter"]?.options?.baseURL}
                     </span>
                   </div>
                 )}

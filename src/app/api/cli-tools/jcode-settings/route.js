@@ -13,11 +13,8 @@ const execAsync = promisify(exec);
 const getJcodeConfigDir = () => path.join(os.homedir(), ".jcode");
 const getConfigPath = () => path.join(getJcodeConfigDir(), "config.toml");
 
-// New writes use "miawrouter"; legacy "miawrouter" slots/env names stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "miawrouter";
 const ENV_KEY = "JCODE_MIAWROUTER_API_KEY";
-const LEGACY_ENV_KEY = "JCODE_MIAWROUTER_API_KEY";
 
 const getProviderEnvPath = () => {
   const configDir = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
@@ -55,7 +52,7 @@ const hasMiawRouterConfig = (config) => {
 
   const providers = config.providers;
 
-  if (providers[PROVIDER_KEY] || providers[LEGACY_PROVIDER_KEY]) return true;
+  if (providers[PROVIDER_KEY]) return true;
 
   for (const [name, provider] of Object.entries(providers)) {
     if (provider.base_url && (provider.base_url.includes("localhost:21128") || provider.base_url.includes("localhost:20128"))) {
@@ -125,7 +122,7 @@ export async function GET() {
 
   const config = await readConfig();
   const hasMiawRouter = hasMiawRouterConfig(config);
-  const provider = config?.providers?.[PROVIDER_KEY] || config?.providers?.[LEGACY_PROVIDER_KEY];
+  const provider = config?.providers?.[PROVIDER_KEY];
 
   return NextResponse.json({
     installed: true,
@@ -173,7 +170,6 @@ export async function POST(request) {
       ...(subagents ? { subagents } : {}),
       models: allModels.map((id) => ({ id })),
     };
-    delete config.providers[LEGACY_PROVIDER_KEY];
 
     const configDir = getJcodeConfigDir();
     await fs.mkdir(configDir, { recursive: true });
@@ -186,7 +182,6 @@ export async function POST(request) {
 
     const env = await readProviderEnv();
     env[ENV_KEY] = apiKey;
-    delete env[LEGACY_ENV_KEY];
     await writeProviderEnv(env);
 
     return NextResponse.json({
@@ -212,13 +207,11 @@ export async function DELETE() {
     }
 
     delete config.providers[PROVIDER_KEY];
-    delete config.providers[LEGACY_PROVIDER_KEY];
 
     await writeConfig(config);
 
     const env = await readProviderEnv();
     delete env[ENV_KEY];
-    delete env[LEGACY_ENV_KEY];
     await writeProviderEnv(env);
 
     return NextResponse.json({

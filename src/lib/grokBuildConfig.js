@@ -1,16 +1,10 @@
-// New writes use the miawrouter slot; legacy "miawrouter" slots/markers stay
-// readable so existing ~/.grok/config.toml files keep working (REBRAND §5).
 export const GROK_MAIN_MODEL_SLOT = "miawrouter";
-export const LEGACY_GROK_MAIN_MODEL_SLOT = "miawrouter";
 export const GROK_BUILTIN_DEFAULT = "grok-build";
 export const GROK_SUBAGENT_TYPES = ["general-purpose", "explore", "plan"];
 
 const UNSET_SENTINEL = "__miawrouter_unset__";
 const MODELS_SECTION = "models";
 const SUBAGENT_MODELS_SECTION = "subagents.models";
-
-// Legacy markers are matched for reads; new writes only emit the miawrouter forms.
-const LEGACY_UNSET_SENTINEL = "__miawrouter_unset__";
 
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const tomlString = (value) => JSON.stringify(String(value));
@@ -22,12 +16,11 @@ const sectionRegExp = (section) =>
   );
 
 const modelSlot = (type) => `${GROK_MAIN_MODEL_SLOT}-${type}`;
-const legacyModelSlot = (type) => `${LEGACY_GROK_MAIN_MODEL_SLOT}-${type}`;
 
-const previousDefaultRegExp = /^# (?:miawrouter|miawrouter)-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
+const previousDefaultRegExp = /^# miawrouter-prev-default = "([^"]*)"[ \t]*\r?\n?/m;
 const previousSubagentRegExp = (type) =>
   new RegExp(
-    `^# (?:miawrouter|miawrouter)-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
+    `^# miawrouter-prev-subagent-${escapeRegExp(type)} = "([^"]*)"[ \\t]*\\r?\\n?`,
     "m",
   );
 
@@ -82,12 +75,8 @@ function deleteSectionField(toml, section, key) {
   return toml.replace(match[0], `[${section}]\n${nextBody}`);
 }
 
-// Parse a model section by slot, falling back to the legacy miawrouter-* variant.
 function parseModelSection(toml, slot) {
-  const legacy = slot.replace(/^miawrouter/, LEGACY_GROK_MAIN_MODEL_SLOT);
-  const resolved = sectionRegExp(`model.${slot}`).test(toml) ? slot
-    : sectionRegExp(`model.${legacy}`).test(toml) ? legacy
-    : null;
+  const resolved = sectionRegExp(`model.${slot}`).test(toml) ? slot : null;
   if (!resolved) return null;
   const match = toml.match(sectionRegExp(`model.${resolved}`));
   const body = match?.[1] || "";
@@ -143,7 +132,7 @@ function insertMarker(toml, marker) {
 function rememberPreviousDefault(toml) {
   if (previousDefaultRegExp.test(toml)) return toml;
   const current = getSectionField(toml, MODELS_SECTION, "default");
-  if (!current || current === GROK_MAIN_MODEL_SLOT || current === LEGACY_GROK_MAIN_MODEL_SLOT) return toml;
+  if (!current || current === GROK_MAIN_MODEL_SLOT) return toml;
   return insertMarker(toml, `# miawrouter-prev-default = ${tomlString(current)}\n`);
 }
 
@@ -151,7 +140,7 @@ function restorePreviousDefault(toml) {
   const previous = toml.match(previousDefaultRegExp)?.[1] || GROK_BUILTIN_DEFAULT;
   let next = toml.replace(previousDefaultRegExp, "");
   const currentDefault = getSectionField(next, MODELS_SECTION, "default");
-  if (currentDefault === GROK_MAIN_MODEL_SLOT || currentDefault === LEGACY_GROK_MAIN_MODEL_SLOT) {
+  if (currentDefault === GROK_MAIN_MODEL_SLOT) {
     next = setSectionField(next, MODELS_SECTION, "default", previous);
   }
   return next;
@@ -173,11 +162,10 @@ function restorePreviousSubagent(toml, type) {
   const previous = toml.match(regexp)?.[1] || UNSET_SENTINEL;
   let next = toml.replace(regexp, "");
   const mapping = getSectionField(next, SUBAGENT_MODELS_SECTION, type);
-  if (mapping !== modelSlot(type) && mapping !== legacyModelSlot(type)) {
+  if (mapping !== modelSlot(type)) {
     return next;
   }
-  // Both sentinel spellings mean "was unset" (old configs used the miawrouter form).
-  if (previous === UNSET_SENTINEL || previous === LEGACY_UNSET_SENTINEL) {
+  if (previous === UNSET_SENTINEL) {
     return deleteSectionField(next, SUBAGENT_MODELS_SECTION, type);
   }
   return setSectionField(next, SUBAGENT_MODELS_SECTION, type, previous);
@@ -189,7 +177,7 @@ export function parseGrokBuildConfig(toml) {
   for (const type of GROK_SUBAGENT_TYPES) {
     const mapping = getSectionField(toml, SUBAGENT_MODELS_SECTION, type);
     subagentMappings[type] = mapping;
-    subagentModels[type] = (mapping === modelSlot(type) || mapping === legacyModelSlot(type))
+    subagentModels[type] = mapping === modelSlot(type)
       ? parseModelSection(toml, mapping)
       : null;
   }
@@ -251,10 +239,8 @@ export function resetGrokBuildConfig(toml) {
   for (const type of GROK_SUBAGENT_TYPES) {
     next = restorePreviousSubagent(next, type);
     next = removeModelSection(next, modelSlot(type));
-    next = removeModelSection(next, legacyModelSlot(type));
   }
   next = removeModelSection(next, GROK_MAIN_MODEL_SLOT);
-  next = removeModelSection(next, LEGACY_GROK_MAIN_MODEL_SLOT);
   next = restorePreviousDefault(next);
   return next.replace(/\n{3,}/g, "\n\n");
 }

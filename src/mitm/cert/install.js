@@ -28,8 +28,6 @@ function getLinuxCertConfig() {
   return LINUX_CERT_PATHS[0];
 }
 const ROOT_CA_CN = "MiawRouter MITM Root CA";
-// Legacy CN deleted on install so a previous MiawRouter CA doesn't linger in stores.
-const LEGACY_ROOT_CA_CN = "MiawRouter MITM Root CA";
 
 // Get SHA1 fingerprint from cert file using Node.js crypto
 function getCertFingerprint(certPath) {
@@ -107,7 +105,7 @@ async function installCert(sudoPassword, certPath) {
 
 async function installCertMac(sudoPassword, certPath) {
   // Remove all old certs with same name first to avoid duplicate/stale cert conflict
-  const deleteOld = `security delete-certificate -c "MiawRouter MITM Root CA" -c "MiawRouter MITM Root CA" /Library/Keychains/System.keychain 2>/dev/null || true`;
+  const deleteOld = `security delete-certificate -c "${ROOT_CA_CN}" /Library/Keychains/System.keychain 2>/dev/null || true`;
   const install = `security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "${certPath}"`;
   try {
     await execWithPassword(`${deleteOld} && ${install}`, sudoPassword);

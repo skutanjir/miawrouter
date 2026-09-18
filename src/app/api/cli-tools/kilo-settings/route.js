@@ -46,10 +46,10 @@ const readJson = async (filePath) => {
 
 const hasMiawRouterConfig = (auth) => {
   if (!auth) return false;
-  const entry = auth["openai-compatible"] || auth["miawrouter"] || auth["miawrouter"];
+  const entry = auth["openai-compatible"] || auth["miawrouter"];
   if (!entry) return false;
   const baseUrl = entry.baseUrl || entry.baseURL || "";
-  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("miawrouter") || baseUrl.includes("miawrouter");
+  return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("miawrouter");
 };
 
 export async function GET() {

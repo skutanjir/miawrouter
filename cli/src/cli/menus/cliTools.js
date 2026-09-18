@@ -360,10 +360,9 @@ async function buildOpenClawHeader() {
     ].join("\n");
   }
 
-  // Extract MiawRouter provider config (legacy "miawrouter" slot accepted).
-  const provider = settings?.models?.providers?.["miawrouter"] || settings?.models?.providers?.["miawrouter"];
+  const provider = settings?.models?.providers?.["miawrouter"];
   const primary = settings?.agents?.defaults?.model?.primary || "";
-  const model = primary.startsWith("miawrouter/") || primary.startsWith("miawrouter/")
+  const model = primary.startsWith("miawrouter/")
     ? primary.slice(primary.indexOf("/") + 1)
     : (provider?.models?.[0]?.id || "");
   const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];

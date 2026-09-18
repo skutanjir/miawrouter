@@ -65,10 +65,8 @@ http.createServer = (...args) => {
     const proxyIp = xRealIp || (xff ? String(xff).split(",")[0].trim() : "");
     const ip = isLoopbackProxy && proxyIp ? proxyIp : socketIp;
     delete req.headers["x-miaw-real-ip"];
-    delete req.headers["x-9r-real-ip"];
     delete req.headers["x-forwarded-for"];
     delete req.headers["x-miaw-via-proxy"];
-    delete req.headers["x-9r-via-proxy"];
     req.headers["x-miaw-real-ip"] = ip;
     if (viaProxy) req.headers["x-miaw-via-proxy"] = "1";
     return handler(req, res);

@@ -50,6 +50,16 @@ describe("validateChatRequest", () => {
     expect(validateChatRequest(body3)).toEqual({ ok: true });
   });
 
+  it("passes the Antigravity Gemini envelope", () => {
+    expect(validateChatRequest({
+      model: "gemini-3.8-flash-high",
+      userAgent: "antigravity",
+      request: {
+        contents: [{ role: "user", parts: [{ text: "hello" }] }]
+      }
+    })).toEqual({ ok: true });
+  });
+
   it("passes bodies with unknown provider extension keys untouched", () => {
     const original = {
       model: "custom-model",

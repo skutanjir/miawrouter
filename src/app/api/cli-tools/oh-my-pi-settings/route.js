@@ -138,7 +138,6 @@ export async function POST(request) {
       configPath,
       backupPath,
       hasMiawRouter: true,
-      hasMiawRouter: true,
     });
   } catch (error) {
     console.log("Error applying Oh My Pi settings:", error);
