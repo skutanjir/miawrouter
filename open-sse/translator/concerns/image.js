@@ -120,6 +120,6 @@ export async function fetchImageAsBase64(imageUrl, options = {}) {
     return null;
   } finally {
     if (timeout) clearTimeout(timeout);
-    dispatcher.close().catch(() => {});
+    if (typeof dispatcher?.close === "function") try { dispatcher.close().catch(() => {}); } catch {}
   }
 }

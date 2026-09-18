@@ -44,27 +44,50 @@ function isUserItem(item) {
 function maskUserText(item) {
   if (!item || typeof item !== "object") return item;
   if (typeof item.content === "string") return { ...item, content: SEMANTIC_QUERY_MARKER };
-  if (!Array.isArray(item.content)) return item;
-  return {
-    ...item,
-    content: item.content.map((block) => {
-      if (typeof block === "string") return SEMANTIC_QUERY_MARKER;
-      if (block && typeof block === "object" && typeof block.text === "string") {
-        return { ...block, text: SEMANTIC_QUERY_MARKER };
-      }
-      return block;
-    }),
-  };
+  if (Array.isArray(item.content)) {
+    return {
+      ...item,
+      content: item.content.map((block) => {
+        if (typeof block === "string") return SEMANTIC_QUERY_MARKER;
+        if (block && typeof block === "object" && typeof block.text === "string") {
+          return { ...block, text: SEMANTIC_QUERY_MARKER };
+        }
+        return block;
+      }),
+    };
+  }
+  if (Array.isArray(item.parts)) {
+    return {
+      ...item,
+      parts: item.parts.map((part) => {
+        if (typeof part === "string") return { text: SEMANTIC_QUERY_MARKER };
+        if (part && typeof part === "object" && typeof part.text === "string") {
+          return { ...part, text: SEMANTIC_QUERY_MARKER };
+        }
+        return part;
+      }),
+    };
+  }
+  return item;
 }
 
 // Same request context, different final user question: this is the safe
 // scope for semantic reuse. The exact L1 key already canonicalizes markers.
 function semanticContextKey({ provider, model, scope, sourceFormat, targetFormat, body }) {
-  const field = Array.isArray(body?.messages) ? "messages"
-    : Array.isArray(body?.input) ? "input"
-      : null;
+  let field = null;
+  let isRequestNested = false;
+  if (Array.isArray(body?.messages)) {
+    field = "messages";
+  } else if (Array.isArray(body?.input)) {
+    field = "input";
+  } else if (Array.isArray(body?.contents)) {
+    field = "contents";
+  } else if (Array.isArray(body?.request?.contents)) {
+    field = "contents";
+    isRequestNested = true;
+  }
   if (!field) return "";
-  const items = body[field];
+  const items = isRequestNested ? body.request.contents : body[field];
   let lastUserIndex = -1;
   for (let i = items.length - 1; i >= 0; i--) {
     if (isUserItem(items[i])) {
@@ -73,10 +96,10 @@ function semanticContextKey({ provider, model, scope, sourceFormat, targetFormat
     }
   }
   if (lastUserIndex < 0) return "";
-  const contextBody = {
-    ...body,
-    [field]: items.map((item, index) => index === lastUserIndex ? maskUserText(item) : item),
-  };
+  const maskedItems = items.map((item, index) => index === lastUserIndex ? maskUserText(item) : item);
+  const contextBody = isRequestNested
+    ? { ...body, request: { ...body.request, contents: maskedItems } }
+    : { ...body, [field]: maskedItems };
   return l1Key({ provider, model, sourceFormat, targetFormat, body: contextBody, scope });
 }
 
@@ -101,12 +124,14 @@ export function cosine(a, b) {
 export function lastUserText(body) {
   const items = Array.isArray(body?.messages) ? body.messages
     : Array.isArray(body?.input) ? body.input
+    : Array.isArray(body?.contents) ? body.contents
+    : Array.isArray(body?.request?.contents) ? body.request.contents
     : null;
   if (!items) return "";
   for (let i = items.length - 1; i >= 0; i--) {
     const item = items[i];
     if (!item || typeof item !== "object") continue;
-    if (item.role === "user") {
+    if (item.role === "user" || (typeof item.type === "string" && /^message$/.test(item.type) && item.role === "user")) {
       if (typeof item.content === "string") return item.content;
       if (Array.isArray(item.content)) {
         const parts = [];
@@ -116,12 +141,11 @@ export function lastUserText(body) {
         }
         if (parts.length > 0) return parts.join("\n");
       }
-    }
-    if (typeof item.type === "string" && /^message$/.test(item.type) && item.role === "user") {
-      if (Array.isArray(item.content)) {
+      if (Array.isArray(item.parts)) {
         const parts = [];
-        for (const block of item.content) {
-          if (block && typeof block.text === "string") parts.push(block.text);
+        for (const part of item.parts) {
+          if (typeof part === "string") parts.push(part);
+          else if (part && typeof part.text === "string") parts.push(part.text);
         }
         if (parts.length > 0) return parts.join("\n");
       }

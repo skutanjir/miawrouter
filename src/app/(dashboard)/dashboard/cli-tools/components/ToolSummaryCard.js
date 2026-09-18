@@ -6,24 +6,32 @@ import PropTypes from "prop-types";
 import { cn } from "@/shared/utils/cn";
 
 // Derive simple connected/configured/not-installed status from API payload
-function getStatus(status) {
+// Derive simple connected/configured/not-installed status from API payload
+function getStatus(status, tool) {
+  if (tool?.configType === "guide" && !tool?.autoConfig) {
+    return { label: "Guide", state: "guide", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
+  }
   if (!status) return { label: "Unknown", state: "unknown", cls: "bg-surface-2 text-text-muted border-border-subtle" };
   if (!status.installed) return { label: "Not installed", state: "missing", cls: "bg-surface-2 text-text-muted border-border-subtle" };
-  if (status.has9Router) return { label: "Connected", state: "connected", cls: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" };
+  if (status.hasMiawRouter || status.has9Router || status.configured) {
+    return { label: "Connected", state: "connected", cls: "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20" };
+  }
   return { label: "Not configured", state: "unconfigured", cls: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" };
 }
 
 export default function ToolSummaryCard({ toolId, tool, status }) {
-  const s = getStatus(status);
+  const s = getStatus(status, tool);
   const isConnected = s.state === "connected";
   const isPending = s.state === "unconfigured";
+  const isGuide = s.state === "guide";
 
   const statusRailClass = isConnected
     ? "bg-primary"
     : isPending
       ? "bg-yellow-500"
-      : "bg-border-subtle dark:bg-border/60";
-
+      : isGuide
+        ? "bg-blue-500"
+        : "bg-border-subtle dark:bg-border/60";
   return (
     <Link href={`/dashboard/cli-tools/${toolId}`} className="group block min-w-0">
       <div

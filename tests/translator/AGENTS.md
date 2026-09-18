@@ -79,7 +79,6 @@ Grouped per CLI/provider test file. Each row is an `it.fails` case.
 |---|---|
 | Claude image `source.type="url"` dropped (only base64) | `request/claude-to-openai.js:133-141` |
 | `tool_result` image block → raw JSON | `request/claude-to-openai.js:155-173` |
-| `tool_result.is_error` lost | `request/claude-to-openai.js:155-173` |
 | `thinking`/`redacted_thinking` dropped via bridge | `request/claude-to-openai.js:128` |
 
 **OpenAI → Claude (`bugs-toClaude-context.test.js`)**
@@ -91,7 +90,6 @@ Grouped per CLI/provider test file. Each row is an `it.fails` case.
 **Codex Responses (`bugs-codexCli-responses.test.js`)**
 | Bug | Source |
 |---|---|
-| Empty-name function_call can leave `tool_calls: []` | `request/openai-responses.js:103` |
 | `arguments` not coerced to string | `request/openai-responses.js:109-110` |
 | `input_image` uses `file_id` as raw url | `request/openai-responses.js:75-77` |
 
@@ -110,7 +108,6 @@ Grouped per CLI/provider test file. Each row is an `it.fails` case.
 **Gemini / Cursor / CommandCode (`bugs-gemini-cursor-commandcode.test.js`)**
 | Bug | Source |
 |---|---|
-| Only the last system message kept | `request/openai-to-gemini.js:92-96` |
 | Cursor drops image content | `request/openai-to-cursor.js:12-24` |
 | CommandCode bad JSON args → `{}` silently | `request/openai-to-commandcode.js:53-57` |
 | CommandCode image → `[image omitted]` | `request/openai-to-commandcode.js:41-42` |

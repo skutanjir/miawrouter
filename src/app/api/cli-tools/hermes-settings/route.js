@@ -205,6 +205,7 @@ export async function GET() {
         installed: false,
         cliInstalled: false,
         desktopInstalled: false,
+        desktopConfigPath: getHermesDesktopConfigPath(),
         settings: null,
         message: "Hermes Agent & Desktop not detected",
       });

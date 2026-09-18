@@ -189,6 +189,7 @@ export const COMPAT_ALIASES = {
   "tests/unit/kimi-usage.test.js": ["9router"],
   "tests/unit/cursor-agent-proto.test.js": ["9router"],
   "tests/unit/agent-registry-core.test.js": ["9router"],
+  "tests/unit/cli-tools-status.test.js": ["9router"],
 };
 
 /** Directory basenames excluded at any depth (docs/REBRAND.md §1). */

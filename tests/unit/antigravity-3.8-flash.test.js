@@ -17,6 +17,6 @@ describe("Antigravity Gemini 3.8 Flash", () => {
       expect(mitmConfig).toContain(`"gemini-3.8-flash-${tier}": "gemini-3.8-flash-${tier}"`);
     }
     expect(mitmConfig).toContain('"gemini-3.8-flash": "gemini-3.8-flash-high"');
-    expect(mitmServer).toContain("/^gemini-3\\.(?:8|7)-flash-(high|medium|low)$/i");
+    expect(mitmServer).toContain("/^gemini-3\\.(?:8|7|6)-flash-(high|medium|low)$/i");
   });
 });

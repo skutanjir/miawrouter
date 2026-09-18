@@ -14,10 +14,14 @@
 import crypto from "crypto";
 import { CLAUDE_BLOCK } from "../translator/schema/index.js";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
-import { CACHE_MODE } from "../providers/cacheCapabilities.js";
+import { CACHE_MODE, resolveCacheCapability } from "../providers/cacheCapabilities.js";
 
 export const MAX_BREAKPOINTS = 4; // Anthropic's cache-breakpoint ceiling
 export const STABLE_TURNS = 2;    // same prefix twice in a row → safe to breakpoint
+
+export function supportsPromptCacheControl(provider, format = "") {
+  return resolveCacheCapability(provider, format)?.supportsCacheMarkers ?? false;
+}
 
 // L0's own breakpoint marker. Client-provided cache_control blocks are never
 // rewritten — only preserved byte-identically.
@@ -122,10 +126,11 @@ export function begin(body) {
  *   inserted when it reports supportsCacheMarkers — inserting Anthropic
  *   cache_control into a provider that rejects the field corrupts the request.
  */
-export function finish(body, state, { cacheKey = "", provider = "", model = "", capability = null, onCacheEvent = null } = {}) {
+export function finish(body, state, { cacheKey = "", provider = "", model = "", format = "", capability = null, onCacheEvent = null } = {}) {
   if (!body || !state) return { body, info: null };
   let result = body;
-  const cacheMode = capability?.mode || CACHE_MODE.UNKNOWN;
+  const resolvedCap = capability || (provider || format ? resolveCacheCapability(provider, format) : null);
+  const cacheMode = resolvedCap?.mode || CACHE_MODE.UNKNOWN;
   const info = { turns: 0, stable: false, restored: false, breakpoints: 0, prefixLen: state.prefixLen, cacheMode };
 
   const messages = Array.isArray(body?.messages) ? body.messages : null;
@@ -186,15 +191,8 @@ export function finish(body, state, { cacheKey = "", provider = "", model = "", 
 
   info.turns = rec.turns;
   info.stable = rec.turns >= STABLE_TURNS;
-  // Capability-driven orchestration (providers/cacheCapabilities.js):
-  //   explicit → insert supported breakpoint markers on the stable prefix
-  //   implicit → preserve the stable prefix (handled above) but add NO markers
-  //   none/unknown → never inject vendor fields we have no evidence for
-  // This is the single gate that keeps Anthropic-only cache_control out of
-  // OpenAI/Gemini/unknown bodies. `capability` is absent for callers that do not
-  // pass one (bench harness); absent means "unknown", i.e. never inject.
   info.markerInserted = false;
-  if (info.stable && capability?.supportsCacheMarkers) {
+  if (info.stable && resolvedCap?.supportsCacheMarkers) {
     if (result === body) result = structuredClone(body);
     insertBreakpoints(result, MAX_BREAKPOINTS);
     info.markerInserted = true;

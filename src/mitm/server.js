@@ -124,7 +124,7 @@ function getMappedModel(tool, model) {
     // A fresh install may not have an aliases.json entry yet. Keep the new
     // Antigravity Flash tiers routable using their canonical router IDs;
     // configured mappings above always take precedence.
-    if (tool === "antigravity" && /^gemini-3\.(?:8|7)-flash-(high|medium|low)$/i.test(lookup)) {
+    if (tool === "antigravity" && /^gemini-3\.(?:8|7|6)-flash-(high|medium|low)$/i.test(lookup)) {
       return lookup;
     }
     return null;

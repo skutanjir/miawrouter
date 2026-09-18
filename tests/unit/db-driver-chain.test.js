@@ -26,19 +26,24 @@ describe("Driver fallback chain", () => {
   it("default → picks better-sqlite3 when available", async () => {
     const { getAdapter } = await import("@/lib/db/driver.js");
     const db = await getAdapter();
-    expect(["better-sqlite3", "node:sqlite", "sql.js"]).toContain(db.driver);
+    expect(["better-sqlite3", "node:sqlite", "sql.js", "bun:sqlite"]).toContain(db.driver);
   });
 
   it("falls back to node:sqlite when better-sqlite3 unavailable", async () => {
+    if (process.versions.bun) {
+      vi.doMock("@/lib/db/adapters/bunSqliteAdapter.js", () => {
+        throw new Error("simulated unavailable");
+      });
+    }
     // Mock the better-sqlite3 adapter to throw
     vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => {
       throw new Error("simulated unavailable");
     });
     const { getAdapter } = await import("@/lib/db/driver.js");
     const db = await getAdapter();
-    // Node 22.5+ should give node:sqlite, else sql.js
+    // Node 22.5+ (non-Bun) should give node:sqlite, else sql.js
     const [maj, min] = process.versions.node.split(".").map(Number);
-    if (maj > 22 || (maj === 22 && min >= 5)) {
+    if (!process.versions.bun && (maj > 22 || (maj === 22 && min >= 5))) {
       expect(db.driver).toBe("node:sqlite");
     } else {
       expect(db.driver).toBe("sql.js");
@@ -46,6 +51,11 @@ describe("Driver fallback chain", () => {
   });
 
   it("falls back to sql.js when both native drivers unavailable", async () => {
+    if (process.versions.bun) {
+      vi.doMock("@/lib/db/adapters/bunSqliteAdapter.js", () => {
+        throw new Error("simulated unavailable");
+      });
+    }
     vi.doMock("@/lib/db/adapters/betterSqliteAdapter.js", () => {
       throw new Error("simulated unavailable");
     });

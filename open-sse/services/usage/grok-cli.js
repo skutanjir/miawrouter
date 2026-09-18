@@ -35,6 +35,8 @@ const GROK_PLAN_CODE = "Grok Code";
 const GROK_TIER_NAMES = new Map([
   [5, "SuperGrok Heavy"],
   ["5", "SuperGrok Heavy"],
+  ["super_grok", "Super Grok"],
+  ["premium_plus", "Premium Plus"],
 ]);
 
 const USAGE = U("grok-cli");
@@ -110,7 +112,7 @@ function resolvePlan(user, config) {
   if (user?.hasGrokCodeAccess || user?.has_grok_code_access) {
     return GROK_PLAN_CODE;
   }
-  return "";
+  return GROK_PLAN_CODE;
 }
 
 function makeQuota({ used, total, resetAt, unlimited = false }) {
@@ -404,7 +406,8 @@ export async function getGrokCliUsage(accessToken, providerSpecificData = null, 
         const resolvedPlan =
           GROK_TIER_NAMES.get(tokenTier) ||
           GROK_TIER_NAMES.get(Number(tokenTier)) ||
-          parsed.plan;
+          (parsed.plan === "XPremiumPlus" ? "SuperGrok Heavy" : parsed.plan) ||
+          "SuperGrok Heavy";
         return {
           plan: resolvedPlan,
           quotas: grpcQuotas,
