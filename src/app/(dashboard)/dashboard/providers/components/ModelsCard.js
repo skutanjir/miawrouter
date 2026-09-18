@@ -13,18 +13,18 @@ export function ModelRow({ model, fullModel, copied, onCopy, testStatus, isCusto
   const iconColor = testStatus === "ok" ? "#22c55e" : testStatus === "error" ? "#ef4444" : undefined;
 
   return (
-    <div className={`group px-3 py-2 rounded-lg border ${borderColor} hover:bg-sidebar/50`}>
+    <div className={`group px-3 py-2 rounded-lg border ${borderColor} bg-surface hover:bg-surface-2/50 transition-colors`}>
       <div className="flex items-center gap-2">
-        <span className="material-symbols-outlined text-base" style={iconColor ? { color: iconColor } : undefined}>
+        <span className="material-symbols-outlined text-base shrink-0" style={iconColor ? { color: iconColor } : undefined}>
           {testStatus === "ok" ? "check_circle" : testStatus === "error" ? "cancel" : "smart_toy"}
         </span>
-        <div className="flex flex-col gap-1">
-          <code className="text-xs text-text-muted font-mono bg-sidebar px-1.5 py-0.5 rounded">{fullModel}</code>
-          {model.name && <span className="text-[9px] text-text-muted/70 italic pl-1">{model.name}</span>}
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+          <code className="text-xs text-text-main font-mono bg-surface-2 px-1.5 py-0.5 rounded border border-border-subtle truncate max-w-full inline-block">{fullModel}</code>
+          {model.name && <span className="text-[10px] text-text-muted truncate">{model.name}</span>}
         </div>
         {onTest && (
-          <div className="relative group/btn">
-            <button onClick={onTest} disabled={isTesting} className={`p-0.5 hover:bg-sidebar rounded text-text-muted hover:text-primary transition-opacity ${isTesting ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          <div className="relative group/btn shrink-0">
+            <button onClick={onTest} disabled={isTesting} className={`p-1 hover:bg-surface-2 rounded text-text-muted hover:text-primary transition-opacity ${isTesting ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
               <span className="material-symbols-outlined text-sm" style={isTesting ? { animation: "spin 1s linear infinite" } : undefined}>
                 {isTesting ? "progress_activity" : "science"}
               </span>
@@ -34,17 +34,17 @@ export function ModelRow({ model, fullModel, copied, onCopy, testStatus, isCusto
             </span>
           </div>
         )}
-        <div className="relative group/btn">
-          <button onClick={() => onCopy(fullModel, `model-${model.id}`)} className="p-0.5 hover:bg-sidebar rounded text-text-muted hover:text-primary">
+        <div className="relative group/btn shrink-0">
+          <button onClick={() => onCopy(fullModel, `model-${model.id}`)} className="p-1 hover:bg-surface-2 rounded text-text-muted hover:text-primary">
             <span className="material-symbols-outlined text-sm">{copied === `model-${model.id}` ? "check" : "content_copy"}</span>
           </button>
           <span className="pointer-events-none absolute mt-1 top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-muted whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity">
             {copied === `model-${model.id}` ? "Copied!" : "Copy"}
           </span>
         </div>
-        {isFree && <span className="text-[10px] font-bold text-green-500 bg-green-500/10 px-1.5 py-0.5 rounded">FREE</span>}
+        {isFree && <span className="text-[10px] font-mono font-bold text-green-600 dark:text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded shrink-0">FREE</span>}
         {isCustom && (
-          <button onClick={onDeleteAlias} className="p-0.5 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" title="Remove custom model">
+          <button onClick={onDeleteAlias} className="p-1 hover:bg-red-500/10 rounded text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" title="Remove custom model">
             <span className="material-symbols-outlined text-sm">close</span>
           </button>
         )}

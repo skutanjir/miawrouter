@@ -12,7 +12,7 @@ const variants = {
 };
 
 const sizes = {
-  sm: "h-7 px-3 text-xs rounded-[6px]",
+  sm: "min-h-9 px-3 text-xs rounded-[6px]",
   md: "h-9 px-4 text-sm rounded-[var(--radius-brand)]",
   lg: "h-11 px-6 text-sm rounded-[var(--radius-brand)]",
 };
@@ -32,8 +32,8 @@ export default function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-semibold transition-all duration-150 ease-out cursor-pointer",
-        "active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
+        "inline-flex items-center justify-center gap-2 font-semibold transition-colors duration-150 ease-out cursor-pointer",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed",
         variants[variant],
         sizes[size],
         fullWidth && "w-full",

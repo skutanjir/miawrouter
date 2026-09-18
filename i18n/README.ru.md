@@ -1215,7 +1215,7 @@ OPENAI_API_KEY="your-cloud-key" bash tester/security/test-cloud-openai-compatibl
 8. Использование/логи записываются (`src/lib/usageDb.js`).
 9. Резервирование применяется при ошибках провайдера/аккаунта/модели по правилам комбо.
 
-Полный справочник по архитектуре: [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+Полный справочник по архитектуре: `ARCHITECTURE.md`
 
 ---
 

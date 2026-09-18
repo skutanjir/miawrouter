@@ -14,12 +14,22 @@ function text(value, name, { required = false, max = 200 } = {}) {
   return result;
 }
 
-export function scopeFrom(source) {
+export function scopeFrom(source, { requireSessionId = false } = {}) {
   if (!source || typeof source !== "object" || Array.isArray(source)) throw new MemoryInputError("body must be an object");
-  return {
-    userId: text(source.userId, "userId", { required: true }),
-    sessionId: text(source.sessionId, "sessionId"),
-  };
+  const userId = text(source.userId, "userId", { required: true });
+  if (source.sessionId !== undefined && source.sessionId !== null) {
+    return {
+      userId,
+      sessionId: text(source.sessionId, "sessionId"),
+    };
+  }
+  if (requireSessionId) {
+    return {
+      userId,
+      sessionId: "",
+    };
+  }
+  return { userId };
 }
 
 export function contentFrom(value) {

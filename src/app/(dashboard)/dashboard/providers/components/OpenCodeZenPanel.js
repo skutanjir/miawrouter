@@ -136,8 +136,19 @@ export default function OpenCodeZenPanel() {
           </span>
         </div>
         <span className="text-xs text-text-muted truncate">
-          Free model availability from opencode.ai/zen
+          Catalog from opencode.ai/zen — routing needs a Zen API key
         </span>
+      </div>
+
+      <div
+        role="note"
+        className="rounded-lg px-3 py-2 text-xs leading-relaxed bg-primary/5 border border-primary/15 text-text-muted"
+      >
+        <span className="font-medium text-text-main">Honest status:</span>{" "}
+        OpenCode Free through MiawRouter is gated upstream (not keyless here).
+        Connect <span className="font-medium text-text-main">OpenCode Zen</span> with an API key
+        from opencode.ai/auth, or use a true keyless provider such as{" "}
+        <span className="font-mono text-text-main">pol</span>.
       </div>
 
       <div className="flex flex-col gap-3">
@@ -249,7 +260,7 @@ export default function OpenCodeZenPanel() {
                 onChange={handleToggle}
                 disabled={saving || zenFreeOnly === null}
                 label="Zen free-only routing"
-                description="Only route OpenCode models classified as free"
+                description="When on, only route Zen models marked free — still requires a Zen API key"
               />
               {saveError && (
                 <p className="text-xs text-red-500 mt-1" role="alert">

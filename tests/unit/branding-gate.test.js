@@ -12,7 +12,7 @@ import {
 } from "../../scripts/check-branding.mjs";
 
 /**
- * Phase 8 branding gate (docs/REBRAND.md §7 #2). Pure-stdlib scanner: tests
+ * Phase 8 branding gate. Pure-stdlib scanner: tests
  * use temp dirs only — no git, no rg, no external processes.
  */
 
@@ -57,7 +57,7 @@ describe("scanBranding", () => {
     });
   });
 
-  it("flags each scan term from REBRAND.md §1", () => {
+  it("flags each scan term", () => {
     const root = makeTree({
       "src/terms.js": [
         "9router", "9r_", "X-9Router", "NINEROUTER", "20127", "20128",
@@ -71,17 +71,17 @@ describe("scanBranding", () => {
     }
   });
 
-  it("provenance files (REBRAND.md §3) are allowlisted, never forbidden", () => {
+  it("provenance files are allowlisted, never forbidden", () => {
     const root = makeTree({
       "LICENSE": "Copyright (c) decolua and contributors\n",
-      "docs/UPSTREAM.md": "upstream: github.com/decolua/9router\n",
-      "docs/superpowers/specs/old.md": "9Router history\n",
+      "MIAWROUTER_CLONE_PLAYBOOK.md": "upstream: github.com/decolua/9router\n",
+      "CHANGELOG.md": "9Router history\n",
       "src/app.js": "9Router\n",
     });
     const result = scanBranding({ root });
     expect(result.forbidden.map((h) => h.file)).toEqual(["src/app.js"]);
     expect(result.allowlisted.map((h) => h.file).sort()).toEqual([
-      "LICENSE", "docs/UPSTREAM.md", "docs/superpowers/specs/old.md",
+      "CHANGELOG.md", "LICENSE", "MIAWROUTER_CLONE_PLAYBOOK.md",
     ]);
     expect(result.counts.allowlistedFiles).toBe(3);
   });
@@ -159,7 +159,7 @@ describe("scanBranding", () => {
   it("is deterministic: identical trees yield identical results", () => {
     const files = {
       "src/a.js": "9Router 20128 decolua\n",
-      "docs/UPSTREAM.md": "9router\n",
+      "LICENSE": "9router\n",
       "cli/cli.js": "~/.9router\n",
     };
     const r1 = scanBranding({ root: makeTree(files) });
@@ -208,14 +208,13 @@ describe("scanText / walkBranding", () => {
     expect(files).toEqual(["a.js", "sub/b.js"]);
   });
 
-  it("provenance and compat tables match REBRAND.md §3–§5", () => {
+  it("provenance and compat tables match spec", () => {
     expect(PROVENANCE_ALLOWLIST).toContain("LICENSE");
-    expect(PROVENANCE_ALLOWLIST).toContain("docs/REBRAND.md");
     expect(PROVENANCE_ALLOWLIST).toContain("MIAWROUTER_CLONE_PLAYBOOK.md");
     expect(COMPAT_ALIASES["cli/cli.js"]).toEqual([".9router"]);
     expect(COMPAT_ALIASES["open-sse/config/appConstants.js"]).toEqual(["9router"]);
     expect(COMPAT_ALIASES["cli/src/cli/tray/autostart.js"]).toContain(".9router");
-    // Phase 8 additions: legacy read-compat surfaces (REBRAND.md §5).
+    // Phase 8 additions: legacy read-compat surfaces.
     expect(COMPAT_ALIASES["open-sse/handlers/chatCore.js"]).toContain("X-9Router");
     expect(COMPAT_ALIASES["src/dashboardGuard.js"]).toContain("9r_");
     expect(COMPAT_ALIASES["src/lib/grokBuildConfig.js"]).toContain("9router");

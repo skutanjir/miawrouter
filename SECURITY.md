@@ -13,7 +13,7 @@ Security policy for the MiawRouter local AI routing gateway and dashboard. This 
 
 Report through the private reporting mechanism of the repository or distribution you obtained this build from. This project is a private fork; if the place you got it offers GitHub private vulnerability reporting, use that. Otherwise, contact your operator privately, or report privately to whoever maintains your distribution.
 
-The upstream project's tracker is only for issues that reproduce on unmodified upstream software — see the provenance record in [docs/UPSTREAM.md](docs/UPSTREAM.md) for the source identity. Do not report vulnerabilities that are specific to this modified fork there, because upstream does not own this fork's changes.
+The upstream project's tracker is only for issues that reproduce on unmodified upstream software. Do not report vulnerabilities that are specific to this modified fork there, because upstream does not own this fork's changes.
 
 There is no dedicated security contact email for this project, so do not expect one. If you must share details publicly before a fix, keep exploit specifics out of the initial report. This project has no published response-time commitment; treat any reported timeline as best effort.
 

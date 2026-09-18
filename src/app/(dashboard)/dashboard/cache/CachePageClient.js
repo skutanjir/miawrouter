@@ -35,13 +35,13 @@ export default function CachePageClient() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex w-full flex-col gap-6 px-1 sm:px-0">
+      <div className="flex flex-col gap-3 border-b border-border-subtle pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2">
-            Cache
+          <h1 className="text-xl font-semibold tracking-tight text-text-main sm:text-2xl">
+            Cache Control & Telemetry
           </h1>
-          <p className="text-sm text-text-muted">
+          <p className="mt-0.5 text-xs text-text-muted sm:text-sm">
             Local L1/L2 response cache, provider L0 prompt cache, and L3 content-address dedup.
           </p>
         </div>
@@ -52,7 +52,7 @@ export default function CachePageClient() {
         ) : (
           <div className="flex items-center gap-2">
             <Badge variant="warning" size="sm">Clear all local cache layers?</Badge>
-            <Button variant="primary" size="sm" onClick={clearCache} disabled={clearing}>
+            <Button variant="danger" size="sm" onClick={clearCache} disabled={clearing}>
               {clearing ? "Clearing…" : "Confirm"}
             </Button>
             <Button variant="secondary" size="sm" onClick={() => setConfirming(false)} disabled={clearing}>
@@ -65,9 +65,9 @@ export default function CachePageClient() {
       {result && (
         <Card
           padding="sm"
-          className={result.ok ? "border-green-500/30" : "border-red-500/30"}
+          className={result.ok ? "border-emerald-500/30 bg-emerald-500/5" : "border-fail/30 bg-fail/5"}
         >
-          <p className={`text-sm ${result.ok ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
+          <p className={`text-xs font-medium ${result.ok ? "text-emerald-600 dark:text-emerald-400" : "text-fail"}`}>
             {result.ok
               ? `Cleared: ${result.cleared.join(", ")}`
               : result.error}
@@ -77,14 +77,14 @@ export default function CachePageClient() {
 
       <CacheStatsPanel period={period} setPeriod={setPeriod} />
 
-      <Card padding="sm" className="border-border-subtle/50">
+      <Card padding="sm" className="border-border-subtle bg-surface-2/40">
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-[16px] text-text-muted mt-0.5">info</span>
-          <div className="text-xs text-text-muted space-y-1">
+          <span className="material-symbols-outlined text-[16px] text-muted mt-0.5">info</span>
+          <div className="text-xs text-muted space-y-1">
             <p>
-              <strong className="text-text-main">L0</strong> is provider-confirmed prompt-cache usage (token
-              savings at the provider). <strong className="text-text-main">L1/L2</strong> are local
-              response-cache hits. <strong className="text-text-main">L3</strong> dedup is activity, not a
+              <strong className="text-ink font-medium">L0</strong> is provider-confirmed prompt-cache usage (token
+              savings at the provider). <strong className="text-ink font-medium">L1/L2</strong> are local
+              response-cache hits. <strong className="text-ink font-medium">L3</strong> dedup is activity, not a
               provider cache hit.
             </p>
             <p>

@@ -6,8 +6,8 @@ import { describe, it, expect } from "vitest";
 /**
  * Phase 8 rebrand — user-visible strings, locale catalogs, skills, and assets.
  * Pure fs-based string checks: no src imports, no network, no gate execution.
- * Legacy "9router" tokens are allowed ONLY on the read-compat surfaces listed
- * in docs/REBRAND.md §5 (which scripts/check-branding.mjs COMPAT_ALIASES mirrors).
+ * Legacy "9router" tokens are allowed ONLY on the read-compat surfaces
+ * (which scripts/check-branding.mjs COMPAT_ALIASES mirrors).
  */
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));

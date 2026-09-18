@@ -758,18 +758,18 @@ export default function TokenSaverClient() {
   );
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <Card id="quick-presets">
         <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <span className="material-symbols-outlined text-primary">
-                rocket_launch
+                tune
               </span>
               Quick Presets (Token Saver Profiles)
             </h2>
             <p className="text-sm text-text-muted mt-0.5">
-              Choose a 1-click ready-to-use strategy for optimal performance and token savings without complex manual configuration.
+              Select a strategy profile for throughput and compression telemetry without manual re-configuration.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -785,11 +785,11 @@ export default function TokenSaverClient() {
                 ? "bg-surface-2 text-text-muted border-border"
                 : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
             }`}>
-              {activePresetId === "max_saver" ? "⚡ Maximum Savings"
-                : activePresetId === "developer_pro" ? "🛠️ Developer Pro"
-                : activePresetId === "balanced" ? "⚖️ Balanced"
-                : activePresetId === "passthrough" ? "⚪ Passthrough"
-                : "⚙️ Custom"}
+              {activePresetId === "max_saver" ? "Maximum Savings"
+                : activePresetId === "developer_pro" ? "Developer Pro"
+                : activePresetId === "balanced" ? "Balanced"
+                : activePresetId === "passthrough" ? "Passthrough"
+                : "Custom"}
             </span>
           </div>
         </div>

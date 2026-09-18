@@ -194,4 +194,24 @@ describe("grokBuildConfig", () => {
     expect(getGrokSubagentSlot("plan")).toBe("miawrouter-plan");
     expect(getGrokSubagentSlot("unknown")).toBeNull();
   });
+
+  it("handles auto-config path generation cleanly with empty initial config", () => {
+    const applied = applyGrokBuildConfig("", {
+      baseUrl: "http://127.0.0.1:21128",
+      apiKey: "sk-auto",
+      model: "xai/grok-4",
+    });
+    const parsed = parseGrokBuildConfig(applied);
+    expect(parsed.default).toBe("miawrouter");
+    expect(parsed.model).toMatchObject({
+      model: "xai/grok-4",
+      base_url: "http://127.0.0.1:21128",
+      api_key: "sk-auto",
+    });
+
+    const reset = resetGrokBuildConfig(applied);
+    const parsedReset = parseGrokBuildConfig(reset);
+    expect(parsedReset.model).toBeNull();
+    expect(parsedReset.default).toBe("grok-build");
+  });
 });

@@ -6,6 +6,7 @@ import { promisify } from "util";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import { canAccessLocalOnlyRoute } from "@/dashboardGuard";
 import { getCapabilitiesForModel } from "open-sse/providers/capabilities.js";
 import {
   applyGrokBuildConfig,
@@ -14,6 +15,8 @@ import {
   parseGrokBuildConfig,
   resetGrokBuildConfig,
 } from "@/lib/grokBuildConfig";
+
+const unauthorized = () => NextResponse.json({ error: "Local authentication required" }, { status: 403 });
 
 const execAsync = promisify(exec);
 
@@ -73,7 +76,8 @@ const normalizeSubagentModels = (value) => {
 
 const has9RouterConfig = (settings) => Boolean(settings?.model?.base_url);
 
-export async function GET() {
+export async function GET(request) {
+  if (!(await canAccessLocalOnlyRoute(request))) return unauthorized();
   try {
     const installed = await checkGrokInstalled();
     if (!installed) {
@@ -88,6 +92,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
+      hasMiawRouter: has9RouterConfig(settings),
       has9Router: has9RouterConfig(settings),
       configPath: getGrokConfigPath(),
     });
@@ -98,6 +103,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  if (!(await canAccessLocalOnlyRoute(request))) return unauthorized();
   try {
     const { baseUrl, apiKey, model, contextWindow, subagentModels } = await request.json();
     const selectedModel = typeof model === "string" ? model.trim() : "";
@@ -128,7 +134,8 @@ export async function POST(request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request) {
+  if (!(await canAccessLocalOnlyRoute(request))) return unauthorized();
   try {
     const configPath = getGrokConfigPath();
     let toml;

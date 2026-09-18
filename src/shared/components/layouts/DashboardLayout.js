@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useNotificationStore } from "@/store/notificationStore";
 import Sidebar from "../Sidebar";
@@ -37,8 +37,17 @@ export default function DashboardLayout({ children }) {
   const notifications = useNotificationStore((state) => state.notifications);
   const removeNotification = useNotificationStore((state) => state.removeNotification);
 
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setSidebarOpen(false);
+    };
+    globalThis.addEventListener("keydown", closeOnEscape);
+    return () => globalThis.removeEventListener("keydown", closeOnEscape);
+  }, [sidebarOpen]);
+
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-bg">
+    <div className="flex h-screen w-full overflow-hidden bg-bg" style={{ backgroundColor: "var(--color-chassis, var(--color-bg))" }}>
       <div className="fixed top-4 right-4 z-[80] flex w-[min(92vw,380px)] flex-col gap-2">
         {notifications.map((n) => {
           const style = getToastStyle(n.type);
@@ -83,6 +92,9 @@ export default function DashboardLayout({ children }) {
 
       {/* Sidebar - Mobile */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Dashboard navigation"
         className={`fixed inset-y-0 left-0 z-50 transform lg:hidden transition-transform duration-300 ease-in-out ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -96,8 +108,8 @@ export default function DashboardLayout({ children }) {
         {(() => {
           const isChatPage = pathname === "/dashboard/basic-chat" || pathname === "/dashboard/playground";
           return (
-            <div className={`flex-1 overflow-y-auto custom-scrollbar ${isChatPage ? "" : "p-5 lg:p-8"} ${isChatPage ? "flex flex-col overflow-hidden" : ""}`}>
-              <div className={`${isChatPage ? "flex-1 w-full h-full flex flex-col" : "max-w-7xl mx-auto"}`}>{children}</div>
+            <div className={`flex-1 overflow-y-auto custom-scrollbar ${isChatPage ? "" : "p-4 lg:p-6"} ${isChatPage ? "flex flex-col overflow-hidden" : ""}`}>
+              <div className={`${isChatPage ? "flex-1 w-full h-full flex flex-col" : "max-w-7xl mx-auto w-full"}`}>{children}</div>
             </div>
           );
         })()}

@@ -41,40 +41,50 @@ function TimeAgo({ timestamp }) {
 
 function RecentRequests({ requests = [] }) {
   return (
-    <Card className="flex min-w-0 flex-col overflow-hidden" padding="sm" style={{ height: 480 }}>
-      {/* Header */}
-      <div className="px-1 py-2 border-b border-border shrink-0">
-        <span className="label">Recent Requests</span>
-      </div>
-
+    <Card
+      className="flex min-w-0 flex-col overflow-hidden"
+      padding="none"
+      style={{ height: 480 }}
+      title="Recent Requests"
+      subtitle="Live dispatch stream"
+    >
       {!requests.length ? (
-        <div className="flex-1 flex items-center justify-center text-text-muted text-sm">No requests yet.</div>
+        <div className="flex-1 flex items-center justify-center text-muted text-xs p-4">
+          No requests recorded yet.
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto">
-          <table className="w-full min-w-[300px] border-collapse text-xs">
-            <thead className="sticky top-0 bg-bg z-10">
-              <tr className="border-b border-border">
-                <th className="py-1.5 text-left font-semibold text-text-muted w-2"></th>
-                <th className="py-1.5 text-left font-semibold text-text-muted">Model</th>
-                <th className="py-1.5 text-right font-semibold text-text-muted whitespace-nowrap">In / Out</th>
-                <th className="py-1.5 text-right font-semibold text-text-muted">When</th>
+          <table className="w-full min-w-[280px] border-collapse text-xs">
+            <thead className="sticky top-0 bg-surface-2/90 backdrop-blur-xs border-b border-border-subtle z-10 text-[11px] uppercase tracking-wider text-muted">
+              <tr>
+                <th className="py-2 pl-3 pr-1 text-left font-semibold w-3"></th>
+                <th className="py-2 px-2 text-left font-semibold">Model</th>
+                <th className="py-2 px-2 text-right font-semibold whitespace-nowrap">In / Out</th>
+                <th className="py-2 pr-3 pl-2 text-right font-semibold">When</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/50">
+            <tbody className="divide-y divide-border-subtle">
               {requests.map((r, i) => {
                 const ok = !r.status || r.status === "ok" || r.status === "success";
                 return (
-                  <tr key={i} className="hover:bg-bg-subtle transition-colors">
-                    <td className="py-1.5">
-                      <span className={`block w-1.5 h-1.5 rounded-full ${ok ? "bg-success" : "bg-error"}`} />
+                  <tr key={i} className="hover:bg-surface-2 transition-colors">
+                    <td className="py-2 pl-3 pr-1">
+                      <span
+                        className={`block w-1.5 h-1.5 rounded-full ${ok ? "bg-signal" : "bg-fail"}`}
+                        title={ok ? "OK" : "Error"}
+                      />
                     </td>
-                    <td className="py-1.5 font-mono truncate max-w-[120px]" title={r.model}>{r.model}</td>
-                    <td className="py-1.5 text-right whitespace-nowrap">
-                      <span className="text-primary">{fmt(r.promptTokens)}↑</span>
+                    <td className="py-2 px-2 font-mono text-[11px] truncate max-w-[130px] text-ink" title={r.model}>
+                      {r.model}
+                    </td>
+                    <td className="py-2 px-2 text-right font-mono text-[11px] tabular-nums whitespace-nowrap">
+                      <span className="text-signal">{fmt(r.promptTokens)}↑</span>
                       {" "}
-                      <span className="text-success">{fmt(r.completionTokens)}↓</span>
+                      <span className="text-ink">{fmt(r.completionTokens)}↓</span>
                     </td>
-                    <td className="py-1.5 text-right text-text-muted whitespace-nowrap"><TimeAgo timestamp={r.timestamp} /></td>
+                    <td className="py-2 pr-3 pl-2 text-right font-mono text-[10px] text-muted whitespace-nowrap">
+                      <TimeAgo timestamp={r.timestamp} />
+                    </td>
                   </tr>
                 );
               })}
@@ -330,10 +340,10 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           ),
           renderDetailCells: (item) => (
             <>
-              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.rawModel}</td>
-              <td className="px-6 py-3"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="sm">{item.provider}</Badge></td>
-              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className={`px-4 py-2.5 font-medium transition-colors ${item.pending > 0 ? "text-signal" : "text-ink"}`}>{item.rawModel}</td>
+              <td className="px-4 py-2.5"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="xs">{item.provider}</Badge></td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -356,19 +366,19 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No account-specific usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-6 py-3 text-text-muted">—</td>
-              <td className="px-6 py-3 text-text-muted">—</td>
-              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-4 py-2.5 text-muted">—</td>
+              <td className="px-4 py-2.5 text-muted">—</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.accountName || `Account ${item.connectionId?.slice(0, 8)}...`}</td>
-              <td className={`px-6 py-3 font-medium transition-colors ${item.pending > 0 ? "text-primary" : ""}`}>{item.rawModel}</td>
-              <td className="px-6 py-3"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="sm">{item.provider}</Badge></td>
-              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className={`px-4 py-2.5 font-medium transition-colors ${item.pending > 0 ? "text-signal" : "text-ink"}`}>{item.accountName || `Account ${item.connectionId?.slice(0, 8)}...`}</td>
+              <td className={`px-4 py-2.5 font-medium transition-colors ${item.pending > 0 ? "text-signal" : "text-ink"}`}>{item.rawModel}</td>
+              <td className="px-4 py-2.5"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="xs">{item.provider}</Badge></td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -381,19 +391,19 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No API key usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-6 py-3 text-text-muted">—</td>
-              <td className="px-6 py-3 text-text-muted">—</td>
-              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-4 py-2.5 text-muted">—</td>
+              <td className="px-4 py-2.5 text-muted">—</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className="px-6 py-3 font-medium">{item.keyName}</td>
-              <td className="px-6 py-3">{item.rawModel}</td>
-              <td className="px-6 py-3"><Badge variant="neutral" size="sm">{item.provider}</Badge></td>
-              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-4 py-2.5 font-medium text-ink">{item.keyName}</td>
+              <td className="px-4 py-2.5 text-ink">{item.rawModel}</td>
+              <td className="px-4 py-2.5"><Badge variant="neutral" size="xs">{item.provider}</Badge></td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -407,19 +417,19 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No endpoint usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-6 py-3 text-text-muted">—</td>
-              <td className="px-6 py-3 text-text-muted">—</td>
-              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-4 py-2.5 text-muted">—</td>
+              <td className="px-4 py-2.5 text-muted">—</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className="px-6 py-3 font-medium font-mono text-sm">{item.endpoint}</td>
-              <td className="px-6 py-3">{item.rawModel}</td>
-              <td className="px-6 py-3"><Badge variant="neutral" size="sm">{item.provider}</Badge></td>
-              <td className="px-6 py-3 text-right">{fmt(item.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-4 py-2.5 font-medium font-mono text-xs text-ink">{item.endpoint}</td>
+              <td className="px-4 py-2.5 text-ink">{item.rawModel}</td>
+              <td className="px-4 py-2.5"><Badge variant="neutral" size="xs">{item.provider}</Badge></td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -483,23 +493,33 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           <select
             value={tableView}
             onChange={(e) => setTableView(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium text-text-main focus:outline-none focus:ring-2 focus:ring-primary/50 sm:w-auto"
+            className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-signal/40 sm:w-auto"
             style={{ colorScheme: 'auto' }}
           >
             {TABLE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
           </select>
-          <div className="grid grid-cols-2 items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1 sm:flex">
+          <div className="inline-flex items-center rounded-md border border-rule bg-bg-subtle p-0.5 self-start sm:self-auto">
             <button
+              type="button"
               onClick={() => setViewMode("costs")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === "costs" ? "bg-primary text-white shadow-sm" : "text-text-muted hover:text-text hover:bg-bg-hover"}`}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                viewMode === "costs"
+                  ? "bg-surface text-ink shadow-xs"
+                  : "text-muted hover:text-ink hover:bg-surface-2"
+              }`}
             >
               Costs
             </button>
             <button
+              type="button"
               onClick={() => setViewMode("tokens")}
-              className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${viewMode === "tokens" ? "bg-primary text-white shadow-sm" : "text-text-muted hover:text-text hover:bg-bg-hover"}`}
+              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                viewMode === "tokens"
+                  ? "bg-surface text-ink shadow-xs"
+                  : "text-muted hover:text-ink hover:bg-surface-2"
+              }`}
             >
               Tokens
             </button>

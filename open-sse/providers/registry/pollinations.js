@@ -9,7 +9,7 @@ export default {
     textIcon: "PO",
     website: "https://pollinations.ai",
     notice: {
-      text: "Free keyless tier (anonymous): openai-fast and similar community models. Premium models (claude, gemini, midijourney…) require an optional API token from enter.pollinations.ai. Rate limits apply.",
+      text: "Real keyless free tier: openai-fast and similar community models work without an API key. Premium models need an optional token from enter.pollinations.ai. Rate limits apply.",
       signupUrl: "https://enter.pollinations.ai",
     },
   },

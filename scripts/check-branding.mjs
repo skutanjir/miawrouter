@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * scripts/check-branding.mjs — MiawRouter Phase 8 branding gate (docs/REBRAND.md).
+ * scripts/check-branding.mjs — MiawRouter Phase 8 branding gate.
  *
  * Scans the tree for pre-rebrand identifiers, excluding build artifacts and
- * binary assets exactly like the §1 inventory command. Hits land in three
+ * binary assets exactly like the inventory command. Hits land in three
  * buckets:
  *
  *   - forbidden:  old terms in rebrand-target files. Any hit fails the gate.
- *   - allowlisted: hits inside the permanent provenance files (§3). Whole-file
+ *   - allowlisted: hits inside permanent provenance files. Whole-file
  *                  skip, mirroring "make check-branding must skip them".
  *   - compat:     hits that overlap a read-compat alias of the same file
- *                  (§4 pinned upstream contract, §5 temporary read-compat).
+ *                  (pinned upstream contract, temporary read-compat).
  *                  Scoped per file + term: an old term is tolerated in a compat
  *                  file only where an allowed term's match overlaps it — never
  *                  globally because one file needs one occurrence.
@@ -26,7 +26,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, extname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-/** Scan terms, mirroring docs/REBRAND.md §1. Case-insensitive like `rg -i`; alternatives overlap by design. */
+/** Scan terms. Case-insensitive like `rg -i`; alternatives overlap by design. */
 export const TERMS = [
   { name: "9router", re: /9router/gi },
   { name: "9r_", re: /9r_/gi },
@@ -41,23 +41,16 @@ export const TERMS = [
 ];
 
 /**
- * Permanent provenance allowlist (docs/REBRAND.md §3). Exact relative paths;
- * the `docs/superpowers/**` subtree is matched by prefix. These files are
- * skipped wholesale: any hit they contain is reported as allowlisted, never
- * forbidden. Do not add rebrand targets here — provenance means history that
+ * Permanent provenance allowlist. Exact relative paths.
+ * These files are skipped wholesale: any hit they contain is reported as allowlisted,
+ * never forbidden. Do not add rebrand targets here — provenance means history that
  * must keep its old names, not files that were merely not rebranded yet.
  */
 export const PROVENANCE_ALLOWLIST = [
   "LICENSE",
   "cli/LICENSE",
-  "docs/UPSTREAM.md",
-  "docs/REBRAND.md",
-  "docs/AUDIT.md",
-  "docs/PHASE1-BASELINE-TRIAGE.md",
-  "docs/CHANGELOG.md",
   "CHANGELOG.md",
   "MIAWROUTER_CLONE_PLAYBOOK.md",
-  "docs/superpowers/**", // subtree, prefix-matched
   "scripts/check-branding.mjs", // the gate itself: defines every scan term it searches for
   "MIAWROUTER_AGENT_PROMPT_V2.md", // frozen planning/provenance: names the upstream it studied
   // Gate self-tests: they necessarily embed every scan term as test fixtures.
@@ -66,7 +59,7 @@ export const PROVENANCE_ALLOWLIST = [
 ];
 
 /**
- * Per-file read-compat aliases (docs/REBRAND.md §4–§5). Key: relative path.
+ * Per-file read-compat aliases. Key: relative path.
  * Value: terms that file is allowed to keep. A hit is compat iff its span
  * overlaps a match of one of those terms on the same line; any other old term
  * in the same file is still forbidden. The doc's line references are kept in
@@ -145,6 +138,7 @@ export const COMPAT_ALIASES = {
   // §5: localStorage preset keys — new writes miawrouter, legacy 9router read.
   "src/app/(dashboard)/dashboard/cli-tools/components/BaseUrlSelect.js": ["9router"],
   "src/app/(dashboard)/dashboard/cli-tools/components/EndpointPresetControl.js": ["9router"],
+  "src/app/(dashboard)/dashboard/cli-tools/CLIToolsPageClient.js": ["9router"],
   // §5 (Phase 8 UI batch): ToolCard components keep the has9Router contract field
   // and legacy config-slot reads (custom:9Router ids, "9router" provider keys,
   // "9router/" model prefixes); new writes emit miawrouter forms.
@@ -192,7 +186,7 @@ export const COMPAT_ALIASES = {
   "tests/unit/cli-tools-status.test.js": ["9router"],
 };
 
-/** Directory basenames excluded at any depth (docs/REBRAND.md §1). */
+/** Directory basenames excluded at any depth. */
 const EXCLUDED_DIRS = new Set([
   "node_modules",
   "graphify-out",
@@ -203,7 +197,7 @@ const EXCLUDED_DIRS = new Set([
 ]);
 /** File basenames excluded at any depth. */
 const EXCLUDED_FILES = new Set(["package-lock.json"]);
-/** Binary / map asset extensions (docs/REBRAND.md §1). */
+/** Binary / map asset extensions. */
 const EXCLUDED_EXTENSIONS = new Set([
   ".map", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".avif", ".bmp",
 ]);
@@ -255,7 +249,7 @@ function trimSnippet(line, max = 120) {
 }
 
 /**
- * Per-file exact line-pattern compat (docs/REBRAND.md §5, README case).
+ * Per-file exact line-pattern compat (README case).
  * Unlike COMPAT_ALIASES (term-span overlap), these match a whole line against
  * a regex: a hit is compat only when its entire line matches one of the
  * patterns for that file. This allows the READMEs to keep exactly the
@@ -425,12 +419,12 @@ function main() {
     process.exit(2);
   }
 
-  console.log(`MiawRouter branding gate (docs/REBRAND.md) — ${root}`);
+  console.log(`MiawRouter branding gate — ${root}`);
   console.log(`Scanned ${result.scannedFiles} files with hits.`);
 
   printBucket("FORBIDDEN (gate fails on any):", result.forbidden, true);
-  printBucket("ALLOWED — permanent provenance (REBRAND.md §3):", result.allowlisted, false);
-  printBucket("ALLOWED — read-compat aliases (REBRAND.md §4–§5):", result.compat, false);
+  printBucket("ALLOWED — permanent provenance:", result.allowlisted, false);
+  printBucket("ALLOWED — read-compat aliases:", result.compat, false);
 
   const { counts } = result;
   console.log(
@@ -440,10 +434,10 @@ function main() {
   );
 
   if (result.ok) {
-    console.log("PASS: no forbidden branding hits. See docs/REBRAND.md §7.");
+    console.log("PASS: no forbidden branding hits.");
     process.exit(0);
   }
-  console.error("FAIL: forbidden branding hits remain. Rebrand per docs/REBRAND.md §2/§6; expected survivors are §3–§5.");
+  console.error("FAIL: forbidden branding hits remain.");
   process.exit(1);
 }
 

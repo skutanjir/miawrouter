@@ -45,27 +45,27 @@ function formatResetTimeDisplay(resetTime) {
 function getColorClasses(remainingPercentage) {
   if (remainingPercentage > 70) {
     return {
-      text: "text-green-600 dark:text-green-400",
-      bg: "bg-green-500",
-      bgLight: "bg-green-500/10",
-      emoji: "🟢",
+      text: "text-success",
+      bg: "bg-success",
+      bgLight: "bg-success/15",
+      dot: "bg-success",
     };
   }
 
   if (remainingPercentage >= 30) {
     return {
-      text: "text-yellow-600 dark:text-yellow-400",
-      bg: "bg-yellow-500",
-      bgLight: "bg-yellow-500/10",
-      emoji: "🟡",
+      text: "text-warn",
+      bg: "bg-warn",
+      bgLight: "bg-warn/15",
+      dot: "bg-warn",
     };
   }
 
   return {
-    text: "text-red-600 dark:text-red-400",
-    bg: "bg-red-500",
-    bgLight: "bg-red-500/10",
-    emoji: "🔴",
+    text: "text-fail",
+    bg: "bg-fail",
+    bgLight: "bg-fail/15",
+    dot: "bg-fail",
   };
 }
 
@@ -210,7 +210,7 @@ export default function QuotaTable({
   return (
     <div className="space-y-2">
       {provider === "antigravity" && antigravityGroups.length > 0 && (
-        <div className="space-y-1.5 rounded-lg border border-black/10 bg-black/[0.02] p-1.5 dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="space-y-1.5 rounded-lg border border-border-subtle bg-surface-2/60 p-1.5">
           <div className="flex items-center gap-1 overflow-x-auto">
             <span className="material-symbols-outlined px-1 text-[14px] text-text-muted">tune</span>
             {antigravityGroups.map((group) => (
@@ -221,7 +221,7 @@ export default function QuotaTable({
                   setSelectedFamily(group.family);
                   setSelectedWindow(group.windows[0]?.window || null);
                 }}
-                className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${activeFamily?.family === group.family ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-black/5 hover:text-text-primary dark:hover:bg-white/5"}`}
+                className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${activeFamily?.family === group.family ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-surface-3 hover:text-text-primary"}`}
               >
                 {ANTIGRAVITY_FAMILY_LABELS[group.family]}
                 <span className="ml-1 opacity-70">
@@ -231,13 +231,13 @@ export default function QuotaTable({
             ))}
           </div>
           {activeFamily && activeFamily.windows.length > 1 && (
-            <div className="flex items-center gap-1 border-t border-black/5 pt-1.5 dark:border-white/5">
+            <div className="flex items-center gap-1 border-t border-border-subtle pt-1.5">
               {activeFamily.windows.map((group) => (
                 <button
                   key={group.window}
                   type="button"
                   onClick={() => setSelectedWindow(group.window)}
-                  className={`rounded-md px-2 py-1 text-[10px] transition-colors ${activeWindow?.window === group.window ? "bg-surface-2 font-medium text-text-primary" : "text-text-muted hover:bg-black/5 dark:hover:bg-white/5"}`}
+                  className={`rounded-md px-2 py-1 text-[10px] transition-colors ${activeWindow?.window === group.window ? "bg-surface-3 font-medium text-text-primary" : "text-text-muted hover:bg-surface-2"}`}
                 >
                   {ANTIGRAVITY_WINDOW_LABELS[group.window] || "Lainnya"}
                   <span className="ml-1 opacity-70">{group.rows.length}</span>
@@ -253,7 +253,7 @@ export default function QuotaTable({
           {displayedQuotas.length} quota{displayedQuotas.length > 1 ? "s" : ""}
         </div>
         {showSortLabel && (
-          <div className="rounded-md border border-black/10 bg-black/[0.02] px-2 py-1 text-[10px] text-text-muted dark:border-white/10 dark:bg-white/[0.03]">
+          <div className="rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[10px] text-text-muted">
             {sortLabel}
           </div>
         )}
@@ -273,11 +273,11 @@ export default function QuotaTable({
           return (
             <div
               key={`${quota.name}-${quota.index}`}
-              className={`flex items-center gap-2 border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${cellPad}`}
+              className={`flex items-center gap-2 border-b border-border-subtle hover:bg-surface-2/50 transition-colors ${cellPad}`}
             >
               {/* Name */}
-              <div className="flex w-36 min-w-0 items-center gap-1.5">
-                <span className="text-[10px] shrink-0">{colors.emoji}</span>
+              <div className="flex w-36 min-w-0 items-center gap-2">
+                <span className={`size-1.5 shrink-0 rounded-full ${colors.dot}`} aria-hidden="true" />
                 <span className={`${nameText} font-medium text-text-primary truncate`}>
                   {quota.name}
                 </span>
@@ -285,9 +285,7 @@ export default function QuotaTable({
 
               {/* Progress + used/total */}
               <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
-                <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden border ${colors.bgLight} ${
-                  quota.remaining === 0 ? "border-black/10 dark:border-white/10" : "border-transparent"
-                }`}>
+                <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden ${colors.bgLight}`}>
                   <div
                     className={`h-full transition-all duration-300 ${colors.bg}`}
                     style={{ width: `${Math.min(quota.remaining, 100)}%` }}
@@ -341,7 +339,7 @@ export default function QuotaTable({
                 <button
                   type="button"
                   onClick={() => onHideQuota(quota)}
-                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-black/5 hover:text-text-primary dark:hover:bg-white/5"
+                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-primary"
                   title="Hide this quota row"
                   aria-label={`Hide quota ${quota.name}`}
                 >
@@ -356,7 +354,7 @@ export default function QuotaTable({
       </div>
 
       {totalPages > 1 && (
-        <div className="rounded-md border border-black/10 bg-black/[0.02] px-2 py-1.5 dark:border-white/10 dark:bg-white/[0.03]">
+        <div className="rounded-md border border-border-subtle bg-surface-2/60 px-2 py-1.5">
           <div className="flex items-center justify-between gap-2 text-[10px] text-text-muted">
             <span>
               Showing {pageStart}-{pageEnd} of {displayedQuotas.length}
@@ -370,7 +368,7 @@ export default function QuotaTable({
               type="button"
               onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
               disabled={page === 1}
-              className="flex h-6 items-center rounded-md border border-black/10 px-2 text-[10px] text-text-primary transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/5"
+              className="flex h-6 items-center rounded-md border border-border-subtle px-2 text-[10px] text-text-primary transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Prev
             </button>
@@ -378,7 +376,7 @@ export default function QuotaTable({
               type="button"
               onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
               disabled={page === totalPages}
-              className="flex h-6 items-center rounded-md border border-black/10 px-2 text-[10px] text-text-primary transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/10 dark:hover:bg-white/5"
+              className="flex h-6 items-center rounded-md border border-border-subtle px-2 text-[10px] text-text-primary transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
             </button>

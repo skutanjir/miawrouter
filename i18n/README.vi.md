@@ -1209,7 +1209,7 @@ Hành vi dự kiến từ việc xác thực gần đây:
 8. Sử dụng/log được ghi lại (`src/lib/usageDb.js`).
 9. Dự phòng áp dụng trên lỗi nhà cung cấp/tài khoản/mô hình theo quy tắc combo.
 
-Tài liệu tham khảo kiến trúc đầy đủ: [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
+Tài liệu tham khảo kiến trúc đầy đủ: `ARCHITECTURE.md`
 
 ---
 

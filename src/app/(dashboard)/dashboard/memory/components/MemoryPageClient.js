@@ -151,23 +151,23 @@ export default function MemoryPageClient() {
           padding="sm"
           className={isHealthy ? "" : "border-error/30"}
         >
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <Badge variant={isHealthy ? "success" : "error"} dot size="sm">
               {isHealthy ? "Healthy" : "Degraded"}
             </Badge>
             {health.driver && (
-              <span className="text-xs text-text-muted">
-                Driver: <span className="font-medium text-text-main">{health.driver}</span>
+              <span className="text-xs font-mono text-text-muted">
+                Driver: <span className="font-semibold text-text-main">{health.driver}</span>
               </span>
             )}
             {typeof health.entries === "number" && (
-              <span className="text-xs text-text-muted">
-                Entries: <span className="font-medium text-text-main">{health.entries}</span>
+              <span className="text-xs font-mono text-text-muted">
+                Entries: <span className="font-semibold text-text-main">{health.entries}</span>
               </span>
             )}
             {typeof health.indexed === "number" && (
-              <span className="text-xs text-text-muted">
-                Indexed: <span className="font-medium text-text-main">{health.indexed}</span>
+              <span className="text-xs font-mono text-text-muted">
+                Indexed: <span className="font-semibold text-text-main">{health.indexed}</span>
               </span>
             )}
           </div>

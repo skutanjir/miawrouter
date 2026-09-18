@@ -2,6 +2,15 @@
 
 import { cn } from "@/shared/utils/cn";
 
+const variants = {
+  default: "bg-surface border-border-subtle",
+  metric: "bg-surface border-border-subtle",
+  section: "bg-surface-2 border-border-subtle",
+  interactive:
+    "bg-surface border-border hover:border-primary/50 hover:bg-surface-2 focus-within:border-primary focus-within:shadow-[var(--shadow-focus)]",
+  danger: "bg-surface border-danger/35",
+};
+
 export default function Card({
   children,
   title,
@@ -11,6 +20,7 @@ export default function Card({
   padding = "md",
   hover = false,
   elev = false,
+  variant = "default",
   className,
   ...props
 }) {
@@ -25,9 +35,12 @@ export default function Card({
   return (
     <div
       className={cn(
-        "bg-surface border border-border-subtle",
-        elev ? "rounded-[var(--radius-brand-lg)] shadow-[var(--shadow-elev)]" : "rounded-[var(--radius-brand)] shadow-[var(--shadow-soft)]",
-        hover && "hover:border-primary/40 transition-colors",
+        "border rounded-[var(--radius-brand)]",
+        variants[variant] || variants.default,
+        elev ? "rounded-[var(--radius-brand-lg)] shadow-[var(--shadow-elev)]" : "shadow-[var(--shadow-soft)]",
+        (hover || variant === "interactive") && "transition-colors",
+        hover && "hover:border-primary/40",
+        variant === "metric" && "tabular-nums",
         paddings[padding],
         className
       )}

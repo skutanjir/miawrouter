@@ -37,20 +37,6 @@ export default function ProviderLimitCard({
     }
   };
 
-  // Get provider info from config
-  const getProviderColor = () => {
-    const colors = {
-      github: "#000000",
-      antigravity: "#4285F4",
-      codex: "#10A37F",
-      kiro: "#FF9900",
-      qoder: "#EC4899",
-      claude: "#D97757",
-    };
-    return colors[provider?.toLowerCase()] || "#6B7280";
-  };
-
-  const providerColor = getProviderColor();
   const planVariant = planVariants[plan?.toLowerCase()] || "default";
 
   return (
@@ -60,8 +46,7 @@ export default function ProviderLimitCard({
         <div className="flex items-center gap-3">
           {/* Provider Logo */}
           <div
-            className="size-10 rounded-lg flex items-center justify-center p-1.5"
-            style={{ backgroundColor: `${providerColor}15` }}
+            className="size-10 rounded-lg flex items-center justify-center p-1.5 bg-surface-2 border border-border-subtle"
           >
             <ProviderIcon
               src={`/providers/${provider}.png`}
@@ -69,7 +54,7 @@ export default function ProviderLimitCard({
               size={40}
               className="object-contain rounded-lg"
               fallbackText={provider?.slice(0, 2).toUpperCase() || "PR"}
-              fallbackColor={providerColor}
+              fallbackColor="var(--color-text-muted)"
             />
           </div>
 
@@ -92,11 +77,11 @@ export default function ProviderLimitCard({
         <button
           onClick={handleRefresh}
           disabled={refreshing || loading}
-          className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="p-2 rounded-lg hover:bg-surface-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-text-muted hover:text-text-primary"
           title="Refresh quota"
         >
           <span
-            className={`material-symbols-outlined text-[20px] text-text-muted ${
+            className={`material-symbols-outlined text-[20px] ${
               refreshing || loading ? "animate-spin" : ""
             }`}
           >

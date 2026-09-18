@@ -11,13 +11,8 @@
 </p>
 
 <p align="center">
-  <a href="i18n/README.id-ID.md">Bahasa Indonesia</a> ·
-  <a href="i18n/README.zh-CN.md">中文</a> ·
-  <a href="i18n/README.ja-JP.md">日本語</a> ·
-  <a href="i18n/README.vi.md">Tiếng Việt</a> ·
-  <a href="i18n/README.th.md">ไทย</a> ·
-  <a href="i18n/README.ru.md">Русский</a> ·
-  <a href="i18n/README.fa_IR.md">فارسی</a>
+  <a href="README.md">English</a> ·
+  <a href="i18n/README.id-ID.md">Bahasa Indonesia</a>
 </p>
 
 MiawRouter is a local AI gateway. It runs on your machine, serves one OpenAI-compatible endpoint at `/v1`, and routes each request to a provider driver in `open-sse/providers/registry/`. It rewrites request and response formats between providers, fails over to the next account or model in a combo when one breaks, and serves a dashboard on the same port.
@@ -269,7 +264,6 @@ It walks the tree and fails on any leftover reference to the project this codeba
 
 ## Documentation
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): request lifecycle, combo and OAuth fallback flows, data model, deployment topology, and failure modes.
 - [SECURITY.md](SECURITY.md): threat model and vulnerability disclosure.
 - [DOCKER.md](DOCKER.md): container deployment detail.
 - [CONTRIBUTING.md](CONTRIBUTING.md): development workflow and how to add a provider.

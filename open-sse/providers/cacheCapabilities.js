@@ -109,6 +109,13 @@ const BY_FORMAT = Object.freeze({
     evidence: "code",
     note: "OpenAI automatic caching; cached tokens are a subset of input tokens.",
   },
+  commandcode: {
+    mode: CACHE_MODE.UNKNOWN,
+    marker: CACHE_MARKER.NONE,
+    usage: Object.freeze({}),
+    evidence: "code",
+    note: "CommandCode upstream /alpha/generate; no request-side cache marker support.",
+  },
 });
 
 // Provider overrides win over the format default.

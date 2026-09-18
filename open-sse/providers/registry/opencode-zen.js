@@ -17,7 +17,7 @@ export default {
     textIcon: "OZ",
     website: "https://opencode.ai/docs/zen/",
     notice: {
-      text: "OpenCode Zen 100% Free models: DeepSeek V4 Flash, Big Pickle, MiMo V2.5, Ling 3.0 Flash Fin, Nemotron 3 Ultra, Nemotron 3.5 Lightning, Muse Spark 1.2 & 1.3 Contributor.",
+      text: "Requires an OpenCode Zen API key from opencode.ai/auth (not keyless). Free-tier Zen models (DeepSeek V4 Flash, Big Pickle, MiMo V2.5, Ling 3.0 Flash Fin, Nemotron 3 Ultra / 3.5 Lightning, Muse Spark Contributor) still need that key — they are not usable without it.",
       apiKeyUrl: "https://opencode.ai/auth",
     },
   },

@@ -13,14 +13,14 @@ const AUTH_VARIANT = {
   "public-api-key": "success",
   dashboard: "primary",
   "local-only": "warning",
-  experimental: "info",
+  "experimental": "info",
 };
 
 const AUTH_ICON = {
   "public-api-key": "key",
   dashboard: "lock",
   "local-only": "vpn_lock",
-  experimental: "science",
+  "experimental": "science",
 };
 
 const METHOD_COLORS = {
@@ -54,14 +54,14 @@ function EndpointCard({ endpoint }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <Card padding="sm" className="overflow-hidden">
+    <div className="p-3 rounded-lg border border-border-subtle bg-surface hover:border-border transition-colors">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <code className={cn("text-xs font-bold font-mono", METHOD_COLORS[endpoint.method] || "text-text-main")}>
+            <code className={cn("text-xs font-bold font-mono px-1.5 py-0.5 rounded bg-surface-2", METHOD_COLORS[endpoint.method] || "text-text-main")}>
               {endpoint.method}
             </code>
-            <code className="text-xs font-mono text-text-main bg-surface-2 px-1.5 py-0.5 rounded border border-border-subtle">
+            <code className="text-xs font-mono text-text-main font-semibold">
               {endpoint.path}
             </code>
             <Badge variant={AUTH_VARIANT[endpoint.auth] || "default"} size="sm">
@@ -69,11 +69,15 @@ function EndpointCard({ endpoint }) {
               {endpoint.auth}
             </Badge>
             {endpoint.category && (
-              <Badge variant="default" size="sm">{endpoint.category}</Badge>
+              <span className="text-[10px] font-mono text-text-muted uppercase px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2">
+                {endpoint.category}
+              </span>
             )}
           </div>
-          <p className="text-xs text-text-muted mt-1">{endpoint.description}</p>
-          <p className="text-[11px] text-text-muted mt-0.5">{endpoint.capability}</p>
+          <p className="text-xs text-text-muted mt-1 leading-relaxed">{endpoint.description}</p>
+          {endpoint.capability && (
+            <p className="text-[11px] font-mono text-text-muted mt-0.5 opacity-80">{endpoint.capability}</p>
+          )}
         </div>
         <button
           onClick={() => setExpanded((v) => !v)}
@@ -105,22 +109,22 @@ function EndpointCard({ endpoint }) {
           </div>
 
           {/* Metadata */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
             <div>
               <span className="text-[10px] text-text-muted uppercase tracking-wider">ID</span>
               <p className="text-xs font-mono text-text-main mt-0.5">{endpoint.id}</p>
             </div>
             <div>
               <span className="text-[10px] text-text-muted uppercase tracking-wider">Auth</span>
-              <p className="text-xs text-text-main mt-0.5">{endpoint.auth}</p>
+              <p className="text-xs font-mono text-text-main mt-0.5">{endpoint.auth}</p>
             </div>
             <div>
               <span className="text-[10px] text-text-muted uppercase tracking-wider">Category</span>
-              <p className="text-xs text-text-main mt-0.5">{endpoint.category}</p>
+              <p className="text-xs font-mono text-text-main mt-0.5">{endpoint.category}</p>
             </div>
             <div>
               <span className="text-[10px] text-text-muted uppercase tracking-wider">Status</span>
-              <p className="text-xs text-text-main mt-0.5">{endpoint.status}</p>
+              <p className="text-xs font-mono text-text-main mt-0.5">{endpoint.status}</p>
             </div>
           </div>
 
@@ -138,7 +142,7 @@ function EndpointCard({ endpoint }) {
           )}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 

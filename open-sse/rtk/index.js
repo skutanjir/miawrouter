@@ -67,7 +67,8 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
       if (!Array.isArray(msg.content)) continue;
 
       // Shape 1b: OpenAI tool message — { role:"tool", content:[{type:"text", text:"..."}] }
-      if (msg.role === "tool") {
+      // NOTE: Do not consume role: "tool" if content contains CommandCode or Claude structured tool results
+      if (msg.role === "tool" && msg.content.every(p => p && p.type === "text")) {
         for (let k = 0; k < msg.content.length; k++) {
           const part = msg.content[k];
           if (part && part.type === "text" && typeof part.text === "string") {
@@ -77,10 +78,34 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
         continue;
       }
 
-      // Shape 2/3: blocks array with tool_result entries
+      // Shape 2/3/CommandCode: blocks array with tool_result / tool-result entries
       for (let j = 0; j < msg.content.length; j++) {
         const block = msg.content[j];
-        if (!block || block.type !== "tool_result") continue;
+        if (!block) continue;
+
+        // CommandCode hyphenated tool-result block: { type: "tool-result", output: { type: "text", value }, result }
+        if (block.type === "tool-result") {
+          if (block.is_error === true || block.isError === true || block.status === "error") continue; // preserve error traces
+
+          if (block.output && typeof block.output === "object" && typeof block.output.value === "string") {
+            block.output.value = compressText(block.output.value, stats, "commandcode-tool-result", minCompressSize);
+            if (typeof block.result === "string") {
+              block.result = block.output.value;
+            }
+          } else if (typeof block.output === "string") {
+            block.output = compressText(block.output, stats, "commandcode-tool-result", minCompressSize);
+            if (typeof block.result === "string") {
+              block.result = block.output;
+            }
+          } else if (typeof block.result === "string") {
+            block.result = compressText(block.result, stats, "commandcode-tool-result", minCompressSize);
+          } else if (typeof block.content === "string") {
+            block.content = compressText(block.content, stats, "commandcode-tool-result", minCompressSize);
+          }
+          continue;
+        }
+
+        if (block.type !== "tool_result") continue;
         if (block.is_error === true) continue; // preserve error traces
 
         if (typeof block.content === "string") {

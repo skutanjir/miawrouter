@@ -7,9 +7,21 @@ const NPM_PACKAGE_NAME = "miawrouter";
 const VERSION_CACHE_TTL_MS = 3600000; // cache npm latest lookup for 1h
 
 // Survive hot reload; one cache per process
-const versionCache = (global.__npmVersionCache ??= { value: null, fetchedAt: 0 });
+const versionCache = (global.__npmVersionCache ??= {
+  value: null,
+  fetchedAt: 0,
+  inFlight: false,
+});
 
-// Fetch latest version from npm registry
+function skipUpdateCheck() {
+  // CLI --skip-update and common env gates — never block the dashboard on npm.
+  if (process.env.MIAWROUTER_SKIP_UPDATE === "1") return true;
+  if (process.env.SKIP_UPDATE === "1") return true;
+  if (process.argv.includes("--skip-update")) return true;
+  return false;
+}
+
+// Fetch latest version from npm registry (never awaited on the request path)
 function fetchLatestVersion() {
   return new Promise((resolve) => {
     const req = https.get(
@@ -28,7 +40,10 @@ function fetchLatestVersion() {
       }
     );
     req.on("error", () => resolve(null));
-    req.on("timeout", () => { req.destroy(); resolve(null); });
+    req.on("timeout", () => {
+      req.destroy();
+      resolve(null);
+    });
   });
 }
 
@@ -42,16 +57,25 @@ function compareVersions(a, b) {
   return 0;
 }
 
-async function getLatestVersionCached() {
-  if (versionCache.value && Date.now() - versionCache.fetchedAt < VERSION_CACHE_TTL_MS) {
-    return versionCache.value;
-  }
-  const latest = await fetchLatestVersion();
-  if (latest) {
-    versionCache.value = latest;
-    versionCache.fetchedAt = Date.now();
-  }
-  return latest;
+function scheduleNpmLookup() {
+  if (skipUpdateCheck()) return;
+  if (versionCache.inFlight) return;
+  const fresh =
+    versionCache.value &&
+    Date.now() - versionCache.fetchedAt < VERSION_CACHE_TTL_MS;
+  if (fresh) return;
+
+  versionCache.inFlight = true;
+  fetchLatestVersion()
+    .then((latest) => {
+      if (latest) {
+        versionCache.value = latest;
+        versionCache.fetchedAt = Date.now();
+      }
+    })
+    .finally(() => {
+      versionCache.inFlight = false;
+    });
 }
 
 function resolveCurrentVersion() {
@@ -66,14 +90,29 @@ function resolveCurrentVersion() {
         if (data.version) return data.version;
       }
     }
-  } catch {}
+  } catch {
+    /* fall through to pkg.version */
+  }
   return pkg.version;
 }
 
+/**
+ * Always return immediately with currentVersion (+ cached latest if any).
+ * npm registry lookup runs in the background and never blocks refresh.
+ */
 export async function GET() {
-  const latestVersion = await getLatestVersionCached();
   const currentVersion = resolveCurrentVersion();
-  const hasUpdate = latestVersion ? compareVersions(latestVersion, currentVersion) > 0 : false;
+  scheduleNpmLookup();
 
-  return Response.json({ currentVersion, latestVersion, hasUpdate });
+  const latestVersion = versionCache.value;
+  const hasUpdate = latestVersion
+    ? compareVersions(latestVersion, currentVersion) > 0
+    : false;
+
+  return Response.json({
+    currentVersion,
+    latestVersion,
+    hasUpdate,
+    checking: versionCache.inFlight === true,
+  });
 }

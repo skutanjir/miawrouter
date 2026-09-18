@@ -9,7 +9,7 @@
 
   [🚀 Mulai Cepat](#-mulai-cepat) • [💡 Fitur](#-fitur-utama) • [📖 Setup](#-panduan-setup) • [🌐 Website](https://miawrouter.web.id)
 
-  [🇻🇳 Tiếng Việt](./README.vi.md) • [🇨🇳 中文](./README.zh-CN.md) • [🇯🇵 日本語](./README.ja-JP.md) • [🇮🇩 Bahasa Indonesia](./README.id-ID.md)
+  [English](../README.md) • [🇮🇩 Bahasa Indonesia](./README.id-ID.md)
 </div>
 
 ---

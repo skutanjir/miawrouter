@@ -48,6 +48,28 @@ describe("SQLite FTS5 memory repository", () => {
     expect(results.map((row) => row.content)).toEqual(["alpha private launch"]);
   });
 
+  it("returns all user memories across sessions when sessionId is omitted", async () => {
+    await memory.createMemory({ userId: "u1", sessionId: "s1", content: "first session memory" });
+    await memory.createMemory({ userId: "u1", sessionId: "s2", content: "second session memory" });
+    await memory.createMemory({ userId: "u2", sessionId: "s1", content: "other user memory" });
+
+    const listAll = await memory.listMemories({ userId: "u1" });
+    expect(listAll).toHaveLength(2);
+    expect(listAll.map((r) => r.content).sort()).toEqual(["first session memory", "second session memory"].sort());
+
+    const listExplicit = await memory.listMemories({ userId: "u1", sessionId: "s1" });
+    expect(listExplicit).toHaveLength(1);
+    expect(listExplicit[0].content).toBe("first session memory");
+
+    const searchAll = await memory.searchMemories({ userId: "u1", query: "memory" });
+    expect(searchAll).toHaveLength(2);
+    expect(searchAll.map((r) => r.content).sort()).toEqual(["first session memory", "second session memory"].sort());
+
+    const searchExplicit = await memory.searchMemories({ userId: "u1", sessionId: "s2", query: "memory" });
+    expect(searchExplicit).toHaveLength(1);
+    expect(searchExplicit[0].content).toBe("second session memory");
+  });
+
   it("reindexes and reports healthy index state", async () => {
     await memory.createMemory({ userId: "u1", sessionId: "", content: "global note" });
     expect(await memory.reindexMemories()).toEqual({ indexed: 1 });

@@ -63,8 +63,7 @@ function LayerCard({ layer, meta, hits, total, sub, rateLabel, title }) {
   const pct = pctOf(hits, total);
   return (
     <div
-      className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-chassis"
-      style={{ borderColor: "var(--color-rule)" }}
+      className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-surface border-border-subtle shadow-soft"
       title={title}
     >
       <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{meta.name}</span>
@@ -76,7 +75,7 @@ function LayerCard({ layer, meta, hits, total, sub, rateLabel, title }) {
         <span className="font-mono tabular-nums text-[10px] text-muted">{rateLabel}</span>
       </div>
       <div
-        className="flex h-2 w-full overflow-hidden rounded-full bg-surface-2"
+        className="flex h-1.5 w-full overflow-hidden rounded-full bg-surface-3"
         role="img"
         aria-label={pct === null ? `${meta.name}: no data` : `${meta.name} hit rate ${pct}%`}
       >
@@ -84,7 +83,7 @@ function LayerCard({ layer, meta, hits, total, sub, rateLabel, title }) {
           <span className="bg-signal" style={{ width: `${pct}%` }} aria-hidden="true" />
         )}
       </div>
-      <span className="font-mono tabular-nums text-[10px] text-muted">{sub}</span>
+      <span className="font-mono tabular-nums text-[10px] text-muted truncate">{sub}</span>
     </div>
   );
 }
@@ -325,8 +324,7 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
               sub={`${fmt(l2Hits ?? 0)} / ${fmt(l2Attempts ?? 0)} attempts`}
             />
             <div
-              className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-chassis"
-              style={{ borderColor: "var(--color-rule)" }}
+              className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-surface border-border-subtle shadow-soft"
               title="L3 content-address dedup — activity and bytes saved, not a provider cache hit"
             >
               <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{LAYER_META.L3.name}</span>
@@ -335,8 +333,8 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
                 <span className="font-mono tabular-nums text-lg font-semibold text-ink">{fmt(l3Refs ?? 0)}</span>
                 <span className="font-mono tabular-nums text-[10px] text-muted">refs</span>
               </div>
-              <div className="flex h-2 w-full rounded-full bg-surface-2" aria-hidden="true" />
-              <span className="font-mono tabular-nums text-[10px] text-muted">
+              <div className="flex h-1.5 w-full rounded-full bg-surface-3" aria-hidden="true" />
+              <span className="font-mono tabular-nums text-[10px] text-muted truncate">
                 {fmtBytes(l3Bytes ?? 0)} saved
               </span>
             </div>
@@ -344,31 +342,29 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
 
           {/* Context / bypass */}
           <div
-            className="flex flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-chassis"
-            style={{ borderColor: "var(--color-rule)" }}
+            className="flex flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-surface-2 border-border-subtle"
             role="group"
             aria-label="Cache bypass and dispatch context"
           >
             <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Context</span>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
               <span className="font-mono tabular-nums text-[11px] text-muted">
-                evaluated <span className="text-ink">{fmt(requests ?? 0)}</span>
+                evaluated <span className="text-ink font-medium">{fmt(requests ?? 0)}</span>
               </span>
               <span className="font-mono tabular-nums text-[11px] text-muted">
-                bypassed <span className="text-warn">{fmt(bypassed ?? 0)}</span>
+                bypassed <span className="text-warn font-medium">{fmt(bypassed ?? 0)}</span>
               </span>
               <span className="font-mono tabular-nums text-[11px] text-muted">
-                dispatched <span className="text-signal">{fmt(dispatched ?? 0)}</span>
+                dispatched <span className="text-signal font-medium">{fmt(dispatched ?? 0)}</span>
               </span>
             </div>
             {Object.keys(reasons).length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-[10px] text-muted">bypass reasons:</span>
                 {Object.entries(reasons).map(([reason, count]) => (
                   <span
                     key={reason}
-                    className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono tabular-nums text-[10px] text-muted"
-                    style={{ borderColor: "var(--color-rule)" }}
+                    className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-0.5 font-mono tabular-nums text-[10px] text-muted"
                   >
                     {reason} · {fmt(num(count) ?? 0)}
                   </span>
@@ -385,7 +381,7 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
                 No per-bucket timeline recorded for this period.
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={200} aria-label="Cache hits, misses and provider cache reads over time">
+              <ResponsiveContainer width="100%" height={260} aria-label="Cache hits, misses and provider cache reads over time">
                 <BarChart data={chartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
                   <XAxis
@@ -404,17 +400,19 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--color-bg)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: "8px",
+                      backgroundColor: "var(--color-panel, var(--color-surface))",
+                      border: "1px solid var(--color-rule, var(--color-border))",
+                      borderRadius: "var(--radius-brand, 8px)",
+                      color: "var(--color-ink, var(--color-text-main))",
                       fontSize: "12px",
+                      boxShadow: "var(--shadow-elevated)",
                     }}
                     formatter={(value, name) => [fmt(Number(value) || 0), name]}
                   />
                   <Legend wrapperStyle={{ fontSize: "11px" }} />
-                  <Bar dataKey="Local hits" stackId="a" fill="var(--color-signal)" />
-                  <Bar dataKey="Misses" stackId="a" fill="var(--color-rule)" />
-                  <Bar dataKey="Provider reads" stackId="a" fill="var(--color-warn)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Local hits" stackId="a" fill="var(--color-signal)" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="Misses" stackId="a" fill="var(--color-border)" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="Provider reads" stackId="a" fill="var(--color-warn)" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

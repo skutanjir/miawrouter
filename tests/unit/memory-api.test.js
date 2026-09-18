@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  */
 
 const mocks = vi.hoisted(() => ({
+  canAccess: vi.fn(),
   json: vi.fn((body, init) => ({ status: init?.status || 200, body })),
   createMemory: vi.fn(),
   listMemories: vi.fn(),
@@ -19,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getMemoryHealth: vi.fn(),
 }));
 
+vi.mock("@/dashboardGuard", () => ({ canAccessLocalOnlyRoute: mocks.canAccess }));
 vi.mock("next/server", () => ({ NextResponse: { json: mocks.json } }));
 vi.mock("@/lib/db/repos/memoryRepo.js", () => ({
   createMemory: mocks.createMemory,
@@ -54,7 +56,10 @@ const SAMPLE_MEMORY = {
 // ── GET /api/memory ───────────────────────────────────────────────
 
 describe("GET /api/memory", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canAccess.mockResolvedValue(true);
+  });
 
   it("lists memories for the given userId", async () => {
     mocks.listMemories.mockResolvedValue([SAMPLE_MEMORY]);
@@ -80,12 +85,46 @@ describe("GET /api/memory", () => {
     expect(lastStatus()).toBe(400);
     expect(lastBody().error).toMatch(/userId/i);
   });
+
+  it("omits sessionId when omitted from query parameters", async () => {
+    mocks.listMemories.mockResolvedValue([]);
+    await GET({ url: "http://localhost/api/memory?userId=default" });
+    expect(mocks.listMemories).toHaveBeenCalledWith({
+      userId: "default",
+      limit: 50,
+      offset: 0,
+    });
+    expect(mocks.listMemories.mock.calls[0][0]).not.toHaveProperty("sessionId");
+  });
+
+  it("passes explicit sessionId when present in query parameters", async () => {
+    mocks.listMemories.mockResolvedValue([]);
+    await GET({ url: "http://localhost/api/memory?userId=default&sessionId=sess_123" });
+    expect(mocks.listMemories).toHaveBeenCalledWith({
+      userId: "default",
+      sessionId: "sess_123",
+      limit: 50,
+      offset: 0,
+    });
+  });
 });
 
 // ── POST /api/memory ──────────────────────────────────────────────
 
 describe("POST /api/memory", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canAccess.mockResolvedValue(true);
+  });
+
+  it("returns 403 when local authentication fails", async () => {
+    mocks.canAccess.mockResolvedValue(false);
+    const request = { json: () => Promise.resolve({ userId: "default", content: "Test content" }) };
+    await POST(request);
+    expect(lastStatus()).toBe(403);
+    expect(lastBody().error).toMatch(/Local authentication required/i);
+    expect(mocks.createMemory).not.toHaveBeenCalled();
+  });
 
   it("creates a memory with content and returns it", async () => {
     mocks.createMemory.mockResolvedValue(SAMPLE_MEMORY);
@@ -137,7 +176,10 @@ describe("POST /api/memory", () => {
 // ── GET /api/memory/search ────────────────────────────────────────
 
 describe("GET /api/memory/search", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canAccess.mockResolvedValue(true);
+  });
 
   it("searches memories with the given query", async () => {
     mocks.searchMemories.mockResolvedValue([SAMPLE_MEMORY]);
@@ -159,12 +201,48 @@ describe("GET /api/memory/search", () => {
     await SearchGET({ url: "http://localhost/api/memory/search?userId=default" });
     expect(lastStatus()).toBe(400);
   });
+
+  it("omits sessionId when omitted from search query parameters", async () => {
+    mocks.searchMemories.mockResolvedValue([]);
+    await SearchGET({ url: "http://localhost/api/memory/search?userId=default&q=test" });
+    expect(mocks.searchMemories).toHaveBeenCalledWith({
+      userId: "default",
+      query: "test",
+      limit: 20,
+    });
+    expect(mocks.searchMemories.mock.calls[0][0]).not.toHaveProperty("sessionId");
+  });
+
+  it("passes explicit sessionId when present in search query parameters", async () => {
+    mocks.searchMemories.mockResolvedValue([]);
+    await SearchGET({ url: "http://localhost/api/memory/search?userId=default&sessionId=sess_abc&q=test" });
+    expect(mocks.searchMemories).toHaveBeenCalledWith({
+      userId: "default",
+      sessionId: "sess_abc",
+      query: "test",
+      limit: 20,
+    });
+  });
 });
 
 // ── DELETE /api/memory/[id] ───────────────────────────────────────
 
 describe("DELETE /api/memory/[id]", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canAccess.mockResolvedValue(true);
+  });
+
+  it("returns 403 when local authentication fails", async () => {
+    mocks.canAccess.mockResolvedValue(false);
+    await DELETE(
+      { url: "http://localhost/api/memory/mem_001?userId=default" },
+      { params: Promise.resolve({ id: "mem_001" }) }
+    );
+    expect(lastStatus()).toBe(403);
+    expect(lastBody().error).toMatch(/Local authentication required/i);
+    expect(mocks.deleteMemory).not.toHaveBeenCalled();
+  });
 
   it("deletes a memory by id", async () => {
     mocks.deleteMemory.mockResolvedValue(true);
@@ -199,7 +277,10 @@ describe("DELETE /api/memory/[id]", () => {
 // ── POST /api/memory/reindex ──────────────────────────────────────
 
 describe("POST /api/memory/reindex", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canAccess.mockResolvedValue(true);
+  });
 
   it("rebuilds the FTS index and returns count", async () => {
     mocks.reindexMemories.mockResolvedValue({ indexed: 42 });
@@ -229,7 +310,10 @@ describe("POST /api/memory/reindex", () => {
 // ── GET /api/memory/health ────────────────────────────────────────
 
 describe("GET /api/memory/health", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canAccess.mockResolvedValue(true);
+  });
 
   it("returns healthy status when entries match index", async () => {
     mocks.getMemoryHealth.mockResolvedValue({ ok: true, driver: "node:sqlite", entries: 5, indexed: 5 });

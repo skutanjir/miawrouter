@@ -54,11 +54,17 @@ export async function getMemory(id, scope) {
   ));
 }
 
-export async function listMemories({ userId, sessionId = "", limit = 50, offset = 0 }) {
+export async function listMemories({ userId, sessionId, limit = 50, offset = 0 }) {
   const db = await getAdapter();
+  if (sessionId !== undefined && sessionId !== null) {
+    return db.all(
+      `SELECT ${selectColumns} FROM memories WHERE userId = ? AND sessionId = ? ORDER BY updatedAt DESC, id LIMIT ? OFFSET ?`,
+      [userId, sessionId, limit, offset]
+    ).map(mapRow);
+  }
   return db.all(
-    `SELECT ${selectColumns} FROM memories WHERE userId = ? AND sessionId = ? ORDER BY updatedAt DESC, id LIMIT ? OFFSET ?`,
-    [userId, sessionId, limit, offset]
+    `SELECT ${selectColumns} FROM memories WHERE userId = ? ORDER BY updatedAt DESC, id LIMIT ? OFFSET ?`,
+    [userId, limit, offset]
   ).map(mapRow);
 }
 
@@ -84,15 +90,24 @@ export async function deleteMemory(id, scope) {
   ).changes > 0;
 }
 
-export async function searchMemories({ userId, sessionId = "", query, limit = 20 }) {
+export async function searchMemories({ userId, sessionId, query, limit = 20 }) {
   const db = await getAdapter();
   requireMemoryFts(db);
+  if (sessionId !== undefined && sessionId !== null) {
+    return db.all(
+      `SELECT ${selectColumns.replaceAll(/\b(id|userId|sessionId|content|metadata|createdAt|updatedAt)\b/g, "m.$1")}, bm25(memoryFts) AS score
+         FROM memoryFts JOIN memories m ON m.rowid = memoryFts.rowid
+        WHERE memoryFts MATCH ? AND m.userId = ? AND m.sessionId = ?
+        ORDER BY score, m.updatedAt DESC LIMIT ?`,
+      [ftsQuery(query), userId, sessionId, limit]
+    ).map(mapRow);
+  }
   return db.all(
     `SELECT ${selectColumns.replaceAll(/\b(id|userId|sessionId|content|metadata|createdAt|updatedAt)\b/g, "m.$1")}, bm25(memoryFts) AS score
        FROM memoryFts JOIN memories m ON m.rowid = memoryFts.rowid
-      WHERE memoryFts MATCH ? AND m.userId = ? AND m.sessionId = ?
+      WHERE memoryFts MATCH ? AND m.userId = ?
       ORDER BY score, m.updatedAt DESC LIMIT ?`,
-    [ftsQuery(query), userId, sessionId, limit]
+    [ftsQuery(query), userId, limit]
   ).map(mapRow);
 }
 

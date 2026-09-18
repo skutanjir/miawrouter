@@ -97,10 +97,10 @@ function stageBadge(stage, st, config) {
 function StageNode({ stage, badge, enabled, active, kind }) {
   return (
     <div
-      className={`tsw-chip relative flex shrink-0 flex-col items-center rounded-[5px] border bg-chassis px-1 py-0.5 ${enabled === false ? "opacity-60" : ""} ${active ? "tsw-node-act" : ""}`}
+      className={`tsw-chip relative flex shrink-0 flex-col items-center rounded-[var(--radius-brand)] border bg-surface px-1.5 py-1 transition-all duration-150 ${enabled === false ? "opacity-50" : ""} ${active ? "tsw-node-act" : ""}`}
       style={{
         minWidth: FUNNEL_W[stage.id],
-        borderColor: enabled === true ? "color-mix(in srgb,var(--color-signal) 50%,var(--color-rule))" : "var(--color-rule)",
+        borderColor: enabled === true ? "color-mix(in srgb,var(--color-signal) 40%,var(--color-border-subtle))" : "var(--color-border-subtle)",
       }}
       data-kind={kind}
       title={`${stage.label} — ${stage.sub} · ${badge}`}
@@ -111,7 +111,7 @@ function StageNode({ stage, badge, enabled, active, kind }) {
         </span>
       )}
       <span className="material-symbols-outlined text-[14px] leading-none text-muted" aria-hidden="true">{stage.icon}</span>
-      <span className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-muted">{stage.label}</span>
+      <span className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-muted mt-0.5">{stage.label}</span>
       <span className="max-w-full truncate font-mono tabular-nums text-[9px] leading-tight text-muted" title={badge}>
         {badge}
       </span>
@@ -122,13 +122,13 @@ function StageNode({ stage, badge, enabled, active, kind }) {
 function EndpointNode({ label, icon, stat, title, active, kind }) {
   return (
     <div
-      className={`flex min-w-[44px] shrink-0 flex-col items-center ${active ? "tsw-node-act" : ""}`}
+      className={`flex min-w-[48px] shrink-0 flex-col items-center rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-1.5 py-1 ${active ? "tsw-node-act" : ""}`}
       data-kind={kind}
       title={title}
     >
       <span className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-muted">{label}</span>
-      <span className="material-symbols-outlined text-[16px] leading-none text-muted" aria-hidden="true">{icon}</span>
-      <span className="max-w-[80px] truncate font-mono tabular-nums text-[9px] leading-tight text-muted">{stat}</span>
+      <span className="material-symbols-outlined text-[15px] leading-none text-muted mt-0.5" aria-hidden="true">{icon}</span>
+      <span className="max-w-[70px] truncate font-mono tabular-nums text-[9px] leading-tight text-muted mt-0.5">{stat}</span>
     </div>
   );
 }
@@ -417,16 +417,13 @@ export default function TokenSaverWire() {
 .tsw-packet{position:absolute;top:50%;left:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:9999px;background:var(--tsw-glow,var(--color-signal));box-shadow:0 0 6px color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 70%,transparent);animation:tsw-packet-run .6s ease-in-out 1}
 .tsw-packet::after{content:"";position:absolute;inset:0;border-radius:9999px;background:inherit;animation:tsw-packet-run .6s ease-in-out .15s 1}
 .tsw-seg-act{color:var(--tsw-glow,var(--color-signal));animation:tsw-seg-pulse 1.2s ease-in-out 1}
-.tsw-rail-idle{animation:tsw-rail-pulse 2.4s ease-in-out infinite} /* ambient rail shimmer — decorative only, no data implication */
-.tsw-node-act{background-color:color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 12%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 40%,transparent);transition:background-color .3s ease,box-shadow .3s ease}
-.tsw-badge{position:absolute;top:-9px;right:-4px;display:inline-flex;align-items:center;max-width:120px;padding:2px 5px;border-radius:9999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--color-chassis);border:1px solid color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 60%,transparent);color:var(--tsw-glow,var(--color-signal));box-shadow:var(--shadow-soft)}
-.tsw-log-entry{border-radius:3px;animation:tsw-log-reveal .8s ease-out 1}
+.tsw-node-act{background-color:color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 10%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 35%,transparent);transition:background-color .2s ease,box-shadow .2s ease}
+.tsw-badge{position:absolute;top:-9px;right:-4px;display:inline-flex;align-items:center;max-width:120px;padding:2px 5px;border-radius:9999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--color-panel, var(--color-surface));border:1px solid color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 40%,transparent);color:var(--tsw-glow,var(--color-signal));box-shadow:var(--shadow-soft)}
+.tsw-log-entry{border-radius:3px}
 .tsw-node-act[data-kind="ok"],.tsw-seg-act[data-kind="ok"]{--tsw-glow:var(--color-signal)}
 .tsw-node-act[data-kind="skip"],.tsw-seg-act[data-kind="skip"]{--tsw-glow:var(--color-warn)}
-@keyframes tsw-packet-run{0%{transform:translateX(-4px) scale(.5);opacity:0}40%{opacity:1}100%{transform:translateX(4px) scale(1);opacity:0}}
-@keyframes tsw-seg-pulse{0%,100%{opacity:.45}50%{opacity:1}}
-@keyframes tsw-rail-pulse{0%,100%{opacity:.3}50%{opacity:.6}}
-@keyframes tsw-log-reveal{from{background-color:color-mix(in srgb,var(--color-signal) 16%,transparent)}to{background-color:transparent}}
+@keyframes tsw-packet-run{0%{transform:translateX(-2px);opacity:0}40%{opacity:1}100%{transform:translateX(2px);opacity:0}}
+@keyframes tsw-seg-pulse{0%,100%{opacity:.6}50%{opacity:1}}
 @media (prefers-reduced-motion: reduce){.tsw-node-act,.tsw-seg-act,.tsw-packet,.tsw-packet::after,.tsw-rail-idle,.tsw-log-entry{animation:none!important}.tsw-node-act{transition:none}.tsw-packet{opacity:0}}`}</style>
       <div
         className="flex flex-col gap-2 rounded-[var(--radius-brand)] border p-2.5 bg-chassis"

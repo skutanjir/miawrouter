@@ -22,17 +22,17 @@ export default {
     textIcon: "OC",
     website: "https://opencode.ai",
     notice: {
-      text: "OpenCode's free models are gated to the OpenCode client itself and return 403 FreeTierError from any other router, so this provider is hidden. Use the OpenCode CLI for free models, connect OpenCode Zen with an API key, or pick a keyless free provider such as Pollinations (pol).",
+      text: "Not available through MiawRouter: OpenCode Free only works inside the OpenCode CLI/desktop. For free models here, connect OpenCode Zen with a Zen API key, or use a real keyless provider such as Pollinations (pol).",
       apiKeyUrl: "https://opencode.ai/auth",
     },
   },
   category: "free",
   noAuth: true,
+  // No spoof client headers here (defense-in-depth). Even if `hidden` is
+  // flipped later, do not reintroduce `x-opencode-client` / synthetic Bearer —
+  // executor fail-fast remains the gate; see open-sse/executors/opencode.js.
   transport: {
     baseUrl: "https://opencode.ai",
-    headers: {
-      "x-opencode-client": "desktop",
-    },
     noAuth: true,
   },
   models: [

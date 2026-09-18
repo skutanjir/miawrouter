@@ -13,6 +13,9 @@ export function injectSystemPrompt(body, format, prompt) {
     case FORMATS.CLAUDE:
       injectClaudeSystem(body, prompt);
       return;
+    case FORMATS.COMMANDCODE:
+      injectCommandCodeSystem(body, prompt);
+      return;
     case FORMATS.GEMINI:
     case FORMATS.GEMINI_CLI:
     case FORMATS.VERTEX:
@@ -81,6 +84,24 @@ function injectClaudeSystem(body, prompt) {
     return;
   }
   body.system = prompt;
+}
+
+// CommandCode shape: string at top-level body.system (and body.params.system if envelope present)
+// NEVER insert role:system into messages[]
+function injectCommandCodeSystem(body, prompt) {
+  if (typeof body.system === "string" && body.system.length > 0) {
+    body.system = `${body.system}${SEP}${prompt}`;
+  } else {
+    body.system = prompt;
+  }
+
+  if (body.params && typeof body.params === "object") {
+    if (typeof body.params.system === "string" && body.params.system.length > 0) {
+      body.params.system = `${body.params.system}${SEP}${prompt}`;
+    } else {
+      body.params.system = prompt;
+    }
+  }
 }
 
 // Gemini shape: body.system_instruction | body.systemInstruction | body.request.systemInstruction

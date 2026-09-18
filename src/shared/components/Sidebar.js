@@ -54,12 +54,14 @@ const toolItems = [
   { href: "/dashboard/pxpipe", label: "PXPIPE", icon: "image" },
   { href: "/dashboard/cli-tools", label: "CLI Tools", icon: "terminal" },
   { href: "/dashboard/playground", label: "Playground", icon: "science" },
+  { href: "/dashboard/basic-chat", label: "Basic Chat", icon: "chat" },
+  { href: "/dashboard/mitm", label: "MITM", icon: "shield" },
   { href: "/dashboard/memory", label: "Memory", icon: "psychology" },
 ];
 
 const integrationItems = [
   { href: "/dashboard/mcp", label: "MCP", icon: "cable" },
-    { href: "/dashboard/a2a", label: "A2A", icon: "swap_horiz" },
+  { href: "/dashboard/a2a", label: "A2A", icon: "swap_horiz" },
   { href: "/dashboard/batch", label: "Batch", icon: "batch_prediction" },
   { href: "/dashboard/webhooks", label: "Webhooks", icon: "webhook" },
   { href: "/dashboard/api-endpoints", label: "API Endpoints", icon: "api" },
@@ -114,20 +116,27 @@ function NavItem({ item, active, onClick, indented }) {
   }
 
   return (
-    <Link href={item.href} onClick={onClick} className={base}>
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className={base}
+      aria-current={active ? "page" : undefined}
+    >
       {content}
     </Link>
   );
 }
 
-function NavSection({ title, items, pathname, onClose, open: defaultOpen = true }) {
+function NavSection({ title, items, onClose, isActive, open: defaultOpen = true }) {
   const [expanded, setExpanded] = useState(defaultOpen);
 
   return (
-    <div className="pt-2">
-      <button
+    <div className="nav-section-gap">
+        <button
+          type="button"
         onClick={() => setExpanded((v) => !v)}
         className="label px-2.5 py-1 mb-1 flex items-center justify-between w-full hover:text-text-main transition-colors cursor-pointer"
+        aria-expanded={expanded}
       >
         <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">{title}</span>
         <span
@@ -143,7 +152,7 @@ function NavSection({ title, items, pathname, onClose, open: defaultOpen = true 
             <NavItem
               key={item.href}
               item={item}
-              active={!item.comingSoon && pathname.startsWith(item.href)}
+              active={!item.comingSoon && isActive(item.href)}
               onClick={onClose}
             />
           ))}
@@ -173,12 +182,32 @@ export default function Sidebar({ onClose }) {
       .catch(() => {});
   }, []);
 
-  // Lazy check for new npm version on mount
+  // Defer version check — not needed for first paint (keeps refresh snappy)
   useEffect(() => {
-    fetch("/api/version")
-      .then(res => res.json())
-      .then(data => { if (data.hasUpdate) setUpdateInfo(data); })
-      .catch(() => {});
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      fetch("/api/version")
+        .then((res) => res.json())
+        .then((data) => {
+          if (!cancelled && data.hasUpdate) setUpdateInfo(data);
+        })
+        .catch(() => {});
+    };
+    let idleId;
+    let timeoutId;
+    if (typeof requestIdleCallback === "function") {
+      idleId = requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      timeoutId = setTimeout(run, 2500);
+    }
+    return () => {
+      cancelled = true;
+      if (idleId != null && typeof cancelIdleCallback === "function") {
+        cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) clearTimeout(timeoutId);
+    };
   }, []);
 
   const isActive = (href) => {
@@ -225,18 +254,20 @@ export default function Sidebar({ onClose }) {
 
   return (
     <>
-      <aside className="flex w-64 flex-col border-r border-border-subtle bg-sidebar transition-colors duration-300 min-h-full">
-        {/* Logo */}
-        <div className="px-4 py-4 border-b border-border-subtle flex flex-col gap-2">
+      <aside className="sidebar-shell flex w-64 flex-col transition-colors duration-300 min-h-full">
+        {/* Logo — Signal Panel brand */}
+        <div className="sidebar-brand px-4 py-3.5 flex flex-col gap-2">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center size-7 overflow-hidden rounded-[var(--radius-brand)] border border-border-subtle bg-surface">
+            <div className="flex items-center justify-center size-8 overflow-hidden rounded-[var(--radius-brand)] border border-border-subtle bg-surface shadow-soft">
               <BrandAsset kind="icon" className="size-full object-contain p-0.5" />
             </div>
             <div className="flex flex-col min-w-0">
               <h1 className="text-sm font-semibold tracking-tight text-text-main truncate">
                 {APP_CONFIG.name}
               </h1>
-              <span className="text-[11px] font-mono text-text-muted">{SIDEBAR_VERSION}</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
+                Signal Panel · {SIDEBAR_VERSION}
+              </span>
             </div>
           </Link>
           {updateInfo && (
@@ -266,9 +297,12 @@ export default function Sidebar({ onClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-2.5 py-2.5 space-y-1 overflow-y-auto custom-scrollbar">
-          {/* Core */}
-          <div className="space-y-0.5">
+        <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
+          {/* Core — always visible */}
+          <div className="space-y-0.5 px-0.5">
+            <p className="label px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">
+              Core
+            </p>
             {coreItems.map((item) => (
               <NavItem
                 key={item.href}
@@ -279,55 +313,59 @@ export default function Sidebar({ onClose }) {
             ))}
           </div>
 
-          {/* Analytics */}
           <NavSection
             title="Analytics"
             items={analyticsItems}
-            pathname={pathname}
+            isActive={isActive}
             onClose={onClose}
+            open={analyticsItems.some((item) => isActive(item.href))}
           />
 
-          {/* Configuration */}
           <NavSection
             title="Configuration"
             items={configItems}
-            pathname={pathname}
+            isActive={isActive}
             onClose={onClose}
+            open={configItems.some((item) => isActive(item.href))}
           />
 
-          {/* Tools */}
           <NavSection
             title="Tools"
             items={toolItems}
-            pathname={pathname}
+            isActive={isActive}
             onClose={onClose}
+            open={toolItems.some((item) => isActive(item.href))}
           />
 
-          {/* Integrations */}
           <NavSection
             title="Integrations"
             items={integrationItems}
-            pathname={pathname}
+            isActive={isActive}
             onClose={onClose}
+            open={integrationItems.some((item) => isActive(item.href))}
           />
 
-          {/* Agents */}
           <NavSection
             title="Agents"
             items={agentItems}
-            pathname={pathname}
+            isActive={isActive}
             onClose={onClose}
+            open={agentItems.some((item) => isActive(item.href))}
           />
 
           {/* System section */}
-          <div className="pt-2">
+          <div className="nav-section-gap">
             <p className="label px-2.5 py-1 mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">
               System
             </p>
 
             {/* Media Providers accordion */}
             <button
+              type="button"
               onClick={() => setMediaOpen((v) => !v)}
+              aria-expanded={mediaOpen}
+              aria-controls="sidebar-media-provider-links"
+              aria-label="Toggle media provider navigation"
               className={cn(
                 "nav-item group w-full",
                 pathname.startsWith("/dashboard/media-providers") && "nav-item-active"
@@ -340,7 +378,7 @@ export default function Sidebar({ onClose }) {
               </span>
             </button>
             {mediaOpen && (
-              <div className="space-y-0.5 mt-0.5">
+              <div id="sidebar-media-provider-links" className="space-y-0.5 mt-0.5">
                 {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
                   <Link
                     key={kind.id}

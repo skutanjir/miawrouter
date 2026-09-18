@@ -45,6 +45,10 @@ const STAGES = [
   { id: "rtk", label: "RTK", note: "tool_result", estimate: true, badge: "est." },
   { id: "headroom", label: "Headroom", note: "proxy", estimate: false, badge: "proxy" },
   { id: "pxpipe", label: "PXPIPE", note: "image ctx", estimate: true, badge: "est." },
+  { id: "l0", label: "L0 Prompt Cache", note: "auto-prefix", estimate: false, badge: "prompt" },
+  { id: "l1", label: "L1 Exact Cache", note: "memory lru", estimate: false, badge: "reported" },
+  { id: "l2", label: "L2 Semantic Cache", note: "vector reuse", estimate: false, badge: "semantic" },
+  { id: "l3", label: "L3 Content Dedup", note: "ref replacement", estimate: true, badge: "est." },
 ];
 
 function pctOf(saved, total) {
@@ -333,7 +337,7 @@ export default function TokenSaverStatsPanel({ period: periodProp, setPeriod: se
           </div>
 
           <p className="text-[10px] text-muted" style={{ opacity: 0.85 }}>
-            RTK and PXPIPE savings are estimates (bytes/context converted to tokens); Headroom counts are
+            RTK, PXPIPE, and L3 savings are estimates (bytes/context converted to tokens); Headroom and L2 counts are
             proxy-reported. Savings are counted only for provider-dispatched requests — requests answered by the
             cache are excluded.
           </p>

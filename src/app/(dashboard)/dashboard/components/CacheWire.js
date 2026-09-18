@@ -38,7 +38,7 @@ function LayerNode({ layer, hits, savings, active, kind }) {
   const showHits = layer !== "L3";
   return (
     <div
-      className={`relative flex shrink-0 flex-col items-center gap-0.5 min-w-[64px] ${active ? "cw-node-act" : ""}`}
+      className={`relative flex shrink-0 flex-col items-center gap-0.5 min-w-[62px] rounded-[var(--radius-brand)] border border-border-subtle bg-surface p-2 transition-all duration-150 ${active ? "cw-node-act" : ""}`}
       data-kind={kind}
       title={NODE_TITLES[layer]}
     >
@@ -48,25 +48,25 @@ function LayerNode({ layer, hits, savings, active, kind }) {
           {KIND_META[kind].word}
         </span>
       )}
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{layer}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">{layer}</span>
       <span className="w-full truncate text-center text-[10px] leading-tight text-muted">{NODE_LABELS[layer]}</span>
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline gap-1 mt-0.5">
         {showHits ? (
           <span
-            className={`font-mono tabular-nums text-base font-semibold ${hits > 0 ? "text-signal" : "text-ink"}`}
+            className={`font-mono tabular-nums text-sm font-semibold ${hits > 0 ? "text-signal" : "text-ink"}`}
             title={layer === "L0" ? "Provider-confirmed cache hits" : "Local response-cache hits"}
           >
             {fmt(hits)}
           </span>
         ) : (
-          <span className="font-mono tabular-nums text-base font-semibold text-ink" title="Blocks deduped">
+          <span className="font-mono tabular-nums text-sm font-semibold text-ink" title="Blocks deduped">
             {fmt(savings.refs)}
           </span>
         )}
-        <span className="font-mono tabular-nums text-[10px] text-muted">{showHits ? "hits" : "refs"}</span>
+        <span className="font-mono tabular-nums text-[9px] text-muted">{showHits ? "hits" : "refs"}</span>
       </div>
       {!showHits && (
-        <span className="font-mono tabular-nums text-[10px] text-muted" title="Bytes saved by dedup">
+        <span className="font-mono tabular-nums text-[9px] text-muted" title="Bytes saved by dedup">
           {fmtBytes(savings.bytes)} saved
         </span>
       )}
@@ -84,10 +84,10 @@ function RouteSeg({ active, kind }) {
 
 function EndpointNode({ label, icon, stat, title }) {
   return (
-    <div className="flex shrink-0 flex-col items-center gap-0.5 min-w-[52px]" title={title}>
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</span>
-      <span className="material-symbols-outlined text-[18px] text-muted" aria-hidden="true">{icon}</span>
-      <span className="font-mono tabular-nums text-[10px] text-muted">{stat}</span>
+    <div className="flex shrink-0 flex-col items-center gap-0.5 min-w-[50px] rounded-[var(--radius-brand)] border border-border-subtle bg-surface p-2" title={title}>
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">{label}</span>
+      <span className="material-symbols-outlined text-[16px] text-muted" aria-hidden="true">{icon}</span>
+      <span className="font-mono tabular-nums text-[9px] text-muted truncate max-w-full">{stat}</span>
     </div>
   );
 }
@@ -308,16 +308,14 @@ export default function CacheWire() {
       <style>{`.cw-seg{position:relative;display:inline-flex;align-items:center;justify-content:center;width:.75rem;font-size:.75rem;line-height:1;color:var(--color-muted)}
 .cw-packet{animation:cw-packet-pop .5s ease-out 1}
 .cw-seg-act{animation:cw-seg-pulse 1.2s ease-in-out 1}
-.cw-node-act{background-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 12%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 40%,transparent);transition:background-color .3s ease,box-shadow .3s ease;animation:cw-node-pulse 1.2s ease-out 1}
-.cw-badge{position:absolute;top:-9px;right:-4px;display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border-radius:9999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9px;line-height:1;text-transform:uppercase;letter-spacing:.04em;background:var(--color-chassis);border:1px solid color-mix(in srgb,var(--cw-glow,var(--color-signal)) 60%,transparent);color:var(--cw-glow,var(--color-signal));box-shadow:var(--shadow-soft)}
-.cw-log-entry{border-radius:3px;animation:cw-log-reveal .8s ease-out 1}
+.cw-node-act{background-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 10%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 35%,transparent);transition:background-color .2s ease,box-shadow .2s ease}
+.cw-badge{position:absolute;top:-9px;right:-4px;display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border-radius:9999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9px;line-height:1;text-transform:uppercase;letter-spacing:.04em;background:var(--color-panel, var(--color-surface));border:1px solid color-mix(in srgb,var(--cw-glow,var(--color-signal)) 40%,transparent);color:var(--cw-glow,var(--color-signal));box-shadow:var(--shadow-soft)}
+.cw-log-entry{border-radius:3px}
 .cw-seg-act[data-kind="hit"],.cw-node-act[data-kind="hit"],.cw-packet[data-kind="hit"]{--cw-glow:var(--color-signal);color:var(--color-signal)}
 .cw-seg-act[data-kind="activity"],.cw-node-act[data-kind="activity"],.cw-packet[data-kind="activity"]{--cw-glow:var(--color-warn);color:var(--color-warn)}
 .cw-seg-act[data-kind="dedup"],.cw-node-act[data-kind="dedup"],.cw-packet[data-kind="dedup"]{--cw-glow:var(--color-ink);color:var(--color-ink)}
-@keyframes cw-node-pulse{0%,100%{box-shadow:0 0 0 1px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 40%,transparent)}50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 65%,transparent),0 0 10px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 45%,transparent)}}
-@keyframes cw-seg-pulse{0%,100%{opacity:.45}50%{opacity:1}}
-@keyframes cw-packet-pop{0%{transform:scale(.4);opacity:0}35%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:1}}
-@keyframes cw-log-reveal{from{background-color:color-mix(in srgb,var(--color-signal) 16%,transparent)}to{background-color:transparent}}
+@keyframes cw-seg-pulse{0%,100%{opacity:.6}50%{opacity:1}}
+@keyframes cw-packet-pop{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion: reduce){.cw-node-act,.cw-seg-act,.cw-packet,.cw-log-entry{animation:none!important}.cw-node-act{transition:none}.cw-packet{opacity:0}}`}</style>
       <div
         className="flex flex-col gap-2.5 rounded-[var(--radius-brand)] border p-3 bg-chassis"
@@ -345,60 +343,62 @@ export default function CacheWire() {
           )}
         </p>
 
-        <div
-          role="group"
-          aria-label="Cache pipeline: client, router, cache layers L0 through L3, provider"
-          className="flex flex-wrap items-center gap-x-1 gap-y-1.5"
-        >
-          <EndpointNode label="Client" icon="terminal" stat={`${fmt(state.events)} events`} title="Client: the AI tool sending requests" />
-          <RouteSeg active={!!act} kind={act?.kind} />
-          <EndpointNode label="Router" icon="hub" stat={`${fmt(state.events)} events`} title="MiawRouter gateway — cache events seen" />
-          {NODES.map((layer) => (
-            <div key={layer} className="flex items-center gap-x-1">
-              <RouteSeg
-                active={!!act && LAYER_IDX[act.layer] >= LAYER_IDX[layer]}
-                kind={act?.kind}
-              />
-              <LayerNode
-                layer={layer}
-                hits={state.hits[layer]}
-                savings={state.savings}
-                active={act?.layer === layer}
-                kind={act?.kind}
-              />
+        <div className="overflow-x-auto pb-1">
+          <div
+            role="group"
+            aria-label="Cache pipeline: client, router, cache layers L0 through L3, provider"
+            className="flex min-w-max items-center gap-x-1.5 py-1"
+          >
+            <EndpointNode label="Client" icon="terminal" stat={`${fmt(state.events)} events`} title="Client: the AI tool sending requests" />
+            <RouteSeg active={!!act} kind={act?.kind} />
+            <EndpointNode label="Router" icon="hub" stat={`${fmt(state.events)} events`} title="MiawRouter gateway — cache events seen" />
+            {NODES.map((layer) => (
+              <div key={layer} className="flex items-center gap-x-1.5">
+                <RouteSeg
+                  active={!!act && LAYER_IDX[act.layer] >= LAYER_IDX[layer]}
+                  kind={act?.kind}
+                />
+                <LayerNode
+                  layer={layer}
+                  hits={state.hits[layer]}
+                  savings={state.savings}
+                  active={act?.layer === layer}
+                  kind={act?.kind}
+                />
+              </div>
+            ))}
+            <div className="flex items-center gap-x-1.5">
+              <RouteSeg active={false} />
+              <EndpointNode label="Provider" icon="cloud" stat="upstream" title="Provider: the upstream model API" />
             </div>
-          ))}
-          <div className="flex items-center gap-x-1">
-            <RouteSeg active={false} />
-            <EndpointNode label="Provider" icon="cloud" stat="upstream" title="Provider: the upstream model API" />
           </div>
         </div>
 
         <div
-          className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-2"
+          className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5"
           style={{ borderColor: "var(--color-rule)" }}
         >
-          <span className="text-xs font-medium text-ink">Prefix interlock</span>
+          <span className="text-xs font-semibold text-ink">Prefix interlock</span>
           <span
             className="font-mono tabular-nums text-[11px] text-muted"
             title="Probes where a protected-prefix edit was restored before dispatch"
           >
-            restored <span className="text-warn">{fmt(state.interlock.restored)}</span>
+            restored <span className="text-warn font-medium">{fmt(state.interlock.restored)}</span>
           </span>
           <span
             className="font-mono tabular-nums text-[11px] text-muted"
             title="Probes that reached a stable prefix"
           >
-            stable <span className="text-ink">{fmt(state.interlock.stable)}</span>
+            stable <span className="text-ink font-medium">{fmt(state.interlock.stable)}</span>
           </span>
           <span
             className="font-mono tabular-nums text-[11px] text-muted"
             title="Latest observed breakpoint count inserted for a stable prefix"
           >
-            breakpoints <span className="text-ink">{state.interlock.breakpoints === null ? "—" : String(state.interlock.breakpoints)}</span>
+            breakpoints <span className="text-ink font-medium">{state.interlock.breakpoints === null ? "—" : String(state.interlock.breakpoints)}</span>
           </span>
-          <span className="text-[10px] text-muted" style={{ opacity: 0.85 }}>
-            Raw runtime telemetry — not billed savings or a measured claim.
+          <span className="text-[10px] text-muted ml-auto" style={{ opacity: 0.85 }}>
+            Raw telemetry · unbilled
           </span>
         </div>
 

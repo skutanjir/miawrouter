@@ -70,26 +70,53 @@ export default function CLIToolsPageClient({ machineId }) {
   const regularTools = Object.entries(CLI_TOOLS);
   const mitmTools = Object.entries(MITM_TOOLS);
 
+  // Group regular CLI tools into Configured vs Available
+  const configuredTools = regularTools.filter(([toolId, tool]) => {
+    const status = toolStatuses[toolId];
+    return status?.hasMiawRouter || status?.has9Router || status?.configured;
+  });
+
+  const availableTools = regularTools.filter(([toolId, tool]) => {
+    const status = toolStatuses[toolId];
+    return !(status?.hasMiawRouter || status?.has9Router || status?.configured);
+  });
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
-      {/* Configure CLI Tools */}
+      {/* Configured Tools */}
+      {configuredTools.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <SectionControlStrip
+            title="Configured Tools"
+            count={configuredTools.length}
+            icon="check_circle"
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+            {configuredTools.map(([toolId, tool]) => (
+              <ToolSummaryCard key={toolId} toolId={toolId} tool={tool} status={toolStatuses[toolId]} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Available Tools */}
       <div className="flex flex-col gap-3">
         <SectionControlStrip
-          title="Configure CLI Tools"
-          count={regularTools.length}
+          title="Available Tools"
+          count={availableTools.length}
           icon="terminal"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
-          {regularTools.map(([toolId, tool]) => (
+          {availableTools.map(([toolId, tool]) => (
             <ToolSummaryCard key={toolId} toolId={toolId} tool={tool} status={toolStatuses[toolId]} />
           ))}
         </div>
       </div>
 
-      {/* MITM Tools */}
+      {/* Intercepted (MITM) Tools */}
       <div className="flex flex-col gap-3">
         <SectionControlStrip
-          title="MITM Tools"
+          title="Intercepted (MITM) Tools"
           count={mitmTools.length}
           icon="security"
         />

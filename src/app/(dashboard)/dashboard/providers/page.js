@@ -24,7 +24,6 @@ import { useNotificationStore } from "@/store/notificationStore";
 import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
-import OpenCodeZenPanel from "./components/OpenCodeZenPanel";
 
 function getStatusDisplay(connected, error, errorCode) {
   const parts = [];
@@ -95,20 +94,19 @@ function getConnectionErrorTag(connection) {
 
 function SectionControlStrip({ title, count, children }) {
   return (
-    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between py-1 border-b border-border-subtle">
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
-        <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-text-main truncate">
+    <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between py-1.5 border-b border-border/80">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <h2 className="text-xs sm:text-sm font-semibold tracking-tight text-text-main truncate">
           {title}
         </h2>
         {count !== undefined && (
-          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
-            {count} {count === 1 ? "PROVIDER" : "PROVIDERS"}
+          <span className="text-[11px] font-medium text-text-muted px-2 py-0.5 rounded-full bg-surface-2 border border-border-subtle shrink-0 tabular-nums">
+            {count}
           </span>
         )}
       </div>
       {children && (
-        <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {children}
         </div>
       )}
@@ -162,24 +160,56 @@ export default function ProvidersPage() {
     });
 
   useEffect(() => {
-    const fetchData = async () => {
+    let cancelled = false;
+
+    const fetchConnections = async () => {
       try {
-        const [connectionsRes, nodesRes] = await Promise.all([
-          fetch("/api/providers"),
-          fetch("/api/provider-nodes"),
-        ]);
+        const connectionsRes = await fetch("/api/providers");
         const connectionsData = await connectionsRes.json();
-        const nodesData = await nodesRes.json();
-        if (connectionsRes.ok)
+        if (!cancelled && connectionsRes.ok) {
           setConnections(connectionsData.connections || []);
-        if (nodesRes.ok) setProviderNodes(nodesData.nodes || []);
+        }
       } catch (error) {
-        console.log("Error fetching data:", error);
+        console.log("Error fetching providers:", error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-    fetchData();
+
+    // Custom OpenAI/Anthropic nodes are secondary — defer past first paint
+    const fetchNodes = async () => {
+      try {
+        const nodesRes = await fetch("/api/provider-nodes");
+        const nodesData = await nodesRes.json();
+        if (!cancelled && nodesRes.ok) {
+          setProviderNodes(nodesData.nodes || []);
+        }
+      } catch (error) {
+        console.log("Error fetching provider-nodes:", error);
+      }
+    };
+
+    fetchConnections();
+
+    let idleId;
+    let timeoutId;
+    const scheduleNodes = () => {
+      if (cancelled) return;
+      fetchNodes();
+    };
+    if (typeof requestIdleCallback === "function") {
+      idleId = requestIdleCallback(scheduleNodes, { timeout: 3000 });
+    } else {
+      timeoutId = setTimeout(scheduleNodes, 500);
+    }
+
+    return () => {
+      cancelled = true;
+      if (idleId != null && typeof cancelIdleCallback === "function") {
+        cancelIdleCallback(idleId);
+      }
+      if (timeoutId != null) clearTimeout(timeoutId);
+    };
   }, []);
 
   const getProviderStats = (providerId, authType) => {
@@ -497,14 +527,11 @@ export default function ProvidersPage() {
       </div>
       )}
 
-      {/* OpenCode Zen catalog status */}
-      <OpenCodeZenPanel />
-
       {/* Free Tier Providers */}
       {(freeEntries.length > 0 || freeTierEntries.length > 0) && (
       <div className="flex flex-col gap-3">
         <SectionControlStrip
-          title="Free Tier Providers"
+          title="Free & Keyless"
           count={freeEntries.length + freeTierEntries.length}
         >
           <button
@@ -528,6 +555,13 @@ export default function ProvidersPage() {
             {testingMode === "free" ? "Testing..." : "Test All"}
           </button>
         </SectionControlStrip>
+
+        <p className="text-xs text-text-muted leading-relaxed -mt-1 max-w-3xl">
+          <span className="font-medium text-text-main">Keyless</span> providers work without a key.
+          OpenCode Free through a third-party router is unavailable upstream — use{" "}
+          <span className="font-medium text-text-main">OpenCode Zen</span> (API key) or{" "}
+          <span className="font-medium text-text-main">Pollinations</span> (<span className="font-mono">pol</span>).
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
           {freeEntries.map(([key, info]) => {
@@ -697,49 +731,33 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
 
   const authLabels = {
     oauth: "OAuth",
-    free: "Free",
+    free: isNoAuth ? "Keyless" : "Free",
     apikey: "API Key",
     api_key: "API Key",
     compatible: "Custom",
     cookie: "Cookie",
   };
   const authLabel = authLabels[authType] || (typeof authType === "string" ? authType : "OAuth");
-
-  const statusRailClass = allDisabled
-    ? "bg-border"
-    : error > 0
-      ? "bg-red-500"
-      : connected > 0
-        ? "bg-primary"
-        : isNoAuth
-          ? "bg-primary"
-          : "bg-border-subtle dark:bg-border/60";
+  const needsApiKey = !isNoAuth && !allDisabled && connected === 0 && (authType === "apikey" || authType === "api_key" || authType === "free");
 
   return (
     <Link href={`/dashboard/providers/${providerId}`} className="group block min-w-0">
       <div
         className={cn(
-          "relative flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-2.5 transition-all duration-150 cursor-pointer overflow-hidden",
-          "hover:border-border hover:bg-surface-2/60",
-          allDisabled && "opacity-50"
+          "relative flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface p-3 transition-all duration-150 cursor-pointer shadow-xs",
+          "hover:border-border hover:bg-surface-2 hover:shadow-sm",
+          allDisabled && "opacity-55"
         )}
       >
-        <span
-          className={cn("absolute inset-y-0 left-0 w-[3px] transition-colors", statusRailClass)}
-          aria-hidden="true"
-        />
-        <div className="flex min-w-0 items-center gap-2.5 pl-1.5 flex-1">
+        <div className="flex min-w-0 items-center gap-3 flex-1">
           <div
-            className="size-8 shrink-0 rounded-md flex items-center justify-center border border-border-subtle/50"
-            style={{
-              backgroundColor: `${provider.color?.length > 7 ? provider.color : (provider.color || "#168BFF") + "15"}`,
-            }}
+            className="size-9 shrink-0 rounded-lg flex items-center justify-center border border-border-subtle bg-surface-2"
           >
             <ProviderIcon
               src={`/providers/${provider.id}.png`}
               alt={provider.name}
-              size={24}
-              className="object-contain rounded max-w-[24px] max-h-[24px]"
+              size={22}
+              className="object-contain rounded max-w-[22px] max-h-[22px]"
               fallbackIcon={provider.icon}
               fallbackText={
                 provider.textIcon || provider.id.slice(0, 2).toUpperCase()
@@ -748,15 +766,15 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h3 className="truncate text-xs sm:text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="truncate text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
                 {provider.name}
               </h3>
-              <span className="shrink-0 text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded bg-surface-2 border border-border-subtle">
-                {authLabel}
+              <span className="shrink-0 text-[11px] font-normal text-text-muted">
+                • {authLabel}
               </span>
             </div>
-            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-0.5">
+            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-1">
               {allDisabled ? (
                 <Badge variant="default" size="sm">
                   <span className="flex items-center gap-1">
@@ -768,6 +786,13 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
                 </Badge>
               ) : isNoAuth ? (
                 <Badge variant="success" size="sm" dot>Ready</Badge>
+              ) : needsApiKey ? (
+                <Badge variant="warning" size="sm">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">key</span>
+                    Needs API key
+                  </span>
+                </Badge>
               ) : (
                 <>
                   {getStatusDisplay(connected, error, errorCode)}
@@ -790,7 +815,7 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
         <div className="flex shrink-0 items-center gap-2">
           {stats.total > 0 && (
             <div
-              className="opacity-100 transition-opacity sm:opacity-70 sm:group-hover:opacity-100"
+              className="opacity-100 transition-opacity sm:opacity-80 sm:group-hover:opacity-100"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -805,7 +830,7 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
               />
             </div>
           )}
-          <span className="material-symbols-outlined text-[16px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
+          <span className="material-symbols-outlined text-[18px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
             chevron_right
           </span>
         </div>
@@ -856,19 +881,11 @@ function ApiKeyProviderCard({
       : authType === "cookie"
         ? "Cookie"
         : authType === "free"
-          ? "Free"
+          ? (provider.noAuth ? "Keyless" : "Free")
           : "API Key";
 
   const isNoAuth = !!provider.noAuth;
-  const statusRailClass = allDisabled
-    ? "bg-border"
-    : error > 0
-      ? "bg-red-500"
-      : connected > 0
-        ? "bg-primary"
-        : isNoAuth
-          ? "bg-primary"
-          : "bg-border-subtle dark:bg-border/60";
+  const needsApiKey = !isNoAuth && !allDisabled && connected === 0;
 
   const getIconPath = () => {
     if (isCompatible && provider.apiType)
@@ -883,27 +900,20 @@ function ApiKeyProviderCard({
     <Link href={`/dashboard/providers/${providerId}`} className="group block min-w-0">
       <div
         className={cn(
-          "relative flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-2.5 transition-all duration-150 cursor-pointer overflow-hidden",
-          "hover:border-border hover:bg-surface-2/60",
-          allDisabled && "opacity-50"
+          "relative flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface p-3 transition-all duration-150 cursor-pointer shadow-xs",
+          "hover:border-border hover:bg-surface-2 hover:shadow-sm",
+          allDisabled && "opacity-55"
         )}
       >
-        <span
-          className={cn("absolute inset-y-0 left-0 w-[3px] transition-colors", statusRailClass)}
-          aria-hidden="true"
-        />
-        <div className="flex min-w-0 items-center gap-2.5 pl-1.5 flex-1">
+        <div className="flex min-w-0 items-center gap-3 flex-1">
           <div
-            className="size-8 shrink-0 rounded-md flex items-center justify-center border border-border-subtle/50"
-            style={{
-              backgroundColor: `${provider.color?.length > 7 ? provider.color : (provider.color || "#168BFF") + "15"}`,
-            }}
+            className="size-9 shrink-0 rounded-lg flex items-center justify-center border border-border-subtle bg-surface-2"
           >
             <ProviderIcon
               src={getIconPath()}
               alt={provider.name}
-              size={24}
-              className="object-contain rounded max-w-[24px] max-h-[24px]"
+              size={22}
+              className="object-contain rounded max-w-[22px] max-h-[22px]"
               fallbackIcon={provider.icon}
               fallbackText={
                 provider.textIcon || provider.id.slice(0, 2).toUpperCase()
@@ -912,15 +922,15 @@ function ApiKeyProviderCard({
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h3 className="truncate text-xs sm:text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="truncate text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
                 {provider.name}
               </h3>
-              <span className="shrink-0 text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded bg-surface-2 border border-border-subtle">
-                {authLabel}
+              <span className="shrink-0 text-[11px] font-normal text-text-muted">
+                • {authLabel}
               </span>
             </div>
-            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-0.5">
+            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-1">
               {allDisabled ? (
                 <Badge variant="default" size="sm">
                   <span className="flex items-center gap-1">
@@ -932,6 +942,13 @@ function ApiKeyProviderCard({
                 </Badge>
               ) : isNoAuth ? (
                 <Badge variant="success" size="sm" dot>Ready</Badge>
+              ) : needsApiKey ? (
+                <Badge variant="warning" size="sm">
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[12px]">key</span>
+                    Needs API key
+                  </span>
+                </Badge>
               ) : (
                 <>
                   {getStatusDisplay(connected, error, errorCode)}
@@ -964,7 +981,7 @@ function ApiKeyProviderCard({
         <div className="flex shrink-0 items-center gap-2">
           {stats.total > 0 && (
             <div
-              className="opacity-100 transition-opacity sm:opacity-70 sm:group-hover:opacity-100"
+              className="opacity-100 transition-opacity sm:opacity-80 sm:group-hover:opacity-100"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -979,7 +996,7 @@ function ApiKeyProviderCard({
               />
             </div>
           )}
-          <span className="material-symbols-outlined text-[16px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
+          <span className="material-symbols-outlined text-[18px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
             chevron_right
           </span>
         </div>

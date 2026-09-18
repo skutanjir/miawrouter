@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { canAccessLocalOnlyRoute } from "@/dashboardGuard";
 import { createMemory, listMemories } from "@/lib/db/repos/memoryRepo.js";
 import { contentFrom, errorResponse, integerFrom, metadataFrom, scopeFrom } from "./_validation.js";
 
+const unauthorized = () => NextResponse.json({ error: "Local authentication required" }, { status: 403 });
+
 export async function GET(request) {
+  if (!(await canAccessLocalOnlyRoute(request))) return unauthorized();
   try {
     const params = Object.fromEntries(new URL(request.url).searchParams);
     const scope = scopeFrom(params);
@@ -13,9 +17,10 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  if (!(await canAccessLocalOnlyRoute(request))) return unauthorized();
   try {
     const body = await request.json();
-    const scope = scopeFrom(body);
+    const scope = scopeFrom(body, { requireSessionId: true });
     const content = contentFrom(body.content);
     const metadata = metadataFrom(body.metadata) ?? {};
     return NextResponse.json({ memory: await createMemory({ ...scope, content, metadata }) }, { status: 201 });

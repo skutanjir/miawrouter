@@ -34,10 +34,11 @@ export class OpenCodeExecutor extends BaseExecutor {
       : `${base}/zen/v1/chat/completions`;
   }
 
+  // Dead path while execute() fail-fasts; keep headers honest while preserving
+  // the client identification contract for desktop.
   buildHeaders(credentials) {
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": "Bearer public",
       "x-opencode-client": "desktop",
       "Accept": "text/event-stream"
     };

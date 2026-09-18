@@ -13,9 +13,9 @@ img[data-brand-asset="app"] { content: url("/miawrouter-app-light.png"); }
 .dark img[data-brand-asset="app"] { content: url("/miawrouter-app-dark.png"); }
 
 /* ============================================================
-   MiawRouter Signal Panel palette
-   Cool mist slate surfaces (light) / charcoal slate (dark),
-   single electric-blue #168BFF brand accent.
+   MiawRouter Neutral Console palette
+   Cool gray workspace (light) / neutral charcoal slate (dark),
+   single electric-blue #168BFF brand accent reserved for primary actions/focus.
    ============================================================ */
 :root {
   /* Brand scale (light) - electric blue / royal blue */
@@ -34,25 +34,25 @@ img[data-brand-asset="app"] { content: url("/miawrouter-app-light.png"); }
   --color-primary: var(--color-brand-500);
   --color-primary-hover: var(--color-brand-600);
 
-  /* Surfaces & backgrounds (light - cool mist slate) */
-  --color-bg: #F4F8FC;
-  --color-bg-alt: #EAF2FA;
-  --color-bg-subtle: #EFF5FB;
-  --color-bg-hover: #E1ECF8;
+  /* Surfaces & backgrounds (light - clean cool gray) */
+  --color-bg: #F8FAFC;
+  --color-bg-alt: #F1F5F9;
+  --color-bg-subtle: #F1F5F9;
+  --color-bg-hover: #E2E8F0;
   --color-surface: #ffffff;
-  --color-surface-2: #F5F9FE;
-  --color-surface-3: #E5EEF8;
-  --color-sidebar: #F8FBFF;
+  --color-surface-2: #F8FAFC;
+  --color-surface-3: #F1F5F9;
+  --color-sidebar: #F8FAFC;
 
   /* Borders */
-  --color-border: #C9D8E8;
-  --color-border-subtle: #DFE9F3;
+  --color-border: #E2E8F0;
+  --color-border-subtle: #EEF2F6;
 
   /* Text */
-  --color-text: #10141B;
-  --color-text-main: #10141B;
-  --color-text-muted: #52667D;
-  --color-text-subtle: #7C91A8;
+  --color-text: #0F172A;
+  --color-text-main: #0F172A;
+  --color-text-muted: #64748B;
+  --color-text-subtle: #94A3B8;
 
   /* Status */
   --color-danger: #DC2626;
@@ -66,13 +66,13 @@ img[data-brand-asset="app"] { content: url("/miawrouter-app-light.png"); }
   --radius-brand-lg: 12px;
 
   /* Shadows */
-  --shadow-soft: 0 1px 2px 0 rgba(16,20,27,0.05);
-  --shadow-warm: 0 2px 10px -2px rgba(22, 139, 255, 0.12);
-  --shadow-elevated: 0 12px 28px -4px rgba(16,20,27,0.10);
+  --shadow-soft: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-warm: 0 4px 14px -3px rgba(15, 23, 42, 0.07);
+  --shadow-elevated: 0 10px 25px -4px rgba(15, 23, 42, 0.08);
   --shadow-elev:
     inset 0 1px 0 0 rgba(255,255,255,0.8),
-    0 1px 2px rgba(16,20,27,0.05),
-    0 12px 36px -8px rgba(16,20,27,0.12);
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 12px 32px -8px rgba(15, 23, 42, 0.10);
   --shadow-focus: 0 0 0 3px rgba(22, 139, 255, 0.18);
 
   color-scheme: light;
@@ -83,24 +83,23 @@ img[data-brand-asset="app"] { content: url("/miawrouter-app-light.png"); }
    --signal marks active routing, live state, and cache hits.
    ============================================================ */
 :root {
-  --color-chassis: #E9EDF2; /* page ground, cool slate (matches bg-alt) */
+  --color-chassis: #F1F5F9; /* page ground, neutral cool slate */
   --color-panel: #FFFFFF;   /* card / panel surfaces (matches surface) */
-  --color-ink: #10141B;     /* primary text (matches text-main) */
-  --color-muted: #5B6472;   /* secondary text, labels (matches text-muted) */
-  --color-rule: #D8DDE4;    /* borders, grid lines (matches border) */
+  --color-ink: #0F172A;     /* primary text (matches text-main) */
+  --color-muted: #64748B;   /* secondary text, labels (matches text-muted) */
+  --color-rule: #E2E8F0;    /* borders, grid lines (matches border) */
   --color-signal: #168BFF;
   --color-warn: #B45309;    /* utility warning */
   --color-fail: #DC2626;    /* utility error */
 }
 
 .dark {
-  /* Plan inverts chassis/panel/ink/rule and keeps --signal; muted/warn/fail
-     get brighter dark values for contrast on the dark panel. */
-  --color-chassis: #171B21;
-  --color-panel: #1B2027;
-  --color-ink: #E6EAF0;
-  --color-muted: #9AA4B1;
-  --color-rule: #2E3540;
+  /* Neutral charcoal slate panel & chassis in dark mode */
+  --color-chassis: #0F1216;
+  --color-panel: #161A22;
+  --color-ink: #F1F5F9;
+  --color-muted: #94A3B8;
+  --color-rule: #272F3B;
   --color-signal: #168BFF;
   --color-warn: #F59E0B;
   --color-fail: #EF4444;
@@ -122,23 +121,23 @@ img[data-brand-asset="app"] { content: url("/miawrouter-app-light.png"); }
   --color-primary: #168BFF;
   --color-primary-hover: #0875E1;
 
-  /* Surfaces (dark - neutral charcoal slate) */
-  --color-bg: #11161B;
-  --color-bg-alt: #171C22;
-  --color-bg-subtle: #1D242B;
-  --color-bg-hover: #28313A;
-  --color-surface: #1A2128;
-  --color-surface-2: #222A32;
-  --color-surface-3: #2C3640;
-  --color-sidebar: #161C22;
+  /* Surfaces (dark - neutral charcoal / cool gray, not saturated navy) */
+  --color-bg: #0F1216;
+  --color-bg-alt: #14181F;
+  --color-bg-subtle: #191E27;
+  --color-bg-hover: #222834;
+  --color-surface: #161A22;
+  --color-surface-2: #1D222C;
+  --color-surface-3: #252B37;
+  --color-sidebar: #12151B;
 
-  --color-border: #35414C;
-  --color-border-subtle: #2B353F;
+  --color-border: #28303C;
+  --color-border-subtle: #1E242E;
 
-  --color-text: #F7FAFF;
-  --color-text-main: #F7FAFF;
-  --color-text-muted: #A5AFBB;
-  --color-text-subtle: #7F8B98;
+  --color-text: #F1F5F9;
+  --color-text-main: #F1F5F9;
+  --color-text-muted: #94A3B8;
+  --color-text-subtle: #64748B;
 
   --color-danger: #EF4444;
   --color-error: #EF4444;
@@ -146,13 +145,13 @@ img[data-brand-asset="app"] { content: url("/miawrouter-app-light.png"); }
   --color-warning: #FBBF24;
   --color-info: #60A5FA;
 
-  --shadow-soft: 0 1px 2px 0 rgba(0,0,0,0.3);
-  --shadow-warm: 0 8px 24px -14px rgba(22, 139, 255, 0.28);
-  --shadow-elevated: 0 14px 32px -10px rgba(0, 0, 0, 0.48);
+  --shadow-soft: 0 1px 3px 0 rgba(0,0,0,0.35);
+  --shadow-warm: 0 6px 20px -10px rgba(0, 0, 0, 0.45);
+  --shadow-elevated: 0 12px 28px -8px rgba(0, 0, 0, 0.55);
   --shadow-elev:
     inset 0 1px 0 0 rgba(255,255,255,0.05),
     0 1px 2px rgba(0,0,0,0.4),
-    0 16px 48px -8px rgba(0,0,0,0.55);
+    0 16px 44px -8px rgba(0,0,0,0.6);
   --shadow-focus: 0 0 0 3px rgba(22, 139, 255, 0.24);
 
   color-scheme: dark;
@@ -214,18 +213,18 @@ select {
   --color-info: var(--color-info);
 
   /* Static fallbacks (explicit per-mode usage if needed) */
-  --color-bg-light: #F2F4F7;
-  --color-bg-dark: #12151A;
+  --color-bg-light: #F8FAFC;
+  --color-bg-dark: #0F1216;
   --color-surface-light: #ffffff;
-  --color-surface-dark: #1B2027;
-  --color-sidebar-light: #F7F8FA;
-  --color-sidebar-dark: #171B21;
-  --color-border-light: #D8DDE4;
-  --color-border-dark: #2E3540;
-  --color-text-main-light: #10141B;
-  --color-text-main-dark: #E6EAF0;
-  --color-text-muted-light: #5B6472;
-  --color-text-muted-dark: #9AA4B1;
+  --color-surface-dark: #161A22;
+  --color-sidebar-light: #F8FAFC;
+  --color-sidebar-dark: #12151B;
+  --color-border-light: #E2E8F0;
+  --color-border-dark: #28303C;
+  --color-text-main-light: #0F172A;
+  --color-text-main-dark: #F1F5F9;
+  --color-text-muted-light: #64748B;
+  --color-text-muted-dark: #94A3B8;
 
   /* Radius */
   --radius-brand: var(--radius-brand);
@@ -274,6 +273,20 @@ body {
 /* iOS keyboard accent */
 input, textarea {
   accent-color: var(--color-primary);
+}
+
+:where(button, a, input, textarea, select, [role="button"]):focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 /* Scrollbar (custom-scrollbar utility kept for compat) */
@@ -509,13 +522,13 @@ button:disabled,
 .dot-grid-bg {
   background-color: var(--color-bg);
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(22, 139, 255, 0.10) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(22, 139, 255, 0.06) 0%, transparent 40%);
+    radial-gradient(circle at 15% 20%, rgba(15, 23, 42, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(15, 23, 42, 0.03) 0%, transparent 40%);
 }
 .dark .dot-grid-bg {
   background-image:
-    radial-gradient(circle at 15% 20%, rgba(22, 139, 255, 0.18) 0%, transparent 40%),
-    radial-gradient(circle at 85% 80%, rgba(22, 139, 255, 0.10) 0%, transparent 40%);
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
 }
 
 /* Landing-style faint grid overlay (login page only; dashboard shell no longer uses it) */
@@ -561,19 +574,19 @@ button:disabled,
     background-color: var(--color-signal);
   }
 
-  /* Sidebar navigation item */
+  /* Router Console shell: navy structure, blue only for current state and focus. */
   .nav-item {
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0.375rem 0.625rem;
+    padding: 0.4rem 0.625rem;
     border-radius: var(--radius-brand);
     color: var(--color-text-muted);
     font-size: 13px;
     font-weight: 500;
     line-height: 1.4;
-    transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
-    border-left: 2px solid transparent;
+    min-height: 2.25rem;
+    transition: background-color 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out;
   }
   .nav-item:hover {
     background-color: var(--color-bg-hover);
@@ -581,10 +594,43 @@ button:disabled,
   }
   .nav-item-active,
   .nav-item-active:hover {
-    background-color: var(--color-bg-hover);
+    background-color: color-mix(in srgb, var(--color-primary) 14%, var(--color-sidebar));
     color: var(--color-primary);
     font-weight: 600;
-    border-left-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 26%, transparent);
+  }
+  .nav-item:focus-visible,
+  .sidebar-brand a:focus-visible,
+  .sidebar-shell button:focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 2px;
+  }
+
+  /* Sidebar shell chrome */
+  .sidebar-shell {
+    background-color: var(--color-sidebar);
+    border-right: 1px solid var(--color-border-subtle);
+  }
+  .sidebar-brand {
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+  .nav-section-gap {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  }
+
+  @media (max-width: 1023px) {
+    .nav-item {
+      min-height: 2.75rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-item,
+    .sidebar-shell [class*="transition-"] {
+      transition: none;
+    }
   }
 }
 

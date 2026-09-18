@@ -20,25 +20,24 @@ function MemoryRow({ memory, onDelete, isDeleting }) {
     : "—";
 
   const tags = memory.metadata?.tags || [];
+  const sessionId = memory.sessionId || memory.metadata?.sessionId;
 
   return (
-    <Card.ListItem
-      actions={
-        <Button
-          variant="ghost"
-          size="sm"
-          icon="delete"
-          onClick={() => onDelete(memory.id)}
-          loading={isDeleting}
-          disabled={isDeleting}
-          className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
-          aria-label={`Delete memory ${memory.id}`}
-        />
-      }
-    >
-      <div className="flex flex-col gap-1.5">
-        <p className="text-sm text-text-main leading-relaxed">{memory.content}</p>
+    <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0 group">
+      <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+        <p className="text-xs sm:text-sm text-text-main leading-relaxed select-text break-words">
+          {memory.content}
+        </p>
         <div className="flex flex-wrap items-center gap-2">
+          {sessionId && (
+            <span
+              className="inline-flex items-center gap-1 font-mono text-[10px] text-primary px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20"
+              title={`Session ID: ${sessionId}`}
+            >
+              <span className="material-symbols-outlined text-[12px]">terminal</span>
+              <span className="truncate max-w-[140px]">{sessionId}</span>
+            </span>
+          )}
           {tags.map((tag) => (
             <Badge key={tag} variant="default" size="sm">
               {tag}
@@ -49,10 +48,22 @@ function MemoryRow({ memory, onDelete, isDeleting }) {
               Score: {Math.abs(memory.score).toFixed(1)}
             </Badge>
           )}
-          <span className="text-[11px] text-text-muted">{createdDate}</span>
+          <span className="text-[11px] font-mono text-text-muted">{createdDate}</span>
         </div>
       </div>
-    </Card.ListItem>
+      <div className="shrink-0 flex items-center pt-0.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          icon="delete"
+          onClick={() => onDelete(memory.id)}
+          loading={isDeleting}
+          disabled={isDeleting}
+          className="text-text-muted hover:text-red-500 hover:bg-red-500/10"
+          aria-label={`Delete memory ${memory.id}`}
+        />
+      </div>
+    </div>
   );
 }
 

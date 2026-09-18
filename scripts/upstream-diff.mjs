@@ -32,7 +32,7 @@ const EXCLUDES = [
   ".remember",
 ];
 
-/** Reverse map applied to diff display text only (identity map from docs/REBRAND.md §2). */
+/** Reverse map applied to diff display text only (identity map). */
 const REVERSE_MAP = [
   [/miawrouter\.web\.id/gi, "9router.com"],
   [/miawrouter/gi, "9router"],
