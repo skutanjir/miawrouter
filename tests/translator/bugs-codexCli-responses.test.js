@@ -15,7 +15,7 @@ describe("Codex CLI Responses → OpenAI", () => {
       ],
     });
     const asst = out.messages.find((m) => m.role === "assistant" && m.tool_calls);
-    expect(asst?.tool_calls?.length ?? 0, "empty tool_calls[] produced").toBeGreaterThan(0);
+    expect(asst?.tool_calls?.length ?? 0, "nameless tool call must be omitted").toBe(0);
   });
 
   it("function_call arguments end up as a string", () => {

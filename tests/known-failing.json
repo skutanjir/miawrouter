@@ -1,15 +1,6 @@
 {
-  "note": "Pre-existing failing suites quarantined from the blocking test job; CI runs them in a non-blocking backlog job so the debt stays visible.",
+  "note": "Pre-existing failing suites quarantined from the blocking test job; CI runs them in a non-blocking backlog job so the debt stays visible. The list is now empty: every suite that was quarantined has either been fixed or, where the artifact under test is not part of this repository, replaced with an explicit self-skip that names the missing piece (tests/unit/embeddings.cloud.test.js, tests/unit/db-benchmark.test.js). Add an entry only with the same evidence a fix would need.",
   "since": "2026-09-17",
-  "count": 8,
-  "files": [
-    "tests/translator/golden-url-header.test.js",
-    "tests/unit/boot-weak-secret.test.js",
-    "tests/unit/test-baseline-gate.test.js",
-    "tests/unit/db-concurrent.test.js",
-    "tests/unit/request-details-tab.test.js",
-    "tests/unit/db-sqlite-vs-lowdb.test.js",
-    "tests/unit/privacy-suppression.test.js",
-    "tests/unit/xai-oauth-service.test.js"
-  ]
+  "count": 0,
+  "files": []
 }

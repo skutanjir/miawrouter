@@ -108,17 +108,17 @@ export function openaiResponsesToOpenAIRequest(model, body, stream, credentials)
         };
         attachPendingReasoning(currentAssistantMsg);
       }
-      const rawName = typeof item.name === "string" ? item.name.trim() : "";
-      const functionName = rawName || (item.call_id ? `call_${item.call_id}` : "function_call");
-      if (itemType === RESPONSES_ITEM.CUSTOM_TOOL_CALL) customToolNames.add(functionName);
+      // Skip items with empty/missing name — Codex/OpenAI reject nameless tool calls (#444)
+      if (!item.name || typeof item.name !== "string" || item.name.trim() === "") continue;
+      if (itemType === RESPONSES_ITEM.CUSTOM_TOOL_CALL) customToolNames.add(item.name);
       const toolInput = itemType === RESPONSES_ITEM.CUSTOM_TOOL_CALL
         ? { input: typeof item.input === "string" ? item.input : JSON.stringify(item.input ?? "") }
         : item.arguments;
       currentAssistantMsg.tool_calls.push({
-        id: item.call_id || "call_0",
+        id: item.call_id,
         type: OPENAI_BLOCK.FUNCTION,
         function: {
-          name: functionName,
+          name: item.name,
           arguments: typeof toolInput === "string" ? toolInput : JSON.stringify(toolInput ?? {})
         }
       });

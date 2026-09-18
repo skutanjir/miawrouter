@@ -112,7 +112,7 @@ function resolvePlan(user, config) {
   if (user?.hasGrokCodeAccess || user?.has_grok_code_access) {
     return GROK_PLAN_CODE;
   }
-  return GROK_PLAN_CODE;
+  return "";
 }
 
 function makeQuota({ used, total, resetAt, unlimited = false }) {
