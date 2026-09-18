@@ -324,7 +324,7 @@ def chat_with_retry(prompt, max_retries=3):
 curl http://localhost:21128/health
 
 # 期待されるレスポンス:
-{"status": "ok"}
+{"ok": true}
 ```
 
 **解決策:**

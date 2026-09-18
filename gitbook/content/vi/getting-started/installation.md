@@ -138,10 +138,11 @@ curl http://localhost:21128/health
 **Phản hồi dự kiến:**
 ```json
 {
-  "status": "ok",
-  "version": "1.0.0"
+  "ok": true
 }
 ```
+
+> Phiên bản không nằm trong phản hồi health. Hãy gọi `GET /api/version`.
 
 ### Liệt kê Model khả dụng
 

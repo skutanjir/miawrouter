@@ -138,10 +138,11 @@ curl http://localhost:21128/health
 **Respuesta esperada:**
 ```json
 {
-  "status": "ok",
-  "version": "1.0.0"
+  "ok": true
 }
 ```
+
+> La versión no forma parte de la respuesta de health. Consulta `GET /api/version`.
 
 ### Lista los modelos disponibles
 

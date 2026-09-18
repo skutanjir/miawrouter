@@ -1,13 +1,13 @@
 # Security Policy
 
-Security policy for the MiawRouter local AI routing gateway and dashboard. This document covers the current production state of the project (version 1.0.x / 1.0.29). Claims here are backed by project audits, static analysis gates, and real-time security guards in the current source.
+Security policy for the MiawRouter local AI routing gateway and dashboard. This document covers the current production state of the project (version 1.1.x). Claims here are backed by project audits, static analysis gates, and real-time security guards in the current source.
 
 ## Supported version
 
 | Version | Supported |
 | --- | --- |
-| 1.0.x (current release, root and `cli/` packages) | Yes |
-| < 1.0.0 | No |
+| 1.1.x (current release, root and `cli/` packages) | Yes |
+| < 1.1.0 | No |
 
 ## Reporting a vulnerability
 

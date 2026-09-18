@@ -18,7 +18,10 @@ describe("legacy brand removal", () => {
       encoding: "buffer",
     }).toString().split("\0").filter(Boolean);
     const forbidden = /9router|nine_router|ninerouter|decolua|x-9r-|9r-cli-auth/i;
+    // This file names the forbidden tokens in order to forbid them.
+    const selfPath = "tests/unit/legacy-brand-removal.test.js";
     const matches = files.filter((file) => {
+      if (file === selfPath) return false;
       try {
         return forbidden.test(readFileSync(file, "utf8"));
       } catch {

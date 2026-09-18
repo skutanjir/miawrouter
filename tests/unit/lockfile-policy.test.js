@@ -30,3 +30,19 @@ describe("lockfile policy", () => {
     expect(ignoring).toBe(false);
   });
 });
+
+describe("package version policy", () => {
+  // The CLI update check compares the published tarball's version against the
+  // npm `latest` tag, and the server reports its own version in the dashboard.
+  // If the two package.json files drift apart, users see phantom updates.
+  it("root and cli package.json versions match", () => {
+    const root = JSON.parse(readFileSync(pkgPath, "utf8"));
+    const cli = JSON.parse(readFileSync(join(ROOT, "cli", "package.json"), "utf8"));
+    expect(cli.version).toBe(root.version);
+  });
+
+  it("cli bin entry is named after the package", () => {
+    const cli = JSON.parse(readFileSync(join(ROOT, "cli", "package.json"), "utf8"));
+    expect(Object.keys(cli.bin)).toEqual([cli.name]);
+  });
+});

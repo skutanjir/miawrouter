@@ -138,10 +138,11 @@ curl http://localhost:21128/health
 **预期响应:**
 ```json
 {
-  "status": "ok",
-  "version": "1.0.0"
+  "ok": true
 }
 ```
+
+> 版本不在 health 响应中。请调用 `GET /api/version`。
 
 ### 列出可用模型
 

@@ -1,7 +1,11 @@
 # Audit Teknik MiawRouter — Laporan Akhir
 
 Tanggal: 2026-09-17
-Rentang commit: `d0c8c81` (v1.0.29) → `1530eb6`
+Rentang commit: `d0c8c81` → `1530eb6`
+
+> Dokumen ini **terikat rentang commit** dan menggambarkan rilis `1.0.x`.
+> Nomor versi di dalamnya historis; versi rilis saat ini ada di `package.json`.
+
 Dampak: 60 file berubah, 24 file baru, +5433 / −207 baris, 8 commit
 
 ---
