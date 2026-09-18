@@ -23,10 +23,10 @@ const appPort = parseInt(process.env.UPDATER_APP_PORT || "21128", 10);
 // Data directory (match mitm/paths.js logic)
 function getDataDir() {
   if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  // Legacy read fallback: ~/.9router keeps working until migration.
+  // Legacy read fallback: ~/.miawrouter keeps working until migration.
   const legacy = process.platform === "win32"
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "9router")
-    : path.join(os.homedir(), ".9router");
+    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter")
+    : path.join(os.homedir(), ".miawrouter");
   if (fs.existsSync(legacy)) return legacy;
   return process.platform === "win32"
     ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter")

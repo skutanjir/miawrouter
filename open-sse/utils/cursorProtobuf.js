@@ -901,7 +901,7 @@ export function extractTextFromResponse(payload) {
 }
 
 // Wire-protocol identifier inherited from upstream, NOT a brand string.
-const AGENT_WIRE_PROVIDER = "9router";
+const AGENT_WIRE_PROVIDER = "miawrouter";
 
 export function encodeAgentValue(val) {
   if (val === null || val === undefined) {

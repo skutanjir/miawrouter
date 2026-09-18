@@ -403,7 +403,7 @@ export default function HermesToolCard({
                 <Button variant="outline" size="sm" onClick={handleAutoAddDesktop} loading={applying} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">desktop_windows</span>Sync Native Desktop
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!hermesStatus?.has9Router} loading={restoring} className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!hermesStatus?.hasMiawRouter} loading={restoring} className="w-full sm:w-auto">
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto">

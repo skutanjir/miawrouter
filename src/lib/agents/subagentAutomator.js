@@ -527,7 +527,7 @@ export async function configureDroidSubagents({ baseUrl, apiKey, roles }) {
   if (!settings.customModels) settings.customModels = [];
   // Remove existing MiawRouter models
   settings.customModels = settings.customModels.filter(
-    (m) => !m?.id?.startsWith("custom:MiawRouter") && !m?.id?.startsWith("custom:9Router")
+    (m) => !m?.id?.startsWith("custom:MiawRouter") && !m?.id?.startsWith("custom:MiawRouter")
   );
 
   const subagentModels = [

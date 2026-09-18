@@ -5,7 +5,7 @@ import { UPDATER_CONFIG } from "@/shared/constants/config";
 
 const STORAGE_KEY = "miawrouter.cliToolEndpointPresets";
 // Legacy key read so presets saved under the old name keep showing.
-const LEGACY_STORAGE_KEY = "9router.cliToolEndpointPresets";
+const LEGACY_STORAGE_KEY = "miawrouter.cliToolEndpointPresets";
 const CUSTOM_VALUE = "__custom__";
 const SAVE_VALUE = "__save__";
 

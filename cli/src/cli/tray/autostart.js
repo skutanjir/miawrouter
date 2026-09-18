@@ -5,9 +5,9 @@ const { execSync } = require("child_process");
 
 const APP_NAME = "miawrouter";
 const APP_LABEL = "com.miawrouter.autostart";
-// Legacy label read so a previously-registered 9router autostart still counts
+// Legacy label read so a previously-registered miawrouter autostart still counts
 // as enabled and is cleaned up by disable paths.
-const LEGACY_APP_LABEL = "com.9router.autostart";
+const LEGACY_APP_LABEL = "com.miawrouter.autostart";
 
 /**
  * Resolve the absolute path to this package's cli.js.

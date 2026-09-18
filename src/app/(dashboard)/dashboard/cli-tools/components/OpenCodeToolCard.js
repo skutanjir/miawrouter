@@ -60,7 +60,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
     if (status?.subagents) {
       setSubagents((prev) => ({ ...prev, ...status.subagents }));
     } else if (status?.config?.agent) {
-      const clean = (m) => m?.replace(/^(miawrouter|9router)\//, "") || "";
+      const clean = (m) => m?.replace(/^(miawrouter|miawrouter)\//, "") || "";
       setSubagents({
         explorer: clean(status.config.agent.explorer?.model),
         reviewer: clean(status.config.agent.reviewer?.model),
@@ -105,8 +105,8 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
   const getConfigStatus = () => {
     if (!status?.installed) return null;
     if (!status.config) return "not_configured";
-    if (!status.has9Router) return "not_configured";
-    const url = status.config?.provider?.["miawrouter"]?.options?.baseURL || status.config?.provider?.["9router"]?.options?.baseURL || "";
+    if (!status.hasMiawRouter) return "not_configured";
+    const url = status.config?.provider?.["miawrouter"]?.options?.baseURL || status.config?.provider?.["miawrouter"]?.options?.baseURL || "";
     return matchKnownEndpoint(url, { tunnelPublicUrl, tailscaleUrl }) ? "configured" : "other";
   };
 
@@ -336,12 +336,12 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                 </div>
 
                 {/* Current configured */}
-                {((status?.config?.provider?.["miawrouter"]?.options?.baseURL) || (status?.config?.provider?.["9router"]?.options?.baseURL)) && (
+                {((status?.config?.provider?.["miawrouter"]?.options?.baseURL) || (status?.config?.provider?.["miawrouter"]?.options?.baseURL)) && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {status.config.provider["miawrouter"]?.options?.baseURL || status.config.provider["9router"]?.options?.baseURL}
+                      {status.config.provider["miawrouter"]?.options?.baseURL || status.config.provider["miawrouter"]?.options?.baseURL}
                     </span>
                   </div>
                 )}
@@ -458,7 +458,7 @@ export default function OpenCodeToolCard({ tool, isExpanded, onToggle, baseUrl, 
                 <Button variant="primary" size="sm" onClick={handleApply} disabled={selectedModels.length === 0} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.has9Router} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!status.hasMiawRouter} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

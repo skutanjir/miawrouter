@@ -25,17 +25,17 @@ export function applyOutboundProxyEnv(
   const proxyUrl = normalizeString(outboundProxyUrl);
   const noProxy = normalizeString(outboundNoProxy);
 
-  // Internal marker env: new writes use MIAW_*; legacy NINE_ROUTER_* still read
+  // Internal marker env: new writes use MIAW_*; legacy MIAWROUTER_* still read
   // so an already-managed child process (or old spawner) keeps working.
   const isManaged = () =>
-    process.env.MIAW_PROXY_MANAGED === "1" || process.env.NINE_ROUTER_PROXY_MANAGED === "1";
+    process.env.MIAW_PROXY_MANAGED === "1" || process.env.MIAWROUTER_PROXY_MANAGED === "1";
   const clearManaged = () => {
     delete process.env.MIAW_PROXY_MANAGED;
     delete process.env.MIAW_PROXY_URL;
     delete process.env.MIAW_NO_PROXY;
-    delete process.env.NINE_ROUTER_PROXY_MANAGED;
-    delete process.env.NINE_ROUTER_PROXY_URL;
-    delete process.env.NINE_ROUTER_NO_PROXY;
+    delete process.env.MIAWROUTER_PROXY_MANAGED;
+    delete process.env.MIAWROUTER_PROXY_URL;
+    delete process.env.MIAWROUTER_NO_PROXY;
   };
 
   // If disabled, only clear env vars we previously managed.
@@ -63,12 +63,12 @@ export function applyOutboundProxyEnv(
       delete process.env.HTTPS_PROXY;
       delete process.env.ALL_PROXY;
       delete process.env.MIAW_PROXY_URL;
-      delete process.env.NINE_ROUTER_PROXY_URL;
+      delete process.env.MIAWROUTER_PROXY_URL;
     }
     if (!noProxy) {
       delete process.env.NO_PROXY;
       delete process.env.MIAW_NO_PROXY;
-      delete process.env.NINE_ROUTER_NO_PROXY;
+      delete process.env.MIAWROUTER_NO_PROXY;
     }
   }
 

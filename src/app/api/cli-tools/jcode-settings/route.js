@@ -13,11 +13,11 @@ const execAsync = promisify(exec);
 const getJcodeConfigDir = () => path.join(os.homedir(), ".jcode");
 const getConfigPath = () => path.join(getJcodeConfigDir(), "config.toml");
 
-// New writes use "miawrouter"; legacy "9router" slots/env names stay readable.
+// New writes use "miawrouter"; legacy "miawrouter" slots/env names stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "9router";
+const LEGACY_PROVIDER_KEY = "miawrouter";
 const ENV_KEY = "JCODE_MIAWROUTER_API_KEY";
-const LEGACY_ENV_KEY = "JCODE_9ROUTER_API_KEY";
+const LEGACY_ENV_KEY = "JCODE_MIAWROUTER_API_KEY";
 
 const getProviderEnvPath = () => {
   const configDir = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config");
@@ -50,7 +50,7 @@ const readConfig = async () => {
   }
 };
 
-const has9RouterConfig = (config) => {
+const hasMiawRouterConfig = (config) => {
   if (!config || !config.providers) return false;
 
   const providers = config.providers;
@@ -124,13 +124,13 @@ export async function GET() {
   }
 
   const config = await readConfig();
-  const has9Router = has9RouterConfig(config);
+  const hasMiawRouter = hasMiawRouterConfig(config);
   const provider = config?.providers?.[PROVIDER_KEY] || config?.providers?.[LEGACY_PROVIDER_KEY];
 
   return NextResponse.json({
     installed: true,
     config,
-    has9Router,
+    hasMiawRouter,
     subagents: provider?.subagents || null,
     configPath: getConfigPath(),
   });

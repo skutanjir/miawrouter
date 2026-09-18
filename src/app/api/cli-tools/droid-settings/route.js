@@ -46,13 +46,13 @@ const readSettings = async () => {
   }
 };
 
-// New writes use "custom:MiawRouter"; legacy "custom:9Router" ids stay readable.
+// New writes use "custom:MiawRouter"; legacy "custom:MiawRouter" ids stay readable.
 const MODEL_PREFIX = "custom:MiawRouter";
-const LEGACY_MODEL_PREFIX = "custom:9Router";
+const LEGACY_MODEL_PREFIX = "custom:MiawRouter";
 const isOurs = (id) => typeof id === "string" && (id.startsWith(MODEL_PREFIX) || id.startsWith(LEGACY_MODEL_PREFIX));
 
 // Check if settings has MiawRouter customModels
-const has9RouterConfig = (settings) => {
+const hasMiawRouterConfig = (settings) => {
   if (!settings || !settings.customModels) return false;
   return settings.customModels.some(m => isOurs(m.id));
 };
@@ -75,7 +75,7 @@ export async function GET() {
     return NextResponse.json({
       installed: true,
       settings,
-      has9Router: has9RouterConfig(settings),
+      hasMiawRouter: hasMiawRouterConfig(settings),
       settingsPath: getDroidSettingsPath(),
     });
   } catch (error) {
@@ -84,7 +84,7 @@ export async function GET() {
   }
 }
 
-// POST - Update 9Router customModels (merge with existing settings)
+// POST - Update MiawRouter customModels (merge with existing settings)
 // Accepts either `model` (string, legacy single-model) or `models` (array of strings, multi-model)
 // Also accepts `activeModel` to set which model is active/primary
 export async function POST(request) {
@@ -116,7 +116,7 @@ export async function POST(request) {
       settings.customModels = [];
     }
 
-    // Remove all existing MiawRouter (legacy 9Router) configs
+    // Remove all existing MiawRouter (legacy MiawRouter) configs
     settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
 
     // Normalize baseUrl to ensure /v1 suffix
@@ -176,7 +176,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router customModels only (keep other settings)
+// DELETE - Remove MiawRouter customModels only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getDroidSettingsPath();
@@ -196,7 +196,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove MiawRouter customModels (legacy 9Router too)
+    // Remove MiawRouter customModels (legacy MiawRouter too)
     if (settings.customModels) {
       settings.customModels = settings.customModels.filter(m => !isOurs(m.id));
       

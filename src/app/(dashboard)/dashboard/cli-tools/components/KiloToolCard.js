@@ -50,7 +50,7 @@ export default function KiloToolCard({ tool, isExpanded, onToggle, baseUrl, apiK
 
   const getConfigStatus = () => {
     if (!status?.installed) return null;
-    return status.has9Router ? "configured" : "not_configured";
+    return status.hasMiawRouter ? "configured" : "not_configured";
   };
 
   const configStatus = getConfigStatus();

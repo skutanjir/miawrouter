@@ -73,12 +73,12 @@ export default function CLIToolsPageClient({ machineId }) {
   // Group regular CLI tools into Configured vs Available
   const configuredTools = regularTools.filter(([toolId, tool]) => {
     const status = toolStatuses[toolId];
-    return status?.hasMiawRouter || status?.has9Router || status?.configured;
+    return status?.hasMiawRouter || status?.hasMiawRouter || status?.configured;
   });
 
   const availableTools = regularTools.filter(([toolId, tool]) => {
     const status = toolStatuses[toolId];
-    return !(status?.hasMiawRouter || status?.has9Router || status?.configured);
+    return !(status?.hasMiawRouter || status?.hasMiawRouter || status?.configured);
   });
 
   return (

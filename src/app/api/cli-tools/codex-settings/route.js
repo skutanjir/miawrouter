@@ -14,9 +14,9 @@ const getCodexDir = () => path.join(os.homedir(), ".codex");
 const getCodexConfigPath = () => path.join(getCodexDir(), "config.toml");
 const getCodexAuthPath = () => path.join(getCodexDir(), "auth.json");
 
-// New writes use "miawrouter"; legacy "9router" config slots stay readable.
+// New writes use "miawrouter"; legacy "miawrouter" config slots stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "9router";
+const LEGACY_PROVIDER_KEY = "miawrouter";
 const isOurs = (s) => s === PROVIDER_KEY || s === LEGACY_PROVIDER_KEY;
 
 // Flatten confbox-parsed TOML into a writable object, preserving nested tables
@@ -79,7 +79,7 @@ const readConfig = async () => {
 };
 
 // Check if config has MiawRouter settings
-const has9RouterConfig = (config) => {
+const hasMiawRouterConfig = (config) => {
   if (!config) return false;
   return config.includes(`model_provider = "${PROVIDER_KEY}"`)
     || config.includes(`[model_providers.${PROVIDER_KEY}]`)
@@ -118,7 +118,7 @@ export async function GET() {
       installed: true,
       config,
       subagents,
-      has9Router: has9RouterConfig(config),
+      hasMiawRouter: hasMiawRouterConfig(config),
       configPath: getCodexConfigPath(),
     });
   } catch (error) {
@@ -127,7 +127,7 @@ export async function GET() {
   }
 }
 
-// POST - Update 9Router settings (merge with existing config)
+// POST - Update MiawRouter settings (merge with existing config)
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, subagentModel, subagents } = await request.json();
@@ -285,7 +285,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router settings only (keep other settings)
+// DELETE - Remove MiawRouter settings only (keep other settings)
 export async function DELETE() {
   try {
     const configPath = getCodexConfigPath();

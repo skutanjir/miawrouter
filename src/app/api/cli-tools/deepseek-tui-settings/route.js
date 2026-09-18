@@ -93,7 +93,7 @@ const readConfigToml = async () => {
 };
 
 // Detect MiawRouter by checking if provider is "openai" and base_url points to localhost/127.0.0.1
-const has9RouterConfig = (config) => {
+const hasMiawRouterConfig = (config) => {
     if (!config) return false;
     const provider = config.provider;
     if (provider !== "openai") return false;
@@ -113,7 +113,7 @@ export async function GET() {
         return NextResponse.json({
             installed: true,
             settings: config,
-            has9Router: has9RouterConfig(config),
+            hasMiawRouter: hasMiawRouterConfig(config),
             configPath: getDeepSeekConfigPath(),
         });
     } catch (error) {

@@ -39,7 +39,7 @@ Options:
   --timeout <seconds>     Max wait for the job (default: ${DEFAULT_TIMEOUT_SEC})
   --port <port>           Gateway port (default: ${DEFAULT_PORT})
   --host <host>           Gateway host (default: ${DEFAULT_HOST})
-  --api-key <key>         MiawRouter API key (or env MIAW_API_KEY / NINE_ROUTER_API_KEY)
+  --api-key <key>         MiawRouter API key (or env MIAW_API_KEY / MIAWROUTER_API_KEY)
   -h, --help              Show this help
 `;
 
@@ -54,7 +54,7 @@ function parseArgs(argv) {
     timeoutSec: DEFAULT_TIMEOUT_SEC,
     port: DEFAULT_PORT,
     host: DEFAULT_HOST,
-    apiKey: process.env.MIAW_API_KEY || process.env.NINE_ROUTER_API_KEY || null,
+    apiKey: process.env.MIAW_API_KEY || process.env.MIAWROUTER_API_KEY || null,
     pollIntervalMs: DEFAULT_POLL_INTERVAL_MS,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -258,8 +258,8 @@ async function run(argv) {
     }
 
     const requestId = create.body.request_id;
-    // New x-miaw-connection-id wins; legacy x-9router-connection-id still read.
-    const connectionId = create.headers["x-miaw-connection-id"] || create.headers["x-9router-connection-id"] || null;
+    // New x-miaw-connection-id wins; legacy x-miawrouter-connection-id still read.
+    const connectionId = create.headers["x-miaw-connection-id"] || create.headers["x-miawrouter-connection-id"] || null;
     console.log(`📋 Job accepted: ${requestId}`);
 
     let lastLine = "";

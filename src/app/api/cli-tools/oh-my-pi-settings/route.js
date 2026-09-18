@@ -86,7 +86,7 @@ export async function GET() {
       configExists: Boolean(content),
       configPath,
       hasMiawRouter: config.configured,
-      has9Router: config.configured,
+      hasMiawRouter: config.configured,
       ...config,
     });
   } catch (error) {
@@ -138,7 +138,7 @@ export async function POST(request) {
       configPath,
       backupPath,
       hasMiawRouter: true,
-      has9Router: true,
+      hasMiawRouter: true,
     });
   } catch (error) {
     console.log("Error applying Oh My Pi settings:", error);

@@ -10,10 +10,10 @@ const SQL_JS_VERSION = "1.14.1";
 
 function getDataDir() {
   if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  // Legacy read fallback: ~/.9router/runtime keeps working until migration.
+  // Legacy read fallback: ~/.miawrouter/runtime keeps working until migration.
   const legacy = process.platform === "win32"
-    ? path.join(process.env.APPDATA || os.homedir(), "9router")
-    : path.join(os.homedir(), ".9router");
+    ? path.join(process.env.APPDATA || os.homedir(), "miawrouter")
+    : path.join(os.homedir(), ".miawrouter");
   if (fs.existsSync(legacy)) return legacy;
   return process.platform === "win32"
     ? path.join(process.env.APPDATA || os.homedir(), "miawrouter")

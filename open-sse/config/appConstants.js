@@ -222,8 +222,8 @@ export function buildKimiHeaders(deviceId) {
 
   return {
     // Pinned upstream contract: the msh upstream rejects
-    // requests whose X-Msh-Platform is not exactly "9router". Do not rename.
-    "X-Msh-Platform": "9router",
+    // requests whose X-Msh-Platform is not exactly "miawrouter". Do not rename.
+    "X-Msh-Platform": "miawrouter",
     "X-Msh-Version": getAppPackageVersion(),
     "X-Msh-Device-Name": deviceName,
     "X-Msh-Device-Model": deviceModel,

@@ -9,7 +9,7 @@ const os = require("os");
 const cliDir = path.resolve(__dirname, "..");
 const appDir = path.resolve(cliDir, "..");
 const rootDir = path.resolve(appDir, "..");
-const cliAppDir = process.env.MIAW_CLI_APP_DIR || process.env.NINEROUTER_CLI_APP_DIR || path.join(cliDir, "app");
+const cliAppDir = process.env.MIAW_CLI_APP_DIR || process.env.MIAWROUTER_CLI_APP_DIR || path.join(cliDir, "app");
 const buildHomeDir = path.join(os.tmpdir(), "miaw-cli-build-home");
 const buildDistDirName = ".next-cli-build";
 const buildDistDir = path.join(appDir, buildDistDirName);
@@ -26,7 +26,7 @@ const EXCLUDE_PATTERNS = [
   "tmp",            // Temp files
   ".DS_Store",      // macOS files
   ".build-home",
-  ".9router",
+  ".miawrouter",
   ".miawrouter",
   "*.db",
   "*.db-journal",

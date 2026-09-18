@@ -179,10 +179,10 @@ async function buildCodexHeader() {
   const result = await api.getCliToolSettings("codex");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, has9Router, config } = result.data;
+  const { installed, hasMiawRouter, config } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Codex CLI not installed${COLORS.reset}`;
 
-  if (!has9Router) {
+  if (!hasMiawRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
@@ -267,18 +267,18 @@ async function buildDroidHeader() {
   const result = await api.getCliToolSettings("droid");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, has9Router, settings } = result.data;
+  const { installed, hasMiawRouter, settings } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Factory Droid not installed${COLORS.reset}`;
 
-  if (!has9Router) {
+  if (!hasMiawRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
     ].join("\n");
   }
 
-  // Extract 9Router custom model config
-  const custom = settings?.customModels?.find(m => m.id === "custom:9Router-0");
+  // Extract MiawRouter custom model config
+  const custom = settings?.customModels?.find(m => m.id === "custom:MiawRouter-0");
   const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];
   if (custom?.baseUrl) lines.push(`Endpoint: ${COLORS.cyan}${custom.baseUrl}${COLORS.reset}`);
   if (custom?.model)   lines.push(`Model:    ${COLORS.dim}${custom.model}${COLORS.reset}`);
@@ -350,20 +350,20 @@ async function buildOpenClawHeader() {
   const result = await api.getCliToolSettings("openclaw");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, has9Router, settings } = result.data;
+  const { installed, hasMiawRouter, settings } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Open Claw not installed${COLORS.reset}`;
 
-  if (!has9Router) {
+  if (!hasMiawRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
     ].join("\n");
   }
 
-  // Extract MiawRouter provider config (legacy "9router" slot accepted).
-  const provider = settings?.models?.providers?.["miawrouter"] || settings?.models?.providers?.["9router"];
+  // Extract MiawRouter provider config (legacy "miawrouter" slot accepted).
+  const provider = settings?.models?.providers?.["miawrouter"] || settings?.models?.providers?.["miawrouter"];
   const primary = settings?.agents?.defaults?.model?.primary || "";
-  const model = primary.startsWith("miawrouter/") || primary.startsWith("9router/")
+  const model = primary.startsWith("miawrouter/") || primary.startsWith("miawrouter/")
     ? primary.slice(primary.indexOf("/") + 1)
     : (provider?.models?.[0]?.id || "");
   const lines = [`Status:   ${COLORS.green}✓ Configured${COLORS.reset}`];
@@ -433,10 +433,10 @@ async function buildOpenCodeHeader() {
   const result = await api.getCliToolSettings("opencode");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, has9Router, opencode } = result.data;
+  const { installed, hasMiawRouter, opencode } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ OpenCode CLI not installed${COLORS.reset}`;
 
-  if (!has9Router) {
+  if (!hasMiawRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
@@ -521,10 +521,10 @@ async function buildHermesHeader() {
   const result = await api.getCliToolSettings("hermes");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, has9Router, settings } = result.data;
+  const { installed, hasMiawRouter, settings } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Hermes Agent not installed${COLORS.reset}`;
 
-  if (!has9Router) {
+  if (!hasMiawRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`
@@ -581,10 +581,10 @@ async function buildGrokBuildHeader() {
   const result = await api.getCliToolSettings("grok-build");
   if (!result.success) return `  ${COLORS.red}Failed to load settings${COLORS.reset}`;
 
-  const { installed, has9Router, settings } = result.data;
+  const { installed, hasMiawRouter, settings } = result.data;
   if (!installed) return `Status:   ${COLORS.red}✗ Grok Build not installed${COLORS.reset}`;
 
-  if (!has9Router) {
+  if (!hasMiawRouter) {
     return [
       `Status:   ${COLORS.red}✗ Not configured${COLORS.reset}`,
       `${COLORS.dim}Run "Quick Setup" to configure${COLORS.reset}`

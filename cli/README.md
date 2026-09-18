@@ -42,9 +42,7 @@ miawrouter --help             # show all options
 
 ### Migrate from a legacy installation
 
-```bash
-miawrouter migrate --from-9router
-```
+```bash```
 
 Reads providers, keys, and combos from a legacy install through its authenticated export API and imports them into the running MiawRouter gateway. See `miawrouter migrate --help`.
 

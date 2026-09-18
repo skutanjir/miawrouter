@@ -76,9 +76,9 @@ export const DEFAULT_MAX_TOKENS = 64000;
 export const DEFAULT_MIN_TOKENS = 32000;
 
 // Inbound client header: new writes use x-miaw-token-saver; legacy
-// x-9router-token-saver remains accepted read-only for existing clients.
+// x-miawrouter-token-saver remains accepted read-only for existing clients.
 export const TOKEN_SAVER_HEADER = "x-miaw-token-saver";
-export const LEGACY_TOKEN_SAVER_HEADER = "x-9router-token-saver";
+export const LEGACY_TOKEN_SAVER_HEADER = "x-miawrouter-token-saver";
 
 // Retry config for 429 responses (legacy - kept for backward compatibility)
 export const RETRY_CONFIG = {

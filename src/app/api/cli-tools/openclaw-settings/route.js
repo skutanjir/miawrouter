@@ -9,9 +9,9 @@ import os from "os";
 
 const execAsync = promisify(exec);
 
-// New writes use "miawrouter"; legacy "9router" provider/model slots stay readable.
+// New writes use "miawrouter"; legacy "miawrouter" provider/model slots stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "9router";
+const LEGACY_PROVIDER_KEY = "miawrouter";
 const modelKey = (m) => `${PROVIDER_KEY}/${m}`;
 const isOurs = (s) => typeof s === "string" && (s.startsWith(`${PROVIDER_KEY}/`) || s.startsWith(`${LEGACY_PROVIDER_KEY}/`));
 
@@ -63,7 +63,7 @@ const readSettings = async () => {
 };
 
 // Check if settings has MiawRouter config
-const has9RouterConfig = (settings) => {
+const hasMiawRouterConfig = (settings) => {
   if (!settings || !settings.models || !settings.models.providers) return false;
   return !!settings.models.providers[PROVIDER_KEY] || !!settings.models.providers[LEGACY_PROVIDER_KEY];
 };
@@ -111,7 +111,7 @@ export async function GET() {
       installed: true,
       settings,
       agents: enrichedAgents,
-      has9Router: has9RouterConfig(settings),
+      hasMiawRouter: hasMiawRouterConfig(settings),
       settingsPath: getOpenClawSettingsPath(),
     });
   } catch (error) {
@@ -140,7 +140,7 @@ const writeAgentModels = async (agentDir, model, baseUrl, apiKey) => {
   await fs.writeFile(modelsPath, JSON.stringify(existing, null, 2));
 };
 
-// POST - Update 9Router settings (merge with existing settings)
+// POST - Update MiawRouter settings (merge with existing settings)
 export async function POST(request) {
   try {
     // agentModels: { [agentId]: modelId } for per-agent override
@@ -171,7 +171,7 @@ export async function POST(request) {
     const normalizedBaseUrl = baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
     const fullModelId = modelKey(model);
 
-    // Remove all old miawrouter/* (and legacy 9router/*) entries from agents.defaults.models
+    // Remove all old miawrouter/* (and legacy miawrouter/*) entries from agents.defaults.models
     Object.keys(settings.agents.defaults.models)
       .filter((k) => isOurs(k))
       .forEach((k) => { delete settings.agents.defaults.models[k]; });
@@ -241,7 +241,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router settings only (keep other settings)
+// DELETE - Remove MiawRouter settings only (keep other settings)
 export async function DELETE() {
   try {
     const settingsPath = getOpenClawSettingsPath();
@@ -261,7 +261,7 @@ export async function DELETE() {
       throw error;
     }
 
-    // Remove miawrouter from models.providers (legacy 9router slot too)
+    // Remove miawrouter from models.providers (legacy miawrouter slot too)
     if (settings.models && settings.models.providers) {
       delete settings.models.providers[PROVIDER_KEY];
       delete settings.models.providers[LEGACY_PROVIDER_KEY];

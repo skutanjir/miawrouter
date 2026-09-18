@@ -4,7 +4,7 @@ import { getConsistentMachineId } from "@/shared/utils/machineId";
 import { verifyDashboardAuthToken } from "@/lib/auth/dashboardSession";
 
 // CLI token header/salt: new writes use miaw names; legacy x-9r-* / 9r-* still
-// accepted so an already-installed 9router CLI keeps authenticating.
+// accepted so an already-installed miawrouter CLI keeps authenticating.
 const CLI_TOKEN_HEADER = "x-miaw-cli-token";
 const LEGACY_CLI_TOKEN_HEADER = "x-9r-cli-token";
 const CLI_TOKEN_SALT = "miaw-cli-auth";

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "miawrouter.cliToolEndpointPresets";
 // Legacy key read so presets saved under the old name keep showing.
-const LEGACY_STORAGE_KEY = "9router.cliToolEndpointPresets";
+const LEGACY_STORAGE_KEY = "miawrouter.cliToolEndpointPresets";
 
 function maskApiKey(apiKey) {
   if (!apiKey) return "No API key";

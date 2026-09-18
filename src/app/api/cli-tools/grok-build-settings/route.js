@@ -74,7 +74,7 @@ const normalizeSubagentModels = (value) => {
   return result;
 };
 
-const has9RouterConfig = (settings) => Boolean(settings?.model?.base_url);
+const hasMiawRouterConfig = (settings) => Boolean(settings?.model?.base_url);
 
 export async function GET(request) {
   if (!(await canAccessLocalOnlyRoute(request))) return unauthorized();
@@ -92,8 +92,8 @@ export async function GET(request) {
     return NextResponse.json({
       installed: true,
       settings,
-      hasMiawRouter: has9RouterConfig(settings),
-      has9Router: has9RouterConfig(settings),
+      hasMiawRouter: hasMiawRouterConfig(settings),
+      hasMiawRouter: hasMiawRouterConfig(settings),
       configPath: getGrokConfigPath(),
     });
   } catch (error) {

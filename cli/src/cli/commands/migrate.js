@@ -1,6 +1,5 @@
 /**
- * `miawrouter migrate --from-9router` — migrate an existing 9router install
- * into this MiawRouter gateway.
+ * ` * into this MiawRouter gateway.
  *
  * Data never travels as raw SQLite bytes. The command reads the legacy
  * installation through the same authenticated export/import API the dashboard
@@ -14,7 +13,7 @@
  * `miaw-cli-auth`). Either side may fall back to its dashboard password.
  *
  * Branded local defaults (localhost:20128 → :21128, legacy token-saver /
- * connection-id headers, `9router` provider/model slot identifiers) are
+ * connection-id headers, `miawrouter` provider/model slot identifiers) are
  * rewritten inside the exported structured payload by a recursive allowlisted
  * transformer. Provider secrets pass through the API boundary byte-identical.
  *
@@ -67,8 +66,8 @@ const REWRITE_KEYS = new Set([
   "outboundProxyUrl", "baseUrl", "cloudUrl",
 ]);
 
-// Collections whose string values may carry `9router` slot identifiers /
-// model prefixes (`9router/…`) — combos models, aliases, mitm mappings,
+// Collections whose string values may carry `miawrouter` slot identifiers /
+// model prefixes (`miawrouter/…`) — combos models, aliases, mitm mappings,
 // custom provider data. Everything outside these collections and the
 // REWRITE_KEYS above passes through byte-identical.
 const REWRITE_COLLECTIONS = new Set([
@@ -77,18 +76,16 @@ const REWRITE_COLLECTIONS = new Set([
 ]);
 
 const HELP = `
-Usage: miawrouter migrate --from-9router [options]
-
-Migrate data from a legacy 9router install (same machine) into this
+Usage:
+Migrate data from a legacy miawrouter install (same machine) into this
 MiawRouter gateway. Reads the source only through the authenticated
 export API — never copies data.sqlite, never writes into the source.
 
-Options:
-  --from-9router          Name the migration source (legacy 9router install)
+Options:          Name the migration source (legacy miawrouter install)
   --legacy-host <host>    Legacy gateway host (default: ${DEFAULT_LEGACY_HOST})
   --legacy-port <port>    Legacy gateway port (default: ${DEFAULT_LEGACY_PORT})
   --legacy-dir <dir>      Legacy data dir holding machine-id + auth/cli-secret
-                          (default: ~/.9router, Win %APPDATA%\\9router)
+                          (default: ~/.miawrouter, Win %APPDATA%\\miawrouter)
   --host <host>           Target MiawRouter host (default: ${DEFAULT_TARGET_HOST})
   --port <port>           Target MiawRouter port (default: ${DEFAULT_TARGET_PORT})
   --legacy-password <pw>  Legacy dashboard password (fallback when the legacy
@@ -103,8 +100,8 @@ Options:
 
 function defaultLegacyDir() {
   return process.platform === "win32"
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "9router")
-    : path.join(os.homedir(), ".9router");
+    ? path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter")
+    : path.join(os.homedir(), ".miawrouter");
 }
 
 function defaultTargetDir() {
@@ -158,14 +155,14 @@ function rewriteLocalString(value) {
   let out = value;
   // Legacy client header names → new names (specific rules run first so the
   // generic slot rewrite below cannot mangle them).
-  out = out.replace(/x-9router-token-saver/gi, "x-miaw-token-saver");
-  out = out.replace(/x-9router-connection-id/gi, "x-miaw-connection-id");
+  out = out.replace(/x-miawrouter-token-saver/gi, "x-miaw-token-saver");
+  out = out.replace(/x-miawrouter-connection-id/gi, "x-miaw-connection-id");
   // Local gateway port 20128 → 21128 (legacy runtime port → new runtime port).
   out = out.replace(/(localhost|127\.0\.0\.1|0\.0\.0\.0):20128\b/gi, "$1:21128");
-  // `9router` slot identifiers: bare token or `9router/…` model prefix → miawrouter.
-  // The `9router.com` cloud domain and pinned upstream-contract strings are never
+  // `miawrouter` slot identifiers: bare token or `miawrouter/…` model prefix → miawrouter.
+  // The `miawrouter.com` cloud domain and pinned upstream-contract strings are never
   // matched (followed by `.`, which the negative lookahead rejects).
-  out = out.replace(/\b9router\b(?!\.com)/gi, "miawrouter");
+  out = out.replace(/\bmiawrouter\b(?!\.com)/gi, "miawrouter");
   return out;
 }
 
@@ -182,7 +179,7 @@ function isRewriteKey(key) {
 // - Rewrites the string value of any allowlisted key (settings URL keys,
 //   baseUrl) and every string inside an allowlisted collection (provider
 //   connections/nodes, combos, aliases, mitm, pricing) so embedded config
-//   blobs and `9router/…` model slot identifiers are covered.
+//   blobs and `miawrouter/…` model slot identifiers are covered.
 // - Never touches values under secret key names (accessToken, refreshToken,
 //   apiKey, …) and never rewrites the apiKeys collection at all (the `key`
 //   field is a credential).
@@ -400,9 +397,8 @@ async function run(argv) {
     console.log(HELP);
     return 0;
   }
-  if (!opts.from9router) {
-    console.error("❌ Use: miawrouter migrate --from-9router [options]");
-    console.log(HELP);
+  if (!opts.frommiawrouter) {
+    console.error("❌ Use:    console.log(HELP);
     return 1;
   }
 
@@ -421,14 +417,14 @@ async function run(argv) {
     console.error(`❌ ${result.report.error}`);
     return 1;
   }
-  console.log("✅ Migration complete. Source 9router install left untouched.");
+  console.log("✅ Migration complete. Source miawrouter install left untouched.");
   printReport(result.report);
   return 0;
 }
 
 function parseArgs(argv) {
   const opts = {
-    from9router: false,
+    frommiawrouter: false,
     legacyHost: DEFAULT_LEGACY_HOST,
     legacyPort: DEFAULT_LEGACY_PORT,
     legacyDir: defaultLegacyDir(),
@@ -442,7 +438,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const next = () => argv[++i];
-    if (a === "--from-9router") opts.from9router = true;
+    if (a === "") opts.frommiawrouter = true;
     else if (a === "--legacy-host") opts.legacyHost = next() || DEFAULT_LEGACY_HOST;
     else if (a === "--legacy-port") opts.legacyPort = parseInt(next(), 10) || DEFAULT_LEGACY_PORT;
     else if (a === "--legacy-dir") opts.legacyDir = next() || defaultLegacyDir();

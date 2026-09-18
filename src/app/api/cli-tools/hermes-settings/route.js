@@ -188,7 +188,7 @@ const readDesktopConfig = async () => {
 };
 
 // Detect MiawRouter by base_url containing localhost/127.0.0.1 or matching tunnel URL
-const has9RouterConfig = (modelCfg) => {
+const hasMiawRouterConfig = (modelCfg) => {
   if (!modelCfg?.base_url && !modelCfg?.endpoint && !modelCfg?.baseUrl) return false;
   const url = modelCfg.base_url || modelCfg.endpoint || modelCfg.baseUrl;
   return /localhost|127\.0\.0\.1|0\.0\.0\.0/.test(url);
@@ -226,7 +226,7 @@ export async function GET() {
         subagents,
         desktop: desktopConfig,
       },
-      has9Router: has9RouterConfig(model) || has9RouterConfig(desktopConfig),
+      hasMiawRouter: hasMiawRouterConfig(model) || hasMiawRouterConfig(desktopConfig),
       configPath: getHermesConfigPath(),
       desktopConfigPath: getHermesDesktopConfigPath(),
     });

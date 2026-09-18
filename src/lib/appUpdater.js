@@ -51,7 +51,7 @@ function collectAppPids() {
         const lower = line.toLowerCase();
         // Match anything running from miawrouter install dir or wrapper cli.js
         const isAppProcess = lower.includes("miawrouter") ||
-          lower.includes("9router") ||
+          lower.includes("miawrouter") ||
           lower.includes("next-server") ||
           lower.includes("\\bin\\app\\") ||
           lower.includes("/bin/app/") ||
@@ -79,7 +79,7 @@ function collectAppPids() {
       const output = execSync("ps aux 2>/dev/null", { encoding: "utf8", timeout: KILL_TIMEOUT_MS });
       output.split("\n").forEach(line => {
         const isAppProcess = line.includes("miawrouter") ||
-          line.includes("9router") ||
+          line.includes("miawrouter") ||
           line.includes("next-server") ||
           line.includes("cloudflared") ||
           line.includes("/bin/app/") ||
@@ -100,13 +100,13 @@ function collectAppPids() {
 // Copy updater.js into DATA_DIR so npm -g can overwrite node_modules safely
 function getDataDir() {
   if (process.env.DATA_DIR) return process.env.DATA_DIR;
-  // Legacy read fallback: ~/.9router keeps working until migration.
+  // Legacy read fallback: ~/.miawrouter keeps working until migration.
   if (process.platform === "win32") {
-    const legacyWin = path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "9router");
+    const legacyWin = path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter");
     if (fs.existsSync(legacyWin)) return legacyWin;
     return path.join(process.env.APPDATA || path.join(os.homedir(), "AppData", "Roaming"), "miawrouter");
   }
-  const legacyNix = path.join(os.homedir(), ".9router");
+  const legacyNix = path.join(os.homedir(), ".miawrouter");
   if (fs.existsSync(legacyNix)) return legacyNix;
   return path.join(os.homedir(), ".miawrouter");
 }

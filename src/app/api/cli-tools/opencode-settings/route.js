@@ -12,9 +12,9 @@ const execAsync = promisify(exec);
 const getConfigDir = () => path.join(os.homedir(), ".config", "opencode");
 const getConfigPath = () => path.join(getConfigDir(), "opencode.json");
 
-// New writes use "miawrouter"; legacy "9router" provider/model slots stay readable.
+// New writes use "miawrouter"; legacy "miawrouter" provider/model slots stay readable.
 const PROVIDER_KEY = "miawrouter";
-const LEGACY_PROVIDER_KEY = "9router";
+const LEGACY_PROVIDER_KEY = "miawrouter";
 const modelKey = (m) => `${PROVIDER_KEY}/${m}`;
 const isOurs = (s) => typeof s === "string" && (s.startsWith(`${PROVIDER_KEY}/`) || s.startsWith(`${LEGACY_PROVIDER_KEY}/`));
 const stripOurs = (s) => (isOurs(s) ? s.slice(s.indexOf("/") + 1) : s);
@@ -55,7 +55,7 @@ const readConfig = async () => {
   }
 };
 
-const has9RouterConfig = (config) => {
+const hasMiawRouterConfig = (config) => {
   if (!config?.provider) return false;
   return !!config.provider[PROVIDER_KEY] || !!config.provider[LEGACY_PROVIDER_KEY];
 };
@@ -88,7 +88,7 @@ export async function GET() {
       installed: true,
       config,
       subagents,
-      has9Router: has9RouterConfig(config),
+      hasMiawRouter: hasMiawRouterConfig(config),
       configPath: getConfigPath(),
       opencode: {
         models: Object.keys(modelMap),
@@ -102,7 +102,7 @@ export async function GET() {
   }
 }
 
-// POST - Apply 9Router as openai-compatible provider (multi-model support)
+// POST - Apply MiawRouter as openai-compatible provider (multi-model support)
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, model, models, activeModel, subagentModel, subagents } = await request.json();
@@ -140,7 +140,7 @@ export async function POST(request) {
     // Ensure provider object
     if (!config.provider) config.provider = {};
 
-    // Preserve any existing miawrouter (or legacy 9router) provider entry and its models
+    // Preserve any existing miawrouter (or legacy miawrouter) provider entry and its models
     const existingProvider = config.provider[PROVIDER_KEY] || config.provider[LEGACY_PROVIDER_KEY]
       || { npm: "@ai-sdk/openai-compatible", options: {}, models: {} };
 
@@ -255,7 +255,7 @@ export async function PATCH(request) {
   }
 }
 
-// DELETE - Remove 9Router provider or specific models from config
+// DELETE - Remove MiawRouter provider or specific models from config
 export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);

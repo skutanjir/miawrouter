@@ -180,7 +180,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Per-request opt-out: client can bypass all token savers via header.
-  // New x-miaw-token-saver wins; legacy x-9router-token-saver still accepted.
+  // New x-miaw-token-saver wins; legacy x-miawrouter-token-saver still accepted.
   // Hoisted above translation so the PXPIPE pre-translate pass can consult it.
   const saverHeaderValue =
     clientRawRequest?.headers?.[TOKEN_SAVER_HEADER] ??

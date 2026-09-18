@@ -14,8 +14,8 @@ const tracingRoot = process.env.NEXT_TRACING_ROOT_MODE === "workspace"
   ? join(projectRoot, "..")
   : projectRoot;
 // MIAW_PROXY_CLIENT_MAX_BODY_SIZE is the primary knob; the legacy
-// NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE name is still read as a fallback.
-const proxyClientMaxBodySize = process.env.MIAW_PROXY_CLIENT_MAX_BODY_SIZE || process.env.NINEROUTER_PROXY_CLIENT_MAX_BODY_SIZE || "128mb";
+// MIAWROUTER_PROXY_CLIENT_MAX_BODY_SIZE name is still read as a fallback.
+const proxyClientMaxBodySize = process.env.MIAW_PROXY_CLIENT_MAX_BODY_SIZE || process.env.MIAWROUTER_PROXY_CLIENT_MAX_BODY_SIZE || "128mb";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

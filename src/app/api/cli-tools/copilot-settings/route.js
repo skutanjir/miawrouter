@@ -30,16 +30,16 @@ const readConfig = async () => {
   }
 };
 
-// New writes use "MiawRouter"; legacy "9Router" entry name stays readable.
+// New writes use "MiawRouter"; legacy "MiawRouter" entry name stays readable.
 const ENTRY_NAME = "MiawRouter";
-const LEGACY_ENTRY_NAME = "9Router";
+const LEGACY_ENTRY_NAME = "MiawRouter";
 
-const has9RouterConfig = (config) => {
+const hasMiawRouterConfig = (config) => {
   if (!Array.isArray(config)) return false;
   return config.some((entry) => entry.name === ENTRY_NAME || entry.name === LEGACY_ENTRY_NAME);
 };
 
-const get9RouterEntry = (config) => {
+const getMiawRouterEntry = (config) => {
   if (!Array.isArray(config)) return null;
   return config.find((entry) => entry.name === ENTRY_NAME || entry.name === LEGACY_ENTRY_NAME) || null;
 };
@@ -48,12 +48,12 @@ const get9RouterEntry = (config) => {
 export async function GET() {
   try {
     const config = await readConfig();
-    const entry = get9RouterEntry(config);
+    const entry = getMiawRouterEntry(config);
 
     return NextResponse.json({
       installed: true,
       config,
-      has9Router: has9RouterConfig(config),
+      hasMiawRouter: hasMiawRouterConfig(config),
       configPath: getConfigPath(),
       currentModel: entry?.models?.[0]?.id || null,
       currentUrl: entry?.models?.[0]?.url || null,
@@ -64,7 +64,7 @@ export async function GET() {
   }
 }
 
-// POST - Apply 9Router config to chatLanguageModels.json
+// POST - Apply MiawRouter config to chatLanguageModels.json
 export async function POST(request) {
   try {
     const { baseUrl, apiKey, models } = await request.json();
@@ -102,7 +102,7 @@ export async function POST(request) {
       })),
     };
 
-    // Replace existing MiawRouter (or legacy 9Router) entry or append
+    // Replace existing MiawRouter (or legacy MiawRouter) entry or append
     const idx = config.findIndex((e) => e.name === ENTRY_NAME || e.name === LEGACY_ENTRY_NAME);
     if (idx >= 0) {
       config[idx] = newEntry;
@@ -123,7 +123,7 @@ export async function POST(request) {
   }
 }
 
-// DELETE - Remove 9Router entry from chatLanguageModels.json
+// DELETE - Remove MiawRouter entry from chatLanguageModels.json
 export async function DELETE() {
   try {
     const configPath = getConfigPath();

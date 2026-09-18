@@ -43,8 +43,8 @@ export default function DroidToolCard({
 
   const getConfigStatus = () => {
     if (!droidStatus?.installed) return null;
-  // Check for any MiawRouter model entry (support multi-model: custom:MiawRouter-0, custom:MiawRouter-1, ...; legacy custom:9Router-*)
-  const currentConfig = droidStatus.settings?.customModels?.find(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:9Router"));
+  // Check for any MiawRouter model entry (support multi-model: custom:MiawRouter-0, custom:MiawRouter-1, ...; legacy custom:MiawRouter-*)
+  const currentConfig = droidStatus.settings?.customModels?.find(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:MiawRouter"));
     if (!currentConfig) return "not_configured";
     return matchKnownEndpoint(currentConfig.baseUrl, { tunnelPublicUrl, tailscaleUrl, cloudUrl: cloudEnabled ? CLOUD_URL : null }) ? "configured" : "other";
   };
@@ -83,14 +83,14 @@ export default function DroidToolCard({
     if (droidStatus?.installed && !hasInitializedModel.current) {
       hasInitializedModel.current = true;
       const existingModels = (droidStatus.settings?.customModels || [])
-        .filter(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:9Router"))
+        .filter(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:MiawRouter"))
         .sort((a, b) => (a.index || 0) - (b.index || 0))
         .map(m => m.model);
       if (existingModels.length > 0) {
         setModelList(existingModels);
       } else {
-  // Legacy: single model stored as custom:9Router-0 (or current custom:MiawRouter-0)
-  const legacy = droidStatus.settings?.customModels?.find(m => m.id === "custom:MiawRouter-0" || m.id === "custom:9Router-0");
+  // Legacy: single model stored as custom:MiawRouter-0 (or current custom:MiawRouter-0)
+  const legacy = droidStatus.settings?.customModels?.find(m => m.id === "custom:MiawRouter-0" || m.id === "custom:MiawRouter-0");
         if (legacy?.model) {
           setModelList([legacy.model]);
         }
@@ -305,12 +305,12 @@ export default function DroidToolCard({
                 </div>
 
                 {/* Current configured */}
-                {((droidStatus?.settings?.customModels?.find(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:9Router"))?.baseUrl)) && (
+                {((droidStatus?.settings?.customModels?.find(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:MiawRouter"))?.baseUrl)) && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr_auto] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:9Router")).baseUrl}
+                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:MiawRouter")).baseUrl}
                     </span>
                   </div>
                 )}
@@ -391,7 +391,7 @@ export default function DroidToolCard({
                 <Button variant="primary" size="sm" onClick={handleApplySettings} disabled={modelList.length === 0} loading={applying}>
                   <span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!droidStatus?.has9Router} loading={restoring}>
+                <Button variant="outline" size="sm" onClick={handleResetSettings} disabled={!droidStatus?.hasMiawRouter} loading={restoring}>
                   <span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)}>

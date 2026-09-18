@@ -116,7 +116,7 @@ export async function GET() {
     }
 
     const settings = await readSettings();
-    const has9Router = !!(settings?.env?.ANTHROPIC_BASE_URL);
+    const hasMiawRouter = !!(settings?.env?.ANTHROPIC_BASE_URL);
     const claudeJson = await readClaudeJson();
     const subagents = await readClaudeSubagents();
 
@@ -124,7 +124,7 @@ export async function GET() {
       installed: true,
       settings: settings,
       subagents: subagents,
-      has9Router: has9Router,
+      hasMiawRouter: hasMiawRouter,
       exaMcpEnabled: !!claudeJson?.mcpServers?.exa,
       settingsPath: getClaudeSettingsPath(),
     });
