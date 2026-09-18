@@ -23,13 +23,15 @@ describe("OmniRoute Free Tier catalog import", () => {
     });
     // Counts are the imported snapshot minus the freebuff provider, which was
     // decommissioned in d0c8c81 (registry, executor, OAuth routes and its
-    // 7 model records all removed). The pinned source revision is unchanged.
+    // 7 model records all removed), and minus the OpenCode free ids upstream
+    // retired (hy3-free, laguna-s-2.1-free, north-mini-code-free). The pinned
+    // source revision is unchanged.
     expect(FREE_TIER_PROVIDERS).toHaveLength(135);
-    expect(FREE_TIER_MODEL_RECORDS).toHaveLength(508);
+    expect(FREE_TIER_MODEL_RECORDS).toHaveLength(507);
     expect(new Set(FREE_TIER_PROVIDERS.map((provider) => provider.id)).size).toBe(135);
     expect(
       new Set(FREE_TIER_MODEL_RECORDS.map((model) => `${model.provider}\0${model.modelId}`)).size
-    ).toBe(508);
+    ).toBe(507);
   });
 
   it("contains every model provider and the latest source additions", () => {

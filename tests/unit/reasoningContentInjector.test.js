@@ -156,6 +156,18 @@ describe("OpenCodeExecutor — issue #1543 regression", () => {
     });
   });
 
+  it("explains the upstream free-tier restriction", () => {
+    const executor = new OpenCodeExecutor();
+    const parsed = executor.parseError(
+      { status: 403 },
+      JSON.stringify({ error: { type: "FreeTierError", message: "OpenCode's free tier can only be used from within OpenCode" } }),
+    );
+    expect(parsed).toEqual({
+      status: 403,
+      message: "OpenCode Free rejected this client. Use OpenCode CLI for free models, or connect OpenCode Zen with an API key.",
+    });
+  });
+
   it("runs the injector so deepseek-v4-flash-free round-trips reasoning_content", () => {
     const executor = new OpenCodeExecutor();
     const out = executor.transformRequest(

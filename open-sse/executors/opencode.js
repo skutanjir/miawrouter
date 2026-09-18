@@ -32,4 +32,19 @@ export class OpenCodeExecutor extends BaseExecutor {
     if (/^opencode\//i.test(userAgent || "")) headers["User-Agent"] = userAgent;
     return headers;
   }
+
+  parseError(response, bodyText) {
+    try {
+      const error = JSON.parse(bodyText)?.error;
+      if (response.status === 403 && error?.type === "FreeTierError") {
+        return {
+          status: 403,
+          message: "OpenCode Free rejected this client. Use OpenCode CLI for free models, or connect OpenCode Zen with an API key."
+        };
+      }
+    } catch {
+      // Use the base parser for non-JSON upstream errors.
+    }
+    return super.parseError(response, bodyText);
+  }
 }
