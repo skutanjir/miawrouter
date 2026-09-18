@@ -273,12 +273,12 @@ function killAllAppProcesses(appPort) {
           });
           const lines = output.split("\n").slice(1).filter(l => l.trim());
           lines.forEach(line => {
-            // Whitelist: real node process running miawrouter/cli.js (legacy miawrouter too),
-            // or next-server. Avoids killing editors/grep/strace/cursor that just have
-            // "miawrouter" in cmdline.
+            // Whitelist: real node process running miawrouter/cli.js, or
+            // next-server. Avoids killing editors/grep/strace/cursor that just
+            // have "miawrouter" in cmdline.
             const cmd = line.toLowerCase();
             const isAppProcess =
-              (cmd.includes("node") && (cmd.includes("miawrouter") || cmd.includes("miawrouter")) && (cmd.includes("cli.js") || cmd.includes("\\miawrouter") || cmd.includes("/miawrouter") || cmd.includes("\\miawrouter") || cmd.includes("/miawrouter")))
+              (cmd.includes("node") && cmd.includes("miawrouter") && (cmd.includes("cli.js") || cmd.includes("\\miawrouter") || cmd.includes("/miawrouter")))
               || cmd.includes("next-server");
             if (isAppProcess) {
               const match = line.match(/^"(\d+)"/);
@@ -300,11 +300,11 @@ function killAllAppProcesses(appPort) {
           const lines = output.split('\n');
 
           lines.forEach(line => {
-            // Whitelist: real node process running miawrouter/cli.js (legacy miawrouter too),
-            // or next-server. Avoids killing grep/strace/editors/cursor that incidentally match.
+            // Whitelist: real node process running miawrouter/cli.js, or
+            // next-server. Avoids killing grep/strace/editors/cursor that incidentally match.
             const cmd = line.toLowerCase();
             const isAppProcess =
-              (cmd.includes("node") && (cmd.includes("miawrouter") || cmd.includes("miawrouter")) && (cmd.includes("cli.js") || cmd.includes("/miawrouter") || cmd.includes("/miawrouter")))
+              (cmd.includes("node") && cmd.includes("miawrouter") && (cmd.includes("cli.js") || cmd.includes("/miawrouter")))
               || cmd.includes("next-server");
             if (isAppProcess) {
               const parts = line.trim().split(/\s+/);

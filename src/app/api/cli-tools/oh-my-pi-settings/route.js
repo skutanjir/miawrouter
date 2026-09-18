@@ -86,7 +86,6 @@ export async function GET() {
       configExists: Boolean(content),
       configPath,
       hasMiawRouter: config.configured,
-      hasMiawRouter: config.configured,
       ...config,
     });
   } catch (error) {

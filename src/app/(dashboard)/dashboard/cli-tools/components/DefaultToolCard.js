@@ -180,7 +180,7 @@ export default function DefaultToolCard({ toolId, tool, isExpanded, onToggle, ba
 
   const renderAutoConfig = () => {
     if (!tool.autoConfig) return null;
-    const configured = autoConfigStatus?.hasMiawRouter ?? autoConfigStatus?.hasMiawRouter;
+    const configured = Boolean(autoConfigStatus?.hasMiawRouter);
     return (
       <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

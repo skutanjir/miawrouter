@@ -46,7 +46,7 @@ const readJson = async (filePath) => {
 
 const hasMiawRouterConfig = (auth) => {
   if (!auth) return false;
-  const entry = auth["openai-compatible"] || auth["miawrouter"];
+  const entry = auth["openai-compatible"];
   if (!entry) return false;
   const baseUrl = entry.baseUrl || entry.baseURL || "";
   return baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1") || baseUrl.includes("miawrouter");
@@ -113,8 +113,6 @@ export async function DELETE() {
       return NextResponse.json({ success: true, message: "No settings file to reset" });
     }
     delete auth["openai-compatible"];
-    delete auth["miawrouter"];
-    delete auth["miawrouter"];
     await fs.writeFile(getAuthPath(), JSON.stringify(auth, null, 2));
 
     try {

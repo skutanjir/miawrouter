@@ -309,7 +309,7 @@ export default function DroidToolCard({
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
                     <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">
-                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:MiawRouter") || m.id?.startsWith("custom:MiawRouter")).baseUrl}
+                      {droidStatus.settings.customModels.find(m => m.id?.startsWith("custom:MiawRouter")).baseUrl}
                     </span>
                   </div>
                 )}

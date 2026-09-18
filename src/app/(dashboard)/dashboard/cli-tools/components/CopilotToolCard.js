@@ -47,7 +47,7 @@ export default function CopilotToolCard({ tool, isExpanded, onToggle, baseUrl, a
   // Pre-fill from existing config
   useEffect(() => {
     if (status?.config && Array.isArray(status.config) && selectedModels.length === 0) {
-      const entry = status.config.find((e) => e.name === "MiawRouter" || e.name === "MiawRouter");
+      const entry = status.config.find((e) => e.name === "MiawRouter");
       if (entry?.models?.length > 0) {
         setSelectedModels(entry.models.map((m) => m.id));
       }

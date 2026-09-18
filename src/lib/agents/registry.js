@@ -33,7 +33,7 @@ const ERROR_STATUS = Object.freeze({
 export function normalizeAgentStatus(result) {
   if (!result || result.error) return { ...ERROR_STATUS };
   const running = result.running === true;
-  const configured = result.configured === true || result.hasMiawRouter === true || result.hasMiawRouter === true;
+  const configured = result.configured === true || result.hasMiawRouter === true;
   const available = result.installed === true || configured || running;
   const state = running ? "running" : configured ? "configured" : available ? "available" : "unavailable";
   return { state, available, configured, running, error: null };

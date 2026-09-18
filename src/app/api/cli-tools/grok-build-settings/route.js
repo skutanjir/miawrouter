@@ -93,7 +93,6 @@ export async function GET(request) {
       installed: true,
       settings,
       hasMiawRouter: hasMiawRouterConfig(settings),
-      hasMiawRouter: hasMiawRouterConfig(settings),
       configPath: getGrokConfigPath(),
     });
   } catch (error) {
