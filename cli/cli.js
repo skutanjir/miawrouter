@@ -81,9 +81,8 @@ if (args[0] === "xai" && args[1] === "video") {
 }
 
 // Self-heal SQLite runtime deps (sql.js + better-sqlite3) into the data dir
-// runtime folder (new: ~/.miawrouter/runtime; legacy ~/.miawrouter/runtime is
-// read back so existing installs keep working). Best-effort — sql.js is
-// required, better-sqlite3 is optional. Logs to stderr only on failure.
+// runtime folder. Best-effort — sql.js is required, better-sqlite3 is
+// optional. Logs to stderr only on failure.
 try { ensureSqliteRuntime({ silent: true }); } catch {}
 
 // Self-heal tray runtime (systray for macOS/Linux only). Windows skipped.

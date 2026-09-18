@@ -7,7 +7,7 @@ Security policy for the MiawRouter local AI routing gateway and dashboard. This 
 | Version | Supported |
 | --- | --- |
 | 1.1.x (current release, root and `cli/` packages) | Yes |
-| < 1.1.0 | No |
+| < 1.1.1 | No |
 
 ## Reporting a vulnerability
 

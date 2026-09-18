@@ -27,7 +27,6 @@ const EXCLUDE_PATTERNS = [
   ".DS_Store",      // macOS files
   ".build-home",
   ".miawrouter",
-  ".miawrouter",
   "*.db",
   "*.db-journal",
   "jwt-secret",
