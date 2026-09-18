@@ -21,12 +21,15 @@ export class OpenCodeExecutor extends BaseExecutor {
       : `${base}/zen/v1/chat/completions`;
   }
 
-  buildHeaders() {
-    return {
+  buildHeaders(credentials) {
+    const headers = {
       "Content-Type": "application/json",
       "Authorization": "Bearer public",
       "x-opencode-client": "desktop",
       "Accept": "text/event-stream"
     };
+    const userAgent = credentials?.rawHeaders?.["user-agent"];
+    if (/^opencode\//i.test(userAgent || "")) headers["User-Agent"] = userAgent;
+    return headers;
   }
 }

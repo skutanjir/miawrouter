@@ -148,6 +148,14 @@ describe("injectReasoningContent — MiniMax thinking round-trip", () => {
 });
 
 describe("OpenCodeExecutor — issue #1543 regression", () => {
+  it("identifies requests as the OpenCode client for the free tier", () => {
+    const executor = new OpenCodeExecutor();
+    expect(executor.buildHeaders({ rawHeaders: { "user-agent": "opencode/1.2.3" } })).toMatchObject({
+      "User-Agent": "opencode/1.2.3",
+      "x-opencode-client": "desktop",
+    });
+  });
+
   it("runs the injector so deepseek-v4-flash-free round-trips reasoning_content", () => {
     const executor = new OpenCodeExecutor();
     const out = executor.transformRequest(
