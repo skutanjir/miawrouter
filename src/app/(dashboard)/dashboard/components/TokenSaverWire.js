@@ -7,16 +7,13 @@ const MAX_COUNT = 999999;
 const STORAGE_KEY = "miawrouter.tokenSaverWire.v1"; // versioned — bump to discard stale sessionStorage payloads
 const ACT_MS = 480;
 const STAGE_IDS = ["caveman", "ponytail", "rtk", "headroom", "pxpipe", "provider"];
-const STAGE_IDX = { caveman: 1, ponytail: 2, rtk: 3, headroom: 4, pxpipe: 5, provider: 6 }; // pipeline order past Client
 const STAGES = [
-  { id: "caveman", label: "Caveman", sub: "system inject", icon: "bolt" },
-  { id: "ponytail", label: "Ponytail", sub: "system inject", icon: "bolt" },
-  { id: "rtk", label: "RTK", sub: "tool_result", icon: "compress" },
-  { id: "headroom", label: "Headroom", sub: "proxy", icon: "filter_alt" },
-  { id: "pxpipe", label: "PXPIPE", sub: "image ctx", icon: "swap_vert" },
+  { id: "caveman", step: "01", label: "Caveman", sub: "system inject", icon: "bolt" },
+  { id: "ponytail", step: "02", label: "Ponytail", sub: "system inject", icon: "bolt" },
+  { id: "rtk", step: "03", label: "RTK", sub: "tool_result", icon: "compress" },
+  { id: "headroom", step: "04", label: "Headroom", sub: "proxy", icon: "filter_alt" },
+  { id: "pxpipe", step: "05", label: "PXPIPE", sub: "image ctx", icon: "swap_vert" },
 ];
-// Funnel: chips taper toward the provider, echoing the pipeline rail.
-const FUNNEL_W = { caveman: 58, ponytail: 56, rtk: 46, headroom: 58, pxpipe: 52 };
 
 const fmt = (n) => (n >= MAX_COUNT ? `${MAX_COUNT}+` : String(n));
 const fmtBytes = (n) => {
@@ -45,104 +42,179 @@ function timeOf(ts) {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
 }
 
-// Readable, always-visible status text for each stage — never animation-dependent.
-function stageBadge(stage, st, config) {
-  const configured = config?.[stage];
-  switch (stage) {
+// Compute presentation state and metrics for each stage
+function getStagePresentation(stageId, st, config) {
+  const configured = config?.[stageId];
+
+  switch (stageId) {
     case "caveman":
     case "ponytail": {
-      const m = st[stage];
-      if (configured?.enabled === false) return "off";
-      if (m && m.level) return `on · ${m.level}`;
-      return configured?.enabled ? `on · ${configured.level}` : "—";
+      if (configured?.enabled === false) {
+        return { status: "off", badge: "off", badgeKind: "off", detail: "Disabled in settings" };
+      }
+      const m = st[stageId];
+      const level = m?.level || configured?.level || "full";
+      return {
+        status: "active",
+        badge: `on · ${level}`,
+        badgeKind: "neutral",
+        detail: `System injection: ${level}`,
+      };
     }
     case "rtk": {
-      if (configured?.enabled === false) return "off";
-      const { hits, bytesBefore, bytesAfter } = st.rtk;
-      const parts = [];
-      if (hits > 0) parts.push(`${fmt(hits)} hits`);
-      if (bytesBefore !== null && bytesAfter !== null) {
-        const p = pctOf(bytesBefore, bytesAfter);
-        parts.push(`${fmtBytes(bytesBefore)} → ${fmtBytes(bytesAfter)}${p !== null ? ` · −${p}%` : ""}`);
+      if (configured?.enabled === false) {
+        return { status: "off", badge: "off", badgeKind: "off", detail: "Disabled in settings" };
       }
-      if (!parts.length) return configured?.enabled ? `on · ${configured.mode || "standard"}` : "—";
-      return parts.join(" · ");
+      const { hits, bytesBefore, bytesAfter } = st.rtk;
+      const p = pctOf(bytesBefore, bytesAfter);
+      if (bytesBefore !== null && bytesAfter !== null) {
+        return {
+          status: "active",
+          badge: p !== null ? `−${p}%` : `${fmt(hits)} hits`,
+          badgeKind: p !== null ? "signal" : "neutral",
+          detail: `${fmtBytes(bytesBefore)} → ${fmtBytes(bytesAfter)}${hits > 0 ? ` (${fmt(hits)} hits)` : ""}`,
+        };
+      }
+      if (hits > 0) {
+        return {
+          status: "active",
+          badge: `${fmt(hits)} hits`,
+          badgeKind: "neutral",
+          detail: `${fmt(hits)} tool results compressed`,
+        };
+      }
+      return {
+        status: "idle",
+        badge: configured?.enabled ? `on · ${configured.mode || "standard"}` : "—",
+        badgeKind: "neutral",
+        detail: configured?.mode ? `Mode: ${configured.mode}` : "Ready",
+      };
     }
     case "headroom": {
-      if (configured?.enabled === false) return "off";
+      if (configured?.enabled === false) {
+        return { status: "off", badge: "off", badgeKind: "off", detail: "Disabled in settings" };
+      }
       const m = st.headroom;
-      if (!m) return configured?.enabled ? "enabled" : "—";
-      if (!m.applied) return m.reason || "skipped";
+      if (!m) {
+        return {
+          status: "idle",
+          badge: configured?.enabled ? "enabled" : "—",
+          badgeKind: "neutral",
+          detail: "Budget monitoring active",
+        };
+      }
+      if (!m.applied) {
+        return {
+          status: "skipped",
+          badge: "bypassed",
+          badgeKind: "warn",
+          detail: m.reason || "Context threshold not reached",
+        };
+      }
       const parts = [];
-      if (m.bodyBefore !== null && m.bodyAfter !== null) parts.push(`body ${fmtBytes(m.bodyBefore)} → ${fmtBytes(m.bodyAfter)}`);
-      if (m.tokensBefore !== null && m.tokensAfter !== null) parts.push(`proxy ${fmtTk(m.tokensBefore)} → ${fmtTk(m.tokensAfter)}`);
-      return parts.length ? parts.join(" · ") : "applied";
+      let p = null;
+      if (m.tokensBefore !== null && m.tokensAfter !== null) {
+        parts.push(`${fmtTk(m.tokensBefore)} → ${fmtTk(m.tokensAfter)} tok`);
+        p = pctOf(m.tokensBefore, m.tokensAfter);
+      } else if (m.bodyBefore !== null && m.bodyAfter !== null) {
+        parts.push(`${fmtBytes(m.bodyBefore)} → ${fmtBytes(m.bodyAfter)}`);
+        p = pctOf(m.bodyBefore, m.bodyAfter);
+      }
+      return {
+        status: "active",
+        badge: p !== null ? `−${p}%` : "compacted",
+        badgeKind: "signal",
+        detail: parts.length ? parts.join(" · ") : "Context compacted",
+      };
     }
     case "pxpipe": {
-      if (configured?.enabled === false) return "off";
+      if (configured?.enabled === false) {
+        return { status: "off", badge: "off", badgeKind: "off", detail: "Disabled in settings" };
+      }
       const m = st.pxpipe;
-      if (!m) return configured?.enabled ? "enabled" : "—";
-      if (!m.applied) return m.reason || "skipped";
+      if (!m) {
+        return {
+          status: "idle",
+          badge: configured?.enabled ? "enabled" : "—",
+          badgeKind: "neutral",
+          detail: "Image optimizer ready",
+        };
+      }
+      if (!m.applied) {
+        return {
+          status: "skipped",
+          badge: "bypassed",
+          badgeKind: "warn",
+          detail: m.reason || "No qualifying media",
+        };
+      }
       const parts = [];
-      if (m.savedPct !== null) parts.push(`est. −${Math.round(m.savedPct)}%`);
-      if (m.tokensBeforeEst !== null && m.tokensAfterEst !== null) parts.push(`${fmtTk(m.tokensBeforeEst)} → ${fmtTk(m.tokensAfterEst)}`);
-      if (m.imageCount !== null) parts.push(`${m.imageCount} img`);
-      return parts.length ? parts.join(" · ") : "applied";
+      if (m.tokensBeforeEst !== null && m.tokensAfterEst !== null) {
+        parts.push(`${fmtTk(m.tokensBeforeEst)} → ${fmtTk(m.tokensAfterEst)} tok`);
+      }
+      if (m.imageCount !== null) {
+        parts.push(`${m.imageCount} img`);
+      }
+      return {
+        status: "active",
+        badge: m.savedPct !== null ? `est. −${Math.round(m.savedPct)}%` : "applied",
+        badgeKind: "signal",
+        detail: parts.length ? parts.join(" · ") : "Media tokens reduced",
+      };
     }
     default:
-      return "";
+      return { status: "unknown", badge: "—", badgeKind: "neutral", detail: "" };
   }
 }
 
-function StageNode({ stage, badge, enabled, active, kind }) {
+function StageInstrumentRow({ stage, presentation, active, kind }) {
+  const isOff = presentation.status === "off";
+
+  const badgeClass = {
+    signal: "bg-signal/10 text-signal border-signal/25 font-semibold",
+    warn: "bg-warn/10 text-warn border-warn/25 font-medium",
+    neutral: "bg-surface text-ink/80 border-border-subtle font-medium",
+    off: "bg-chassis/60 text-muted/60 border-border-subtle/50 font-normal",
+  }[presentation.badgeKind] || "bg-surface text-muted border-border-subtle";
+
   return (
     <div
-      className={`tsw-chip relative flex shrink-0 flex-col items-center rounded-[var(--radius-brand)] border bg-surface px-1.5 py-1 transition-all duration-150 ${enabled === false ? "opacity-50" : ""} ${active ? "tsw-node-act" : ""}`}
-      style={{
-        minWidth: FUNNEL_W[stage.id],
-        borderColor: enabled === true ? "color-mix(in srgb,var(--color-signal) 40%,var(--color-border-subtle))" : "var(--color-border-subtle)",
-      }}
+      className={`tsw-stage-row flex items-center justify-between gap-2 rounded-[var(--radius-brand)] border bg-surface px-2.5 py-1.5 transition-all duration-150 ${isOff ? "opacity-50" : ""} ${active ? "tsw-stage-act" : "border-border-subtle"}`}
       data-kind={kind}
-      title={`${stage.label} — ${stage.sub} · ${badge}`}
+      title={`${stage.label} (${stage.sub}) · ${presentation.badge} · ${presentation.detail}`}
     >
-      {active && (
-        <span className="tsw-badge" aria-hidden="true">
-          {badge}
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="font-mono text-[10px] text-muted/70 shrink-0 w-3.5 text-right" aria-hidden="true">
+          {stage.step}
         </span>
-      )}
-      <span className="material-symbols-outlined text-[14px] leading-none text-muted" aria-hidden="true">{stage.icon}</span>
-      <span className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-muted mt-0.5">{stage.label}</span>
-      <span className="max-w-full truncate font-mono tabular-nums text-[9px] leading-tight text-muted" title={badge}>
-        {badge}
-      </span>
-    </div>
-  );
-}
+        <div className="size-5 rounded flex items-center justify-center bg-bg border border-border-subtle text-muted shrink-0">
+          <span className="material-symbols-outlined text-[13px] leading-none" aria-hidden="true">
+            {stage.icon}
+          </span>
+        </div>
+        <div className="min-w-0 flex flex-col">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xs font-semibold text-ink leading-none">{stage.label}</span>
+            <span className="hidden sm:inline text-[10px] text-muted leading-none">({stage.sub})</span>
+            {active && (
+              <span className="size-1.5 rounded-full bg-signal animate-pulse" aria-hidden="true" />
+            )}
+          </div>
+          <span className="text-[10px] font-mono text-muted/80 truncate leading-tight mt-0.5 max-w-[130px] sm:max-w-[200px]" title={presentation.detail}>
+            {presentation.detail}
+          </span>
+        </div>
+      </div>
 
-function EndpointNode({ label, icon, stat, title, active, kind }) {
-  return (
-    <div
-      className={`flex min-w-[48px] shrink-0 flex-col items-center rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-1.5 py-1 ${active ? "tsw-node-act" : ""}`}
-      data-kind={kind}
-      title={title}
-    >
-      <span className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-muted">{label}</span>
-      <span className="material-symbols-outlined text-[15px] leading-none text-muted mt-0.5" aria-hidden="true">{icon}</span>
-      <span className="max-w-[70px] truncate font-mono tabular-nums text-[9px] leading-tight text-muted mt-0.5">{stat}</span>
+      <div className="shrink-0 flex items-center gap-1.5">
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-mono tabular-nums leading-tight ${badgeClass}`}
+          title={presentation.badge}
+        >
+          {presentation.badge}
+        </span>
+      </div>
     </div>
-  );
-}
-
-function Seg({ active, kind, packet, delay }) {
-  return (
-    <span
-      className={`tsw-seg ${active ? "tsw-seg-act" : "tsw-rail-idle"}`}
-      style={{ animationDelay: delay }}
-      data-kind={active ? kind : ""}
-      aria-hidden="true"
-    >
-      {packet ? <span className="tsw-packet" /> : "›"}
-    </span>
   );
 }
 
@@ -412,27 +484,22 @@ export default function TokenSaverWire() {
       title="Token saver wire"
       subtitle="Configured stages and live compression telemetry"
       padding="sm"
+      className="flex h-full flex-col self-stretch"
     >
-      <style>{`.tsw-seg{position:relative;display:inline-flex;align-items:center;justify-content:center;width:.5rem;font-size:.625rem;line-height:1;color:var(--color-muted)}
-.tsw-packet{position:absolute;top:50%;left:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:9999px;background:var(--tsw-glow,var(--color-signal));box-shadow:0 0 6px color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 70%,transparent);animation:tsw-packet-run .6s ease-in-out 1}
-.tsw-packet::after{content:"";position:absolute;inset:0;border-radius:9999px;background:inherit;animation:tsw-packet-run .6s ease-in-out .15s 1}
-.tsw-seg-act{color:var(--tsw-glow,var(--color-signal));animation:tsw-seg-pulse 1.2s ease-in-out 1}
-.tsw-node-act{background-color:color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 10%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 35%,transparent);transition:background-color .2s ease,box-shadow .2s ease}
-.tsw-badge{position:absolute;top:-9px;right:-4px;display:inline-flex;align-items:center;max-width:120px;padding:2px 5px;border-radius:9999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--color-panel, var(--color-surface));border:1px solid color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 40%,transparent);color:var(--tsw-glow,var(--color-signal));box-shadow:var(--shadow-soft)}
+      <style>{`.tsw-stage-row{transition:border-color .15s ease,background-color .15s ease}
+.tsw-stage-act{border-color:color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 45%,var(--color-border-subtle))!important;background-color:color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 8%,var(--color-surface))!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 20%,transparent)}
+.tsw-stage-act[data-kind="ok"]{--tsw-glow:var(--color-signal)}
+.tsw-stage-act[data-kind="skip"]{--tsw-glow:var(--color-warn)}
 .tsw-log-entry{border-radius:3px}
-.tsw-node-act[data-kind="ok"],.tsw-seg-act[data-kind="ok"]{--tsw-glow:var(--color-signal)}
-.tsw-node-act[data-kind="skip"],.tsw-seg-act[data-kind="skip"]{--tsw-glow:var(--color-warn)}
-@keyframes tsw-packet-run{0%{transform:translateX(-2px);opacity:0}40%{opacity:1}100%{transform:translateX(2px);opacity:0}}
-@keyframes tsw-seg-pulse{0%,100%{opacity:.6}50%{opacity:1}}
-@media (prefers-reduced-motion: reduce){.tsw-node-act,.tsw-seg-act,.tsw-packet,.tsw-packet::after,.tsw-rail-idle,.tsw-log-entry{animation:none!important}.tsw-node-act{transition:none}.tsw-packet{opacity:0}}`}</style>
+@media (prefers-reduced-motion: reduce){.tsw-stage-row,.tsw-stage-act,.tsw-log-entry{transition:none!important;animation:none!important}}`}</style>
       <div
-        className="flex flex-col gap-2 rounded-[var(--radius-brand)] border p-2.5 bg-chassis"
-        style={{ borderColor: "var(--color-rule)" }}
+        className="flex flex-col gap-3 rounded-[var(--radius-brand)] border p-3 bg-chassis"
+        style={{ borderColor: "var(--color-rule)", flex: 1 }}
       >
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-xs font-medium text-muted">
             Token saver telemetry ·{" "}
-            <span className="font-mono tabular-nums text-ink">{fmt(state.req)}</span> dispatches
+            <span className="font-mono tabular-nums font-semibold text-ink">{fmt(state.req)}</span> {state.req === 1 ? "dispatch" : "dispatches"}
           </span>
           <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${connMeta.cls}`}>
             <span className={`size-2 rounded-full ${connMeta.dot}`} aria-hidden="true" />
@@ -441,69 +508,83 @@ export default function TokenSaverWire() {
           </span>
         </div>
 
-        {act && (
-          <p className={`truncate text-[10px] font-medium ${act.kind === "ok" ? "text-signal" : "text-warn"}`}>
-            {act.note}
-          </p>
-        )}
+        {/* Compression instrument metric header */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
+              Throughput
+            </span>
+            <span className="font-mono tabular-nums text-sm font-semibold text-ink leading-tight mt-0.5">
+              {fmt(state.req)} <span className="text-[10px] font-normal text-muted">dispatches</span>
+            </span>
+          </div>
 
-        <div className="overflow-x-auto pb-0.5">
           <div
-            role="group"
-            aria-label="Token-saver pipeline: client, Caveman, Ponytail, RTK, Headroom, PXPIPE, provider"
-            className="flex min-w-max items-center gap-x-0.5"
+            className={`flex flex-col rounded-[var(--radius-brand)] border bg-surface px-2.5 py-1.5 min-w-0 transition-all duration-150 ${act?.stage === "provider" ? "tsw-stage-act" : "border-border-subtle"}`}
+            data-kind={act?.stage === "provider" ? act.kind : ""}
+            title={providerStat === "—" ? "Provider: upstream model API" : `Provider: ${providerStat}`}
           >
-            <EndpointNode
-              label="Client"
-              icon="terminal"
-              stat={`${fmt(state.req)} dispatches`}
-              title="Client: the AI tool sending requests"
-            />
-            {STAGES.map((stage, i) => {
-              const segActive = !!act && STAGE_IDX[act.stage] >= i + 1;
-              const packet = !!act && STAGE_IDX[act.stage] === i + 1;
-              const nodeActive = !!act && act.stage === stage.id;
-              return (
-                <div key={stage.id} className="flex items-center gap-x-0.5">
-                  <Seg active={segActive} kind={segActive ? act.kind : ""} packet={packet} delay={`${(i % 3) * 0.35}s`} />
-                  <StageNode
-                    stage={stage}
-                    badge={stageBadge(stage.id, state, config)}
-                    enabled={config?.[stage.id]?.enabled}
-                    active={nodeActive}
-                    kind={nodeActive ? act.kind : ""}
-                  />
-                </div>
-              );
-            })}
-            <div className="flex items-center gap-x-0.5">
-              <Seg
-                active={!!act && act.stage === "provider"}
-                kind={act && act.stage === "provider" ? act.kind : ""}
-                packet={!!act && act.stage === "provider"}
-                delay="0s"
-              />
-              <EndpointNode
-                label="Provider"
-                icon="cloud"
-                stat={providerStat}
-                title={providerStat === "—" ? "Provider: the upstream model API" : `Provider: ${providerStat}`}
-                active={!!act && act.stage === "provider"}
-                kind={act && act.stage === "provider" ? act.kind : ""}
-              />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
+              Provider
+            </span>
+            <span className="font-mono tabular-nums text-xs font-semibold text-ink leading-tight mt-1 truncate" title={providerStat}>
+              {providerStat}
+            </span>
+          </div>
+
+          <div className="col-span-2 sm:col-span-1 flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
+              Latest Action
+            </span>
+            <div className="flex items-center gap-1.5 mt-1 min-w-0">
+              {act ? (
+                <>
+                  <span className={`size-1.5 shrink-0 rounded-full ${act.kind === "ok" ? "bg-signal" : "bg-warn"}`} aria-hidden="true" />
+                  <span className={`font-mono text-xs font-semibold truncate ${act.kind === "ok" ? "text-signal" : "text-warn"}`}>
+                    {act.note}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="size-1.5 shrink-0 rounded-full bg-muted/60" aria-hidden="true" />
+                  <span className="font-mono text-xs text-muted truncate">
+                    {state.latest ? "Telemetry synced" : "Ready"}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
 
-        <p className="text-[9px] text-muted" style={{ opacity: 0.85 }}>
+        {/* Compression stage meter list */}
+        <div
+          role="group"
+          aria-label="Token-saver compression stages: Caveman, Ponytail, RTK, Headroom, PXPIPE"
+          className="flex flex-col gap-1.5"
+        >
+          {STAGES.map((stage) => {
+            const active = !!act && act.stage === stage.id;
+            const presentation = getStagePresentation(stage.id, state, config);
+            return (
+              <StageInstrumentRow
+                key={stage.id}
+                stage={stage}
+                presentation={presentation}
+                active={active}
+                kind={active ? act.kind : ""}
+              />
+            );
+          })}
+        </div>
+
+        <p className="mt-auto text-[10px] font-medium text-muted" style={{ opacity: 0.85 }}>
           RTK/Headroom: reported deltas · PXPIPE: estimate.
         </p>
 
         <p
-          key={state.latest}
           role="status"
           aria-live="polite"
-          className="tsw-log-entry truncate border-t pt-1.5 font-mono text-[10px] text-muted"
+          className="tsw-log-entry truncate border-t pt-2 font-mono text-[11px] text-ink/80 dark:text-ink/75"
           style={{ borderColor: "var(--color-rule)" }}
           title={state.latest}
         >

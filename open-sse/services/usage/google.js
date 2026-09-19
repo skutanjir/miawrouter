@@ -12,6 +12,10 @@ const ANTIGRAVITY_CONFIG = {
   ...U("antigravity"),
   ...ANTIGRAVITY_OAUTH_CLIENT,
   userAgent: ANTIGRAVITY_IDE_USER_AGENT,
+  quotaSummaryUrls: [
+    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+    "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+  ],
 };
 
 const ANTIGRAVITY_QUOTA_MODEL_KEYS = new Map(
@@ -161,13 +165,177 @@ async function getGeminiSubscriptionInfo(accessToken, proxyOptions = null) {
 }
 
 /**
+ * Parse fraction remaining from bucket (0..1) across possible upstream shapes
+ */
+function extractRemainingFraction(bucket) {
+  if (bucket == null || typeof bucket !== "object") return null;
+
+  const candidates = [
+    bucket.remainingFraction,
+    bucket.remaining_fraction,
+    bucket.remaining?.remainingFraction,
+    bucket.remaining?.remaining_fraction,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === "number" && Number.isFinite(candidate)) {
+      return Math.max(0, Math.min(1, candidate));
+    }
+  }
+
+  if (bucket.remaining && typeof bucket.remaining === "object") {
+    if (
+      bucket.remaining.case === "remainingFraction" &&
+      typeof bucket.remaining.value === "number" &&
+      Number.isFinite(bucket.remaining.value)
+    ) {
+      return Math.max(0, Math.min(1, bucket.remaining.value));
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Classify bucket and group into normalized quota key and metadata
+ */
+function classifyQuotaBucket(group, bucket) {
+  const groupText = `${group?.displayName || ""} ${group?.name || ""} ${group?.id || ""}`.toLowerCase();
+  const bucketText = `${bucket?.bucketId || ""} ${bucket?.window || ""} ${bucket?.kind || ""} ${bucket?.label || ""} ${bucket?.displayName || ""}`.toLowerCase();
+
+  // Determine window: 5h vs weekly
+  let isWeekly = false;
+  if (bucketText.includes("week") || groupText.includes("week")) {
+    isWeekly = true;
+  }
+
+  // Determine family: gemini vs claude/gpt (3p)
+  let isGemini = false;
+  if (bucketText.includes("gemini") || groupText.includes("gemini")) {
+    isGemini = true;
+  } else if (
+    bucketText.includes("3p") ||
+    bucketText.includes("claude") ||
+    bucketText.includes("gpt") ||
+    groupText.includes("claude") ||
+    groupText.includes("gpt")
+  ) {
+    isGemini = false;
+  } else {
+    // Default fallback if ambiguous
+    isGemini = false;
+  }
+
+  const quotaKey = isGemini
+    ? (isWeekly ? "gemini_weekly" : "gemini_5h")
+    : (isWeekly ? "claude_gpt_weekly" : "claude_gpt_5h");
+
+  const displayName = isGemini
+    ? (isWeekly ? "Gemini weekly" : "Gemini 5 hour")
+    : (isWeekly ? "Claude weekly" : "Claude 5 hour");
+
+  return {
+    quotaKey,
+    displayName,
+    window: isWeekly ? "weekly" : "hourly",
+    family: isGemini ? "gemini" : "claude",
+    secondaryMetadata: {
+      groupName: group?.displayName || group?.name || null,
+      description: group?.description || bucket?.description || null,
+    },
+  };
+}
+
+/**
+ * Fetch grouped quota summary via retrieveUserQuotaSummary with endpoint fallback.
+ * Best-effort: failures never block or throw out of getAntigravityUsage.
+ */
+async function fetchAntigravityQuotaSummary(accessToken, projectId, proxyOptions = null) {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    "User-Agent": ANTIGRAVITY_CONFIG.userAgent,
+    "Content-Type": "application/json",
+    "X-Client-Name": "antigravity",
+    "X-Client-Version": ANTIGRAVITY_IDE_VERSION,
+  };
+
+  const body = JSON.stringify(projectId ? { project: projectId } : {});
+
+  for (const url of ANTIGRAVITY_CONFIG.quotaSummaryUrls) {
+    try {
+      const response = await fetchWithTimeout(url, {
+        method: "POST",
+        headers,
+        body,
+      }, 8000, proxyOptions);
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = await response.json();
+      const groups = data?.groups || data?.response?.groups || data?.summary?.groups;
+      if (!Array.isArray(groups) || groups.length === 0) {
+        continue;
+      }
+
+      const summaryQuotas = {};
+
+      for (const group of groups) {
+        if (!group || !Array.isArray(group.buckets)) continue;
+        for (const bucket of group.buckets) {
+          const remainingFraction = extractRemainingFraction(bucket);
+          if (remainingFraction === null) continue;
+
+          const resetTime = bucket.resetTime || bucket.reset_time || bucket.resetAt;
+          const { quotaKey, displayName, window, family, secondaryMetadata } = classifyQuotaBucket(group, bucket);
+
+          const total = 1000;
+          const remainingPercentage = remainingFraction * 100;
+          const remaining = Math.round(total * remainingFraction);
+          const used = total - remaining;
+
+          summaryQuotas[quotaKey] = {
+            used,
+            total,
+            resetAt: parseResetTime(resetTime),
+            remainingPercentage,
+            unlimited: false,
+            displayName,
+            window,
+            family,
+            secondaryMetadata,
+            rawGroup: group.displayName || group.name || null,
+          };
+        }
+      }
+
+      if (Object.keys(summaryQuotas).length > 0) {
+        return summaryQuotas;
+      }
+    } catch {
+      // Continue to next endpoint fallback
+    }
+  }
+
+  return null;
+}
+
+/**
  * Antigravity Usage - Fetch quota from Google Cloud Code API
  */
 export async function getAntigravityUsage(accessToken, providerSpecificData, proxyOptions = null) {
   try {
-    // Fetch subscription info once — reuse for both projectId and plan
-    const subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
-    const projectId = subscriptionInfo?.cloudaicompanionProject || null;
+    // Resolve project id: prefer connection-stored id, else loadCodeAssist lookup.
+    let projectId = normalizeCloudCodeProjectId(providerSpecificData?.projectId);
+    let subscriptionInfo = null;
+
+    if (!projectId) {
+      subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
+      projectId = subscriptionInfo?.cloudaicompanionProject || null;
+    } else {
+      subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
+    }
 
     const response = await fetchWithTimeout(ANTIGRAVITY_CONFIG.quotaApiUrl, {
       method: "POST",
@@ -204,7 +372,14 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
     const data = await response.json();
     const quotas = {};
 
+    // Best effort: fetch grouped quota summary (5h and weekly windows)
+    const summaryQuotas = await fetchAntigravityQuotaSummary(accessToken, projectId, proxyOptions);
+    if (summaryQuotas) {
+      Object.assign(quotas, summaryQuotas);
+    }
+
     // Parse model quotas (inspired by vscode-antigravity-cockpit)
+    const modelEntries = [];
     if (data.models) {
       for (const [modelKey, info] of Object.entries(data.models)) {
         // Skip models without quota info
@@ -219,7 +394,7 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
 
         const normalizedModelKey = normalizeAntigravityQuotaModelKey(modelKey);
 
-        const remainingFraction = info.quotaInfo.remainingFraction || 0;
+        const remainingFraction = info.quotaInfo.remainingFraction != null ? info.quotaInfo.remainingFraction : 0;
         const remainingPercentage = remainingFraction * 100;
 
         // Convert percentage to used/total for UI compatibility
@@ -235,6 +410,34 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
           unlimited: false,
           displayName: info.displayName || normalizedModelKey,
         };
+
+        modelEntries.push({
+          modelKey: normalizedModelKey,
+          remainingFraction,
+        });
+      }
+    }
+
+    // Reconcile stale summary 5h quotas against authoritative per-model data.
+    // retrieveUserQuotaSummary 5h buckets often remain stale at 1.0 (100%) even when
+    // active model usage has occurred. Per-model fetchAvailableModels is authoritative
+    // for short-window usage. Prefer honest unavailable over fake grouped percentage.
+    for (const [key, familyName] of [["gemini_5h", "gemini"], ["claude_gpt_5h", "claude"]]) {
+      if (quotas[key]) {
+        const familyModels = modelEntries.filter(({ modelKey }) => {
+          const lower = modelKey.toLowerCase();
+          if (familyName === "gemini") {
+            return lower.includes("gemini");
+          }
+          return lower.includes("claude") || lower.includes("gpt");
+        });
+
+        if (familyModels.length > 0) {
+          const hasConsumption = familyModels.some((m) => m.remainingFraction < 0.999);
+          if (hasConsumption && quotas[key].remainingPercentage >= 99.9) {
+            delete quotas[key];
+          }
+        }
       }
     }
 

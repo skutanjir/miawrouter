@@ -5,6 +5,180 @@ import { formatResetTime, getRemainingPercentage } from "./utils";
 
 const PAGE_SIZE = 10;
 
+export const ANTIGRAVITY_TARGET_ROWS = [
+  {
+    key: "gemini_5h",
+    label: "Gemini 5 hour",
+    family: "gemini",
+    window: "5h",
+    matchKeys: [
+      "gemini_5h",
+      "gemini-5h",
+      "gemini_5hr",
+      "gemini_5hour",
+      "gemini_hourly",
+      "gemini 5 hour",
+      "gemini 5h",
+      "gemini 5-hour",
+    ],
+  },
+  {
+    key: "gemini_weekly",
+    label: "Gemini weekly",
+    family: "gemini",
+    window: "weekly",
+    matchKeys: [
+      "gemini_weekly",
+      "gemini-weekly",
+      "gemini_7d",
+      "gemini_week",
+      "gemini weekly",
+      "gemini week",
+    ],
+  },
+  {
+    key: "claude_gpt_5h",
+    label: "Claude 5 hour",
+    family: "claude",
+    window: "5h",
+    matchKeys: [
+      "claude_gpt_5h",
+      "claude_5h",
+      "claude-gpt-5h",
+      "claude-5h",
+      "claude_gpt_5hr",
+      "claude_5hr",
+      "claude_gpt_hourly",
+      "claude_hourly",
+      "claude 5 hour",
+      "claude 5h",
+      "claude 5-hour",
+      "claude_gpt 5 hour",
+    ],
+  },
+  {
+    key: "claude_gpt_weekly",
+    label: "Claude weekly",
+    family: "claude",
+    window: "weekly",
+    matchKeys: [
+      "claude_gpt_weekly",
+      "claude_weekly",
+      "claude-gpt-weekly",
+      "claude-weekly",
+      "claude_gpt_7d",
+      "claude_7d",
+      "claude_gpt_week",
+      "claude_week",
+      "claude weekly",
+      "claude_gpt weekly",
+      "claude week",
+    ],
+  },
+];
+
+export function getAntigravityFamily(quota) {
+  if (!quota || typeof quota !== "object") return "other";
+  const name = String(quota.name || "").toLowerCase();
+  const modelKey = String(quota.modelKey || quota.key || quota.id || "").toLowerCase();
+  if (name.includes("claude") || modelKey.includes("claude") || name.includes("gpt") || modelKey.includes("gpt")) {
+    return "claude";
+  }
+  if (name.includes("gemini") || modelKey.includes("gemini")) {
+    return "gemini";
+  }
+  return "other";
+}
+
+export function matchAntigravityBucket(quota, spec) {
+  if (!quota || typeof quota !== "object") return false;
+  const modelKey = String(quota.modelKey || "").toLowerCase().trim();
+  const name = String(quota.name || "").toLowerCase().trim();
+  const key = String(quota.key || quota.id || "").toLowerCase().trim();
+  const candidates = [modelKey, key, name].filter(Boolean);
+
+  if (candidates.some((c) => spec.matchKeys.includes(c))) {
+    return true;
+  }
+
+  const windowStr = String(
+    quota.window || quota.period || quota.quotaWindow || "",
+  ).toLowerCase().trim();
+
+  const family = quota.family || getAntigravityFamily(quota);
+  if (family === spec.family && windowStr) {
+    if (spec.window === "weekly" && (windowStr.includes("week") || windowStr.includes("7d"))) {
+      return true;
+    }
+    if (spec.window === "5h" && (windowStr.includes("5h") || windowStr.includes("hour"))) {
+      return true;
+    }
+  }
+
+  for (const c of candidates) {
+    const hasFamily = spec.family === "gemini"
+      ? c.includes("gemini")
+      : (c.includes("claude") || c.includes("gpt"));
+
+    if (!hasFamily) continue;
+
+    if (spec.window === "weekly" && (c.includes("week") || c.includes("7d"))) {
+      return true;
+    }
+    if (spec.window === "5h" && (c.includes("5h") || c.includes("5 hour") || c.includes("5-hour") || c.includes("hourly"))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function hasAntigravityGroupedBuckets(quotas) {
+  if (!Array.isArray(quotas) || quotas.length === 0) return false;
+  return ANTIGRAVITY_TARGET_ROWS.some((spec) =>
+    quotas.some((quota) => matchAntigravityBucket(quota, spec)),
+  );
+}
+
+export function getAntigravityExplicitRows(quotas = []) {
+  return ANTIGRAVITY_TARGET_ROWS.map((spec) => {
+    const matched = Array.isArray(quotas)
+      ? quotas.find((q) => matchAntigravityBucket(q, spec))
+      : null;
+
+    if (matched) {
+      const remaining = getRemainingPercentage(matched);
+      return {
+        key: spec.key,
+        name: spec.label,
+        modelKey: matched.modelKey || spec.key,
+        family: spec.family,
+        window: spec.window,
+        isAvailable: true,
+        used: matched.used ?? 0,
+        total: matched.total ?? 0,
+        remaining,
+        resetAt: matched.resetAt || null,
+        rawQuota: matched,
+      };
+    }
+
+    return {
+      key: spec.key,
+      name: spec.label,
+      modelKey: spec.key,
+      family: spec.family,
+      window: spec.window,
+      isAvailable: false,
+      used: null,
+      total: null,
+      remaining: null,
+      resetAt: null,
+      rawQuota: null,
+    };
+  });
+}
+
 /**
  * Format reset time display (Today, 12:00 PM)
  */
@@ -81,38 +255,6 @@ function sortQuotas(quotas, sortMode) {
   return quotas;
 }
 
-function getAntigravityFamily(quota) {
-  const name = String(quota.name || "").toLowerCase();
-  if (name.includes("claude")) return "claude";
-  if (name.includes("gemini")) return "gemini";
-  return "other";
-}
-
-function getAntigravityWindow(quota) {
-  const explicitWindow = String(
-    quota.window || quota.period || quota.quotaWindow || "",
-  ).toLowerCase();
-
-  if (explicitWindow.includes("week")) return "weekly";
-  if (explicitWindow.includes("hour") || explicitWindow.includes("5h")) return "hourly";
-
-  const resetAt = quota.resetAt ? new Date(quota.resetAt).getTime() : 0;
-  // ponytail: Antigravity exposes resetTime, not a window type; use its
-  // cadence until the provider returns explicit period metadata.
-  return resetAt - Date.now() > 24 * 60 * 60 * 1000 ? "weekly" : "hourly";
-}
-
-const ANTIGRAVITY_FAMILY_LABELS = {
-  gemini: "Gemini",
-  claude: "Claude",
-  other: "Lainnya",
-};
-
-const ANTIGRAVITY_WINDOW_LABELS = {
-  hourly: "Per jam",
-  weekly: "Per minggu",
-};
-
 /**
  * Quota Table Component - Table-based display for quota data
  */
@@ -125,8 +267,10 @@ export default function QuotaTable({
   provider = null,
 }) {
   const [page, setPage] = useState(1);
-  const [selectedFamily, setSelectedFamily] = useState(null);
-  const [selectedWindow, setSelectedWindow] = useState(null);
+
+  const isAntigravity = provider === "antigravity";
+  const isGroupedAntigravity = isAntigravity && hasAntigravityGroupedBuckets(quotas);
+  const isFallbackAntigravity = isAntigravity && !isGroupedAntigravity;
 
   const normalizedQuotas = useMemo(
     () => quotas.map((quota, index) => ({
@@ -142,48 +286,22 @@ export default function QuotaTable({
     [normalizedQuotas, sortMode],
   );
 
-  const antigravityGroups = useMemo(() => {
-    if (provider !== "antigravity") return [];
+  const antigravityExplicitRows = useMemo(() => {
+    if (!isGroupedAntigravity) return [];
+    return getAntigravityExplicitRows(quotas);
+  }, [isGroupedAntigravity, quotas]);
 
-    const families = new Map();
-    sortedQuotas.forEach((quota) => {
-      const family = getAntigravityFamily(quota);
-      const window = getAntigravityWindow(quota);
-      if (!families.has(family)) families.set(family, new Map());
-      const windows = families.get(family);
-      if (!windows.has(window)) windows.set(window, []);
-      windows.get(window).push(quota);
-    });
-
-    return [...families.entries()].map(([family, windows]) => ({
-      family,
-      windows: [...windows.entries()].map(([window, rows]) => ({ window, rows })),
-    }));
-  }, [provider, sortedQuotas]);
-
-  const activeFamily = antigravityGroups.find((group) => group.family === selectedFamily)
-    || antigravityGroups[0];
-  const activeWindow = activeFamily?.windows.find((group) => group.window === selectedWindow)
-    || activeFamily?.windows[0];
-  const displayedQuotas = provider === "antigravity"
-    ? activeWindow?.rows || []
+  const displayedQuotas = isGroupedAntigravity
+    ? antigravityExplicitRows
     : sortedQuotas;
 
-  const totalPages = Math.max(1, Math.ceil(displayedQuotas.length / PAGE_SIZE));
+  const totalPages = isGroupedAntigravity
+    ? 1
+    : Math.max(1, Math.ceil(displayedQuotas.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage(1);
-  }, [sortMode, quotas, selectedFamily, selectedWindow]);
-
-  useEffect(() => {
-    if (provider !== "antigravity" || antigravityGroups.length === 0) return;
-    const nextFamily = antigravityGroups.find((group) => group.family === selectedFamily)
-      || antigravityGroups[0];
-    const nextWindow = nextFamily.windows.find((group) => group.window === selectedWindow)
-      || nextFamily.windows[0];
-    if (nextFamily.family !== selectedFamily) setSelectedFamily(nextFamily.family);
-    if (nextWindow.window !== selectedWindow) setSelectedWindow(nextWindow.window);
-  }, [antigravityGroups, provider, selectedFamily, selectedWindow]);
+  }, [sortMode, quotas]);
 
   useEffect(() => {
     setPage((currentPage) => Math.min(currentPage, totalPages));
@@ -193,10 +311,10 @@ export default function QuotaTable({
     return null;
   }
 
-  const currentPageRows = displayedQuotas.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE,
-  );
+  const currentPageRows = isGroupedAntigravity
+    ? antigravityExplicitRows
+    : displayedQuotas.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const pageStart = displayedQuotas.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const pageEnd = Math.min(page * PAGE_SIZE, displayedQuotas.length);
 
@@ -209,50 +327,18 @@ export default function QuotaTable({
 
   return (
     <div className="space-y-2">
-      {provider === "antigravity" && antigravityGroups.length > 0 && (
-        <div className="space-y-1.5 rounded-lg border border-border-subtle bg-surface-2/60 p-1.5">
-          <div className="flex items-center gap-1 overflow-x-auto">
-            <span className="material-symbols-outlined px-1 text-[14px] text-text-muted">tune</span>
-            {antigravityGroups.map((group) => (
-              <button
-                key={group.family}
-                type="button"
-                onClick={() => {
-                  setSelectedFamily(group.family);
-                  setSelectedWindow(group.windows[0]?.window || null);
-                }}
-                className={`rounded-md px-2 py-1 text-[10px] font-medium transition-colors ${activeFamily?.family === group.family ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-surface-3 hover:text-text-primary"}`}
-              >
-                {ANTIGRAVITY_FAMILY_LABELS[group.family]}
-                <span className="ml-1 opacity-70">
-                  {group.windows.reduce((count, window) => count + window.rows.length, 0)}
-                </span>
-              </button>
-            ))}
-          </div>
-          {activeFamily && activeFamily.windows.length > 1 && (
-            <div className="flex items-center gap-1 border-t border-border-subtle pt-1.5">
-              {activeFamily.windows.map((group) => (
-                <button
-                  key={group.window}
-                  type="button"
-                  onClick={() => setSelectedWindow(group.window)}
-                  className={`rounded-md px-2 py-1 text-[10px] transition-colors ${activeWindow?.window === group.window ? "bg-surface-3 font-medium text-text-primary" : "text-text-muted hover:bg-surface-2"}`}
-                >
-                  {ANTIGRAVITY_WINDOW_LABELS[group.window] || "Lainnya"}
-                  <span className="ml-1 opacity-70">{group.rows.length}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="flex items-center justify-between gap-2">
         <div className="text-[10px] text-text-muted">
-          {displayedQuotas.length} quota{displayedQuotas.length > 1 ? "s" : ""}
+          {isGroupedAntigravity
+            ? "Antigravity quota windows"
+            : `${displayedQuotas.length} quota${displayedQuotas.length > 1 ? "s" : ""}`}
         </div>
-        {showSortLabel && (
+        {isFallbackAntigravity && (
+          <div className="rounded border border-border-subtle bg-surface-2 px-1.5 py-0.5 text-[10px] text-text-muted">
+            Per-model fallback (grouped buckets unavailable)
+          </div>
+        )}
+        {showSortLabel && !isGroupedAntigravity && (
           <div className="rounded-md border border-border-subtle bg-surface-2 px-2 py-1 text-[10px] text-text-muted">
             {sortLabel}
           </div>
@@ -260,100 +346,232 @@ export default function QuotaTable({
       </div>
 
       <div className="space-y-px">
-        {currentPageRows.map((quota) => {
-          const colors = getColorClasses(quota.remaining);
-          const countdown = formatResetTime(quota.resetAt);
-          const resetDisplay = formatResetTimeDisplay(quota.resetAt);
-          // recurring defaults true: a missing flag means the quota
-          // refreshes at resetAt. Bonus/one-shot packs set recurring:false
-          // and their resetAt is a hard expiry, so word it as "expires".
-          const recurring = quota.recurring !== false;
-          const countdownLabel = recurring ? `in ${countdown}` : `expires in ${countdown}`;
+        {isGroupedAntigravity ? (
+          antigravityExplicitRows.map((row) => {
+            const isAvailable = row.isAvailable !== false;
+            const colors = isAvailable ? getColorClasses(row.remaining) : null;
+            const countdown = isAvailable ? formatResetTime(row.resetAt) : "-";
+            const resetDisplay = isAvailable ? formatResetTimeDisplay(row.resetAt) : null;
+            const countdownLabel = countdown !== "-" ? `in ${countdown}` : resetDisplay;
 
-          return (
-            <div
-              key={`${quota.name}-${quota.index}`}
-              className={`flex items-center gap-2 border-b border-border-subtle hover:bg-surface-2/50 transition-colors ${cellPad}`}
-            >
-              {/* Name */}
-              <div className="flex w-36 min-w-0 items-center gap-2">
-                <span className={`size-1.5 shrink-0 rounded-full ${colors.dot}`} aria-hidden="true" />
-                <span className={`${nameText} font-medium text-text-primary truncate`}>
-                  {quota.name}
-                </span>
-              </div>
-
-              {/* Progress + used/total */}
-              <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
-                <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden ${colors.bgLight}`}>
-                  <div
-                    className={`h-full transition-all duration-300 ${colors.bg}`}
-                    style={{ width: `${Math.min(quota.remaining, 100)}%` }}
-                  />
-                </div>
-
-                <div className={`flex items-center justify-between gap-1 min-w-0 ${compact ? "text-[10px]" : "text-xs"}`}>
+            return (
+              <div
+                key={row.key}
+                className={`flex items-center gap-2 border-b border-border-subtle hover:bg-surface-2/50 transition-colors ${cellPad}`}
+              >
+                {/* Name */}
+                <div className="flex w-32 sm:w-36 min-w-0 items-center gap-2 shrink-0">
                   <span
-                    className="text-text-muted truncate"
-                    title={`${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`}
+                    className={`size-1.5 shrink-0 rounded-full ${
+                      isAvailable ? colors.dot : "bg-text-muted/30"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span
+                    className={`${nameText} font-medium truncate ${
+                      isAvailable ? "text-text-primary" : "text-text-muted"
+                    }`}
+                    title={row.name}
                   >
-                    {quota.used.toLocaleString()} / {quota.total > 0 ? quota.total.toLocaleString() : "∞"}
-                  </span>
-                  <span className={`font-medium ${colors.text} shrink-0`}>
-                    {quota.remaining}%
+                    {row.name}
                   </span>
                 </div>
-              </div>
 
-              {/* Reset time */}
-              <div className="min-w-0 shrink">
-                {countdown !== "-" || resetDisplay ? (
-                  compact ? (
-                    <div
-                      className={`${resetPrimary} text-text-primary font-medium truncate`}
-                      title={resetDisplay || ""}
-                    >
-                      {countdown !== "-" ? countdownLabel : resetDisplay}
-                    </div>
+                {/* Progress + remaining / unavailable */}
+                <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
+                  {isAvailable ? (
+                    <>
+                      <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden ${colors.bgLight}`}>
+                        <div
+                          className={`h-full transition-all duration-300 ${colors.bg}`}
+                          style={{ width: `${Math.max(0, Math.min(row.remaining, 100))}%` }}
+                        />
+                      </div>
+                      <div className={`flex items-center justify-between gap-1 min-w-0 ${compact ? "text-[10px]" : "text-xs"}`}>
+                        <span
+                          className="text-text-muted truncate"
+                          title={
+                            row.total > 0 && row.total !== 1000
+                              ? `${row.used.toLocaleString()} / ${row.total.toLocaleString()}`
+                              : "Active window"
+                          }
+                        >
+                          {row.total > 0 && row.total !== 1000
+                            ? `${row.used.toLocaleString()} / ${row.total.toLocaleString()}`
+                            : "Active window"}
+                        </span>
+                        <span className={`font-medium ${colors.text} shrink-0`}>
+                          {row.remaining}%
+                        </span>
+                      </div>
+                    </>
                   ) : (
-                    <div className="min-w-0 space-y-0.5">
-                      {countdown !== "-" && (
-                        <div className={`${resetPrimary} text-text-primary font-medium truncate`}>
+                    <>
+                      <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden bg-surface-3/70`}>
+                        <div className="h-full w-0" />
+                      </div>
+                      <div className={`flex items-center justify-between gap-1 min-w-0 ${compact ? "text-[10px]" : "text-xs"}`}>
+                        <span className="text-text-subtle truncate italic" title="Not provided by API for current account">
+                          Unavailable
+                        </span>
+                        <span className="text-text-subtle shrink-0">
+                          —
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Reset time */}
+                <div className="min-w-0 shrink text-right">
+                  {isAvailable ? (
+                    countdown !== "-" || resetDisplay ? (
+                      compact ? (
+                        <div
+                          className={`${resetPrimary} text-text-primary font-medium truncate`}
+                          title={resetDisplay || ""}
+                        >
                           {countdownLabel}
                         </div>
-                      )}
-                      {resetDisplay && (
-                        <div className={`${resetSecondary} text-text-muted truncate`}>
-                          {resetDisplay}
+                      ) : (
+                        <div className="min-w-0 space-y-0.5">
+                          {countdown !== "-" && (
+                            <div className={`${resetPrimary} text-text-primary font-medium truncate`}>
+                              {countdownLabel}
+                            </div>
+                          )}
+                          {resetDisplay && (
+                            <div className={`${resetSecondary} text-text-muted truncate`}>
+                              {resetDisplay}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      )
+                    ) : (
+                      <div className={`${resetPrimary} text-text-muted italic`}>N/A</div>
+                    )
+                  ) : (
+                    <div className={`${resetPrimary} text-text-subtle italic`}>—</div>
+                  )}
+                </div>
+
+                {/* Hide action */}
+                {hasHideAction && (
+                  isAvailable ? (
+                    <button
+                      type="button"
+                      onClick={() => onHideQuota(row.rawQuota || { name: row.name, modelKey: row.key })}
+                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-primary"
+                      title={`Hide ${row.name}`}
+                      aria-label={`Hide quota ${row.name}`}
+                    >
+                      <span className="material-symbols-outlined text-[15px]">
+                        visibility_off
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="inline-flex h-6 w-6 shrink-0" aria-hidden="true" />
                   )
-                ) : (
-                  <div className={`${resetPrimary} text-text-muted italic`}>N/A</div>
                 )}
               </div>
+            );
+          })
+        ) : (
+          currentPageRows.map((quota) => {
+            const colors = getColorClasses(quota.remaining);
+            const countdown = formatResetTime(quota.resetAt);
+            const resetDisplay = formatResetTimeDisplay(quota.resetAt);
+            // recurring defaults true: a missing flag means the quota
+            // refreshes at resetAt. Bonus/one-shot packs set recurring:false
+            // and their resetAt is a hard expiry, so word it as "expires".
+            const recurring = quota.recurring !== false;
+            const countdownLabel = recurring ? `in ${countdown}` : `expires in ${countdown}`;
 
-              {/* Hide action */}
-              {hasHideAction && (
-                <button
-                  type="button"
-                  onClick={() => onHideQuota(quota)}
-                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-primary"
-                  title="Hide this quota row"
-                  aria-label={`Hide quota ${quota.name}`}
-                >
-                  <span className="material-symbols-outlined text-[15px]">
-                    visibility_off
+            return (
+              <div
+                key={`${quota.name}-${quota.index}`}
+                className={`flex items-center gap-2 border-b border-border-subtle hover:bg-surface-2/50 transition-colors ${cellPad}`}
+              >
+                {/* Name */}
+                <div className="flex w-32 sm:w-36 min-w-0 items-center gap-2 shrink-0">
+                  <span className={`size-1.5 shrink-0 rounded-full ${colors.dot}`} aria-hidden="true" />
+                  <span className={`${nameText} font-medium text-text-primary truncate`}>
+                    {quota.name}
                   </span>
-                </button>
-              )}
-            </div>
-          );
-        })}
+                </div>
+
+                {/* Progress + used/total */}
+                <div className={`min-w-0 flex-1 ${compact ? "space-y-1" : "space-y-1.5"}`}>
+                  <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden ${colors.bgLight}`}>
+                    <div
+                      className={`h-full transition-all duration-300 ${colors.bg}`}
+                      style={{ width: `${Math.min(quota.remaining, 100)}%` }}
+                    />
+                  </div>
+
+                  <div className={`flex items-center justify-between gap-1 min-w-0 ${compact ? "text-[10px]" : "text-xs"}`}>
+                    <span
+                      className="text-text-muted truncate"
+                      title={`${quota.used.toLocaleString()} / ${quota.total > 0 ? quota.total.toLocaleString() : "∞"}`}
+                    >
+                      {quota.used.toLocaleString()} / {quota.total > 0 ? quota.total.toLocaleString() : "∞"}
+                    </span>
+                    <span className={`font-medium ${colors.text} shrink-0`}>
+                      {quota.remaining}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reset time */}
+                <div className="min-w-0 shrink text-right">
+                  {countdown !== "-" || resetDisplay ? (
+                    compact ? (
+                      <div
+                        className={`${resetPrimary} text-text-primary font-medium truncate`}
+                        title={resetDisplay || ""}
+                      >
+                        {countdownLabel}
+                      </div>
+                    ) : (
+                      <div className="min-w-0 space-y-0.5">
+                        {countdown !== "-" && (
+                          <div className={`${resetPrimary} text-text-primary font-medium truncate`}>
+                            {countdownLabel}
+                          </div>
+                        )}
+                        {resetDisplay && (
+                          <div className={`${resetSecondary} text-text-muted truncate`}>
+                            {resetDisplay}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ) : (
+                    <div className={`${resetPrimary} text-text-muted italic`}>N/A</div>
+                  )}
+                </div>
+
+                {/* Hide action */}
+                {hasHideAction && (
+                  <button
+                    type="button"
+                    onClick={() => onHideQuota(quota)}
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-primary"
+                    title="Hide this quota row"
+                    aria-label={`Hide quota ${quota.name}`}
+                  >
+                    <span className="material-symbols-outlined text-[15px]">
+                      visibility_off
+                    </span>
+                  </button>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {totalPages > 1 && (
+      {!isGroupedAntigravity && totalPages > 1 && (
         <div className="rounded-md border border-border-subtle bg-surface-2/60 px-2 py-1.5">
           <div className="flex items-center justify-between gap-2 text-[10px] text-text-muted">
             <span>

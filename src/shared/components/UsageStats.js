@@ -14,9 +14,7 @@ import Badge from "./Badge";
 import Card from "./Card";
 import OverviewCards from "@/app/(dashboard)/dashboard/usage/components/OverviewCards";
 import UsageTable, { fmt, fmtTime } from "@/app/(dashboard)/dashboard/usage/components/UsageTable";
-import dynamic from "next/dynamic";
-// Lazy-load: keeps @xyflow/react out of the shared bundle until topology renders
-const ProviderTopology = dynamic(() => import("@/app/(dashboard)/dashboard/usage/components/ProviderTopology"), { ssr: false });
+import ProviderTopology from "@/app/(dashboard)/dashboard/usage/components/ProviderTopology";
 import UsageChart from "@/app/(dashboard)/dashboard/usage/components/UsageChart";
 
 function timeAgo(timestamp) {
@@ -30,66 +28,107 @@ function timeAgo(timestamp) {
 // Auto-update time display every second without re-rendering parent
 function TimeAgo({ timestamp }) {
   const [, setTick] = useState(0);
-  
+
   useEffect(() => {
-    const timer = setInterval(() => setTick(t => t + 1), 1000);
+    const timer = setInterval(() => setTick((t) => t + 1), 1000);
     return () => clearInterval(timer);
   }, []);
-  
+
   return <>{timeAgo(timestamp)}</>;
 }
 
 function RecentRequests({ requests = [] }) {
+  // One-shot restrained highlight tracking only on real new items
+  const latestTimestamp = requests[0]?.timestamp;
+  const prevLatestRef = useRef(latestTimestamp);
+  const [highlightLatest, setHighlightLatest] = useState(false);
+
+  useEffect(() => {
+    if (prevLatestRef.current && latestTimestamp && latestTimestamp !== prevLatestRef.current) {
+      setHighlightLatest(true);
+      const timer = setTimeout(() => setHighlightLatest(false), 1400);
+      prevLatestRef.current = latestTimestamp;
+      return () => clearTimeout(timer);
+    }
+    prevLatestRef.current = latestTimestamp;
+  }, [latestTimestamp]);
+
   return (
     <Card
-      className="flex min-w-0 flex-col overflow-hidden"
+      className="dispatch-ledger flex min-w-0 flex-col overflow-hidden border border-border-subtle bg-surface shadow-soft"
       padding="none"
-      style={{ height: 480 }}
-      title="Recent Requests"
-      subtitle="Live dispatch stream"
+      title="Dispatch Ledger"
+      subtitle="Real-time request stream & completion tokens"
     >
       {!requests.length ? (
-        <div className="flex-1 flex items-center justify-center text-muted text-xs p-4">
-          No requests recorded yet.
+        <div className="flex h-48 flex-col items-center justify-center gap-1.5 p-4 text-xs text-muted">
+          <span className="material-symbols-outlined text-[20px] opacity-40">receipt_long</span>
+          <span>No requests recorded yet.</span>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto">
-          <table className="w-full min-w-[280px] border-collapse text-xs">
-            <thead className="sticky top-0 bg-surface-2/90 backdrop-blur-xs border-b border-border-subtle z-10 text-[11px] uppercase tracking-wider text-muted">
-              <tr>
-                <th className="py-2 pl-3 pr-1 text-left font-semibold w-3"></th>
-                <th className="py-2 px-2 text-left font-semibold">Model</th>
-                <th className="py-2 px-2 text-right font-semibold whitespace-nowrap">In / Out</th>
-                <th className="py-2 pr-3 pl-2 text-right font-semibold">When</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-subtle">
+        <div className="max-h-[360px] min-w-0 overflow-x-hidden overflow-y-auto">
+          <div className="dispatch-ledger-header sticky top-0 z-10 border-b border-border-subtle bg-surface-2/95 text-[11px] font-semibold uppercase tracking-wider text-muted backdrop-blur-xs" aria-hidden="true">
+            <span>State</span>
+            <span>Model / Route</span>
+            <span className="text-right">Tokens</span>
+            <span className="text-right">When</span>
+          </div>
+          <ul className="min-w-0 divide-y divide-border-subtle" aria-label="Recent dispatches">
               {requests.map((r, i) => {
                 const ok = !r.status || r.status === "ok" || r.status === "success";
+                const isNewest = i === 0 && highlightLatest;
                 return (
-                  <tr key={i} className="hover:bg-surface-2 transition-colors">
-                    <td className="py-2 pl-3 pr-1">
+                  <li
+                    key={r.id || `${r.timestamp}-${r.model}-${i}`}
+                    className={`dispatch-ledger-row min-w-0 transition-colors hover:bg-surface-2 ${
+                      isNewest ? "bg-signal/10 transition-none" : ""
+                    }`}
+                  >
+                    <div className="dispatch-ledger-state">
                       <span
-                        className={`block w-1.5 h-1.5 rounded-full ${ok ? "bg-signal" : "bg-fail"}`}
-                        title={ok ? "OK" : "Error"}
-                      />
-                    </td>
-                    <td className="py-2 px-2 font-mono text-[11px] truncate max-w-[130px] text-ink" title={r.model}>
-                      {r.model}
-                    </td>
-                    <td className="py-2 px-2 text-right font-mono text-[11px] tabular-nums whitespace-nowrap">
-                      <span className="text-signal">{fmt(r.promptTokens)}↑</span>
-                      {" "}
-                      <span className="text-ink">{fmt(r.completionTokens)}↓</span>
-                    </td>
-                    <td className="py-2 pr-3 pl-2 text-right font-mono text-[10px] text-muted whitespace-nowrap">
+                        className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase ${
+                          ok
+                            ? "bg-signal/10 text-signal border border-signal/30"
+                            : "bg-fail/10 text-fail border border-fail/30"
+                        }`}
+                        title={ok ? "Status: Success (200 OK)" : `Status: Failure (${r.status || "error"})`}
+                      >
+                        <span
+                          className={`size-1.5 rounded-full ${ok ? "bg-signal" : "bg-fail"}`}
+                          aria-hidden="true"
+                        />
+                        <span>{ok ? "OK" : "ERR"}</span>
+                      </span>
+                    </div>
+                    <div className="min-w-0 text-ink">
+                      <div className="flex min-w-0 flex-col" title={r.model}>
+                        <span className="truncate font-mono text-[11px] font-medium">
+                          {r.model}
+                        </span>
+                        {r.provider && (
+                          <span className="text-[10px] text-muted truncate">
+                            via {r.provider}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="min-w-0 text-right font-mono text-[11px] tabular-nums">
+                      <div className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-baseline sm:justify-end sm:gap-1.5">
+                        <span className="text-signal" title="Prompt input tokens">
+                          {fmt(r.promptTokens)} <span className="text-[9px] opacity-70">in</span>
+                        </span>
+                        <span className="text-ink font-semibold" title="Completion output tokens">
+                          {fmt(r.completionTokens)} <span className="text-[9px] opacity-70">out</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="whitespace-nowrap text-right font-mono text-[10px] text-muted">
                       <TimeAgo timestamp={r.timestamp} />
-                    </td>
-                  </tr>
+                    </div>
+                  </li>
                 );
               })}
-            </tbody>
-          </table>
+          </ul>
         </div>
       )}
     </Card>
@@ -233,26 +272,28 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
   // Always include noAuth free providers (e.g. opencode) regardless of connections
   useEffect(() => {
     Promise.all([
-      fetch("/api/providers").then((r) => r.ok ? r.json() : null),
-      fetch("/api/provider-nodes").then((r) => r.ok ? r.json() : null),
+      fetch("/api/providers").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/provider-nodes").then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([d, nodesData]) => {
         // Build node name lookup for custom providers
         const nodeNameMap = {};
-        for (const node of (nodesData?.nodes || [])) {
+        for (const node of nodesData?.nodes || []) {
           nodeNameMap[node.id] = node.name;
         }
         const seen = new Set();
-        const unique = (d?.connections || []).filter((c) => {
-          if (c.isActive === false) return false;
-          if (!isLLMProvider(c.provider)) return false;
-          if (seen.has(c.provider)) return false;
-          seen.add(c.provider);
-          return true;
-        }).map((c) => ({
-          ...c,
-          nodeName: nodeNameMap[c.provider] || null,
-        }));
+        const unique = (d?.connections || [])
+          .filter((c) => {
+            if (c.isActive === false) return false;
+            if (!isLLMProvider(c.provider)) return false;
+            if (seen.has(c.provider)) return false;
+            seen.add(c.provider);
+            return true;
+          })
+          .map((c) => ({
+            ...c,
+            nodeName: nodeNameMap[c.provider] || null,
+          }));
         const noAuthProviders = Object.values(FREE_PROVIDERS)
           .filter((p) => p.noAuth && !p.hidden && !seen.has(p.id) && isLLMProvider(p.id))
           .map((p) => ({ provider: p.id, name: p.name }));
@@ -272,7 +313,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
     }
 
     fetch(`/api/usage/stats?period=${period}`)
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data) {
           hasLoadedStats.current = true;
@@ -309,16 +350,19 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
     return () => es.close();
   }, [period]);
 
-  const toggleSort = useCallback((tableType, field) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (params.get("sortBy") === field) {
-      params.set("sortOrder", params.get("sortOrder") === "asc" ? "desc" : "asc");
-    } else {
-      params.set("sortBy", field);
-      params.set("sortOrder", "asc");
-    }
-    router.replace(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+  const toggleSort = useCallback(
+    (tableType, field) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (params.get("sortBy") === field) {
+        params.set("sortOrder", params.get("sortOrder") === "asc" ? "desc" : "asc");
+      } else {
+        params.set("sortBy", field);
+        params.set("sortOrder", "asc");
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router]
+  );
 
   // Compute active table data
   const activeTableConfig = useMemo(() => {
@@ -333,17 +377,26 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-6 py-3 text-text-muted">—</td>
-              <td className="px-6 py-3 text-right">{fmt(group.summary.requests)}</td>
-              <td className="px-6 py-3 text-right text-text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 text-muted min-w-[120px]">—</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className={`px-4 py-2.5 font-medium transition-colors ${item.pending > 0 ? "text-signal" : "text-ink"}`}>{item.rawModel}</td>
-              <td className="px-4 py-2.5"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="xs">{item.provider}</Badge></td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 sticky left-0 z-10 bg-surface-2 shadow-[1px_0_0_0_var(--color-border-subtle)]">
+                <div className="flex items-center gap-2 pl-4">
+                  <span className="text-muted/50 font-mono text-xs select-none">└</span>
+                  <span className={`font-medium text-xs transition-colors truncate ${item.pending > 0 ? "text-signal" : "text-ink"}`}>
+                    {item.rawModel}
+                  </span>
+                </div>
+              </td>
+              <td className="px-3.5 py-2.5 min-w-[120px]">
+                <Badge variant={item.pending > 0 ? "primary" : "neutral"} size="xs">{item.provider}</Badge>
+              </td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -366,19 +419,26 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No account-specific usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-4 py-2.5 text-muted">—</td>
-              <td className="px-4 py-2.5 text-muted">—</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 text-muted">—</td>
+              <td className="px-3.5 py-2.5 text-muted">—</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className={`px-4 py-2.5 font-medium transition-colors ${item.pending > 0 ? "text-signal" : "text-ink"}`}>{item.accountName || `Account ${item.connectionId?.slice(0, 8)}...`}</td>
-              <td className={`px-4 py-2.5 font-medium transition-colors ${item.pending > 0 ? "text-signal" : "text-ink"}`}>{item.rawModel}</td>
-              <td className="px-4 py-2.5"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="xs">{item.provider}</Badge></td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 sticky left-0 z-10 bg-surface-2 shadow-[1px_0_0_0_var(--color-border-subtle)]">
+                <div className="flex items-center gap-2 pl-4">
+                  <span className="text-muted/50 font-mono text-xs select-none">└</span>
+                  <span className={`font-medium text-xs transition-colors truncate ${item.pending > 0 ? "text-signal" : "text-ink"}`}>
+                    {item.accountName || `Account ${item.connectionId?.slice(0, 8)}...`}
+                  </span>
+                </div>
+              </td>
+              <td className={`px-3.5 py-2.5 font-medium transition-colors ${item.pending > 0 ? "text-signal" : "text-ink"}`}>{item.rawModel}</td>
+              <td className="px-3.5 py-2.5"><Badge variant={item.pending > 0 ? "primary" : "neutral"} size="xs">{item.provider}</Badge></td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -391,19 +451,24 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No API key usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-4 py-2.5 text-muted">—</td>
-              <td className="px-4 py-2.5 text-muted">—</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 text-muted">—</td>
+              <td className="px-3.5 py-2.5 text-muted">—</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className="px-4 py-2.5 font-medium text-ink">{item.keyName}</td>
-              <td className="px-4 py-2.5 text-ink">{item.rawModel}</td>
-              <td className="px-4 py-2.5"><Badge variant="neutral" size="xs">{item.provider}</Badge></td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 sticky left-0 z-10 bg-surface-2 shadow-[1px_0_0_0_var(--color-border-subtle)]">
+                <div className="flex items-center gap-2 pl-4">
+                  <span className="text-muted/50 font-mono text-xs select-none">└</span>
+                  <span className="font-medium text-xs text-ink truncate">{item.keyName}</span>
+                </div>
+              </td>
+              <td className="px-3.5 py-2.5 text-ink">{item.rawModel}</td>
+              <td className="px-3.5 py-2.5"><Badge variant="neutral" size="xs">{item.provider}</Badge></td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -417,19 +482,24 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           emptyMessage: "No endpoint usage recorded yet.",
           renderSummaryCells: (group) => (
             <>
-              <td className="px-4 py-2.5 text-muted">—</td>
-              <td className="px-4 py-2.5 text-muted">—</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 text-muted">—</td>
+              <td className="px-3.5 py-2.5 text-muted">—</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(group.summary.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(group.summary.lastUsed)}</td>
             </>
           ),
           renderDetailCells: (item) => (
             <>
-              <td className="px-4 py-2.5 font-medium font-mono text-xs text-ink">{item.endpoint}</td>
-              <td className="px-4 py-2.5 text-ink">{item.rawModel}</td>
-              <td className="px-4 py-2.5"><Badge variant="neutral" size="xs">{item.provider}</Badge></td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
-              <td className="px-4 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
+              <td className="px-3.5 py-2.5 sticky left-0 z-10 bg-surface-2 shadow-[1px_0_0_0_var(--color-border-subtle)]">
+                <div className="flex items-center gap-2 pl-4">
+                  <span className="text-muted/50 font-mono text-xs select-none">└</span>
+                  <span className="font-medium font-mono text-xs text-ink truncate">{item.endpoint}</span>
+                </div>
+              </td>
+              <td className="px-3.5 py-2.5 text-ink">{item.rawModel}</td>
+              <td className="px-3.5 py-2.5"><Badge variant="neutral" size="xs">{item.provider}</Badge></td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-muted">{fmt(item.requests)}</td>
+              <td className="px-3.5 py-2.5 text-right font-mono tabular-nums text-[11px] text-muted whitespace-nowrap">{fmtTime(item.lastUsed)}</td>
             </>
           ),
         };
@@ -437,11 +507,11 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
     }
   }, [stats, tableView, sortBy, sortOrder]);
 
-  if (!stats && !loading) return <div className="text-text-muted">Failed to load usage statistics.</div>;
+  if (!stats && !loading) return <div className="text-muted">Failed to load usage statistics.</div>;
 
   const spinner = (
-    <div className="flex items-center justify-center py-12 text-text-muted">
-      <span className="material-symbols-outlined text-[32px] animate-spin">progress_activity</span>
+    <div className="flex items-center justify-center py-12 text-muted">
+      <span className="material-symbols-outlined text-[32px] animate-spin text-signal">progress_activity</span>
     </div>
   );
 
@@ -450,37 +520,41 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       {/* Period selector (hidden when controlled by parent) */}
       {!hidePeriodSelector && (
         <div className="flex w-full items-center gap-2 sm:w-auto sm:self-end">
-          <div className="grid flex-1 grid-cols-5 items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1 sm:flex sm:flex-none">
+          <div className="grid flex-1 grid-cols-5 items-center gap-1 rounded-lg border border-border-subtle bg-bg-subtle p-1 sm:flex sm:flex-none">
             {PERIODS.map((p) => (
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
                 disabled={fetching}
-                className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${period === p.value ? "bg-primary text-white shadow-sm" : "text-text-muted hover:bg-bg-hover hover:text-text"}`}
+                className={`min-h-[44px] sm:min-h-[30px] rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  period === p.value ? "bg-surface text-ink font-semibold shadow-xs" : "text-muted hover:bg-surface-2 hover:text-ink"
+                }`}
               >
                 {p.label}
               </button>
             ))}
           </div>
           {fetching && (
-            <span className="material-symbols-outlined text-[16px] text-text-muted animate-spin">progress_activity</span>
+            <span className="material-symbols-outlined text-[16px] text-muted animate-spin">progress_activity</span>
           )}
         </div>
       )}
 
-      {/* Overview cards */}
+      {/* Overview Chassis Bar */}
       {loading ? spinner : <OverviewCards stats={stats} />}
 
-      {/* Provider topology + Recent Requests */}
-      {loading ? spinner : (
-        <div className="grid min-w-0 grid-cols-1 items-stretch gap-2 lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      {/* Provider Switchboard Channel Bay + Dispatch Ledger */}
+      {loading ? (
+        spinner
+      ) : (
+        <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2.2fr)_minmax(320px,1fr)]">
           <ProviderTopology
             providers={providers}
-            activeRequests={stats.activeRequests || []}
-            lastProvider={stats.recentRequests?.[0]?.provider || ""}
-            errorProvider={stats.errorProvider || ""}
+            activeRequests={stats?.activeRequests || []}
+            lastProvider={stats?.recentRequests?.[0]?.provider || ""}
+            errorProvider={stats?.errorProvider || ""}
           />
-          <RecentRequests requests={stats.recentRequests || []} />
+          <RecentRequests requests={stats?.recentRequests || []} />
         </div>
       )}
 
@@ -493,20 +567,22 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
           <select
             value={tableView}
             onChange={(e) => setTableView(e.target.value)}
-            className="w-full rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-signal/40 sm:w-auto"
-            style={{ colorScheme: 'auto' }}
+            className="w-full min-h-[44px] sm:min-h-[32px] rounded-md border border-border bg-surface px-3 py-1.5 text-xs font-medium text-ink focus:outline-none focus:ring-2 focus:ring-signal/40 sm:w-auto"
+            style={{ colorScheme: "auto" }}
           >
             {TABLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
             ))}
           </select>
           <div className="inline-flex items-center rounded-md border border-rule bg-bg-subtle p-0.5 self-start sm:self-auto">
             <button
               type="button"
               onClick={() => setViewMode("costs")}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+              className={`min-h-[44px] sm:min-h-[30px] rounded px-3 py-1 text-xs font-medium transition-colors ${
                 viewMode === "costs"
-                  ? "bg-surface text-ink shadow-xs"
+                  ? "bg-surface text-ink shadow-xs font-semibold"
                   : "text-muted hover:text-ink hover:bg-surface-2"
               }`}
             >
@@ -515,9 +591,9 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
             <button
               type="button"
               onClick={() => setViewMode("tokens")}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+              className={`min-h-[44px] sm:min-h-[30px] rounded px-3 py-1 text-xs font-medium transition-colors ${
                 viewMode === "tokens"
-                  ? "bg-surface text-ink shadow-xs"
+                  ? "bg-surface text-ink shadow-xs font-semibold"
                   : "text-muted hover:text-ink hover:bg-surface-2"
               }`}
             >
@@ -525,22 +601,24 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
             </button>
           </div>
         </div>
-        {loading ? spinner : activeTableConfig && (
-          <UsageTable
-            title=""
-            columns={activeTableConfig.columns}
-            groupedData={activeTableConfig.groupedData}
-            tableType={tableView}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onToggleSort={toggleSort}
-            viewMode={viewMode}
-            storageKey={activeTableConfig.storageKey}
-            renderSummaryCells={activeTableConfig.renderSummaryCells}
-            renderDetailCells={activeTableConfig.renderDetailCells}
-            emptyMessage={activeTableConfig.emptyMessage}
-          />
-        )}
+        {loading
+          ? spinner
+          : activeTableConfig && (
+              <UsageTable
+                title=""
+                columns={activeTableConfig.columns}
+                groupedData={activeTableConfig.groupedData}
+                tableType={tableView}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onToggleSort={toggleSort}
+                viewMode={viewMode}
+                storageKey={activeTableConfig.storageKey}
+                renderSummaryCells={activeTableConfig.renderSummaryCells}
+                renderDetailCells={activeTableConfig.renderDetailCells}
+                emptyMessage={activeTableConfig.emptyMessage}
+              />
+            )}
       </div>
     </div>
   );

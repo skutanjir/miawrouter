@@ -341,7 +341,26 @@ export function parseQuotaData(provider, data) {
 
       case "antigravity":
         if (data.quotas) {
-          Object.entries(data.quotas).forEach(([modelKey, quota]) => {
+          const quotaEntries = Object.entries(data.quotas);
+          const hasGroupedWindows = quotaEntries.some(([key]) =>
+            key === "gemini_5h" ||
+            key === "gemini_weekly" ||
+            key === "claude_gpt_5h" ||
+            key === "claude_gpt_weekly"
+          );
+
+          quotaEntries.forEach(([modelKey, quota]) => {
+            const isGroupedWindow =
+              modelKey === "gemini_5h" ||
+              modelKey === "gemini_weekly" ||
+              modelKey === "claude_gpt_5h" ||
+              modelKey === "claude_gpt_weekly";
+
+            // If real grouped windows exist, hide individual model rows from UI display
+            if (hasGroupedWindows && !isGroupedWindow) {
+              return;
+            }
+
             normalizedQuotas.push({
               name: quota.displayName || modelKey,
               modelKey: modelKey, // Keep modelKey for sorting
@@ -349,6 +368,9 @@ export function parseQuotaData(provider, data) {
               total: quota.total || 0,
               resetAt: quota.resetAt || null,
               remainingPercentage: quota.remainingPercentage,
+              window: quota.window,
+              family: quota.family,
+              secondaryMetadata: quota.secondaryMetadata,
             });
           });
         }

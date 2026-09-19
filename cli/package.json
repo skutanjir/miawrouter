@@ -1,6 +1,6 @@
 {
   "name": "miawrouter",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "MiawRouter CLI - Start and manage MiawRouter server",
   "bin": {
     "miawrouter": "./cli.js"

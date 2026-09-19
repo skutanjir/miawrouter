@@ -1,6 +1,6 @@
 {
   "name": "miawrouter",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "MiawRouter web dashboard",
   "private": false,
   "bin": "./cli/cli.js",
@@ -33,7 +33,6 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@monaco-editor/react": "^4.7.0",
     "@next/third-parties": "^16.3.0",
-    "@xyflow/react": "^12.10.1",
     "bcryptjs": "^3.0.3",
     "confbox": "^0.2.4",
     "express": "^5.2.1",

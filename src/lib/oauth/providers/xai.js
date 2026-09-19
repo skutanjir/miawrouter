@@ -5,6 +5,10 @@ import { validateXaiOAuthEndpoint, decodeXaiIdTokenEmail } from "../providerHelp
 // Inlined from services/xai.js to keep web route bundle free of `open` (CLI-only) package
 let cachedXaiDiscovery = null;
 
+export function _resetXaiDiscoveryCache() {
+  cachedXaiDiscovery = null;
+}
+
 async function discoverXaiEndpoints() {
   if (cachedXaiDiscovery) return cachedXaiDiscovery;
   try {

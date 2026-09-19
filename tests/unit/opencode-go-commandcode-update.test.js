@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { PROVIDER_MODELS } from "../../open-sse/config/providerModels.js";
+import { canAttemptTokenRefresh } from "../../open-sse/handlers/chatCore.js";
+import { PROVIDER_MODELS, getModelUpstreamId } from "../../open-sse/config/providerModels.js";
 import { PROVIDERS } from "../../open-sse/config/providers.js";
 import { getCapabilitiesForModel } from "../../open-sse/providers/capabilities.js";
 import { getPricingForModel } from "../../open-sse/providers/pricing.js";
+import { checkFallbackError } from "../../open-sse/services/accountFallback.js";
+import { openaiToCommandCodeRequest } from "../../open-sse/translator/request/openai-to-commandcode.js";
+import { commandCodeToOpenAIResponse } from "../../open-sse/translator/response/commandcode-to-openai.js";
+import { OpenCodeGoExecutor } from "../../open-sse/executors/opencode-go.js";
 
 describe("OpenCode Go and CommandCode model updates", () => {
   it("includes all new models in OpenCode Go registry", () => {
@@ -138,8 +143,7 @@ describe("OpenCode Go and CommandCode model updates", () => {
     });
   });
 
-  it("maps OpenCode Go effort variants to upstream base models with reasoning suffix", async () => {
-    const { getModelUpstreamId } = await import("../../open-sse/config/providerModels.js");
+  it("maps OpenCode Go effort variants to upstream base models with reasoning suffix", () => {
     expect(getModelUpstreamId("opencode-go", "deepseek-v4.1-flash-high")).toBe("deepseek-v4.1-flash(high)");
     expect(getModelUpstreamId("opencode-go", "deepseek-v4.1-flash-low")).toBe("deepseek-v4.1-flash(low)");
     expect(getModelUpstreamId("opencode-go", "deepseek-v4.1-flash-max")).toBe("deepseek-v4.1-flash(max)");
@@ -150,8 +154,7 @@ describe("OpenCode Go and CommandCode model updates", () => {
     expect(getModelUpstreamId("opencode-go", "qwen3.8-flash-xhigh")).toBe("qwen3.8-flash(xhigh)");
   });
 
-  it("guards token refresh against API-key providers and recognizes refreshable OAuth/IDE providers", async () => {
-    const { canAttemptTokenRefresh } = await import("../../open-sse/handlers/chatCore.js");
+  it("guards token refresh against API-key providers and recognizes refreshable OAuth/IDE providers", () => {
     const mockExecutor = { refreshCredentials: () => {} };
 
     // API-key providers must never attempt token refresh
@@ -170,9 +173,7 @@ describe("OpenCode Go and CommandCode model updates", () => {
     expect(canAttemptTokenRefresh("cursor", {}, mockExecutor)).toBe(true);
   });
 
-  it("does not lock account or fallback for model-not-supported or region-opt-in errors", async () => {
-    const { checkFallbackError } = await import("../../open-sse/services/accountFallback.js");
-
+  it("does not lock account or fallback for model-not-supported or region-opt-in errors", () => {
     const modelError = checkFallbackError(401, "Model deepseek-v4.1-flash-high is not supported");
     expect(modelError.shouldFallback).toBe(false);
     expect(modelError.cooldownMs).toBe(0);
@@ -182,9 +183,7 @@ describe("OpenCode Go and CommandCode model updates", () => {
     expect(regionError.cooldownMs).toBe(0);
   });
 
-  it("correctly resolves toolName from preceding assistant tool_calls in CommandCode translator", async () => {
-    const { openaiToCommandCodeRequest } = await import("../../open-sse/translator/request/openai-to-commandcode.js");
-
+  it("correctly resolves toolName from preceding assistant tool_calls in CommandCode translator", () => {
     const req = openaiToCommandCodeRequest("claude-sonnet-5", {
       messages: [
         { role: "user", content: "read file test.txt" },
@@ -236,9 +235,7 @@ describe("OpenCode Go and CommandCode model updates", () => {
     expect(toolMsg.content[0].result).toBe("file content here");
   });
 
-  it("ensures tool_calls finish_reason when tools were invoked in CommandCode response", async () => {
-    const { commandCodeToOpenAIResponse } = await import("../../open-sse/translator/response/commandcode-to-openai.js");
-
+  it("ensures tool_calls finish_reason when tools were invoked in CommandCode response", () => {
     const state = {};
     // Simulate tool-input-start and delta
     commandCodeToOpenAIResponse(JSON.stringify({
@@ -257,8 +254,7 @@ describe("OpenCode Go and CommandCode model updates", () => {
     expect(finishChunks[0].choices[0].finish_reason).toBe("tool_calls");
   });
 
-  it("OpenCodeGoExecutor always generates and includes mandatory x-opencode-session and client headers", async () => {
-    const { OpenCodeGoExecutor } = await import("../../open-sse/executors/opencode-go.js");
+  it("OpenCodeGoExecutor always generates and includes mandatory x-opencode-session and client headers", () => {
     const executor = new OpenCodeGoExecutor();
 
     executor.transformRequest("deepseek-v4.1-flash", {
@@ -273,9 +269,7 @@ describe("OpenCode Go and CommandCode model updates", () => {
     expect(headers["Authorization"]).toBe("Bearer test-key-123");
   });
 
-  it("does not lock account or fallback for MissingSessionID or x-opencode-session errors", async () => {
-    const { checkFallbackError } = await import("../../open-sse/services/accountFallback.js");
-
+  it("does not lock account or fallback for MissingSessionID or x-opencode-session errors", () => {
     const sessionError = checkFallbackError(400, '{"type":"error","error":{"type":"MissingSessionID","message":"Error from provider (Console Go): Request is missing x-opencode-session and cannot be routed efficiently."}}');
     expect(sessionError.shouldFallback).toBe(false);
     expect(sessionError.cooldownMs).toBe(0);

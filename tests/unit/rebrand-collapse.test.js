@@ -25,7 +25,10 @@ const SCANNED = /\.(js|mjs|cjs|jsx)$/;
 // Build output and vendored minified payloads: a minifier emits these shapes
 // legitimately and they are not authored source.
 const SKIP = /^(node_modules|cli\/app|\.next)/;
-const SKIP_FILES = new Set(["open-sse/lib/deepseek-pow.js"]);
+const SKIP_FILES = new Set([
+  "open-sse/lib/deepseek-pow.js",
+  "tests/unit/rebrand-collapse.test.js",
+]);
 
 const files = execFileSync("git", ["ls-files", "-z"], {
   cwd: process.cwd(),

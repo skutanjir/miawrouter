@@ -634,48 +634,138 @@ button:disabled,
   }
 }
 
-/* Topology: steady edge stroke with reduced-motion fallback */
-@keyframes topology-edge-flow {
-  to { stroke-dashoffset: -24; }
+/* Switchboard Channel Bay Module styles */
+.channel-bay-module {
+  position: relative;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-brand);
+  padding: 0.75rem 0.875rem;
+  box-shadow: var(--shadow-soft);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.topology-router-active {
-  box-shadow: 0 0 0 1px var(--color-primary), 0 2px 8px -2px rgba(22, 139, 255, 0.3);
+.channel-bay-module-busy {
+  border-color: var(--color-signal);
+  box-shadow: 0 0 0 1px var(--color-signal), 0 2px 8px -2px rgba(22, 139, 255, 0.25);
 }
 
-.topology-edge-active {
-  stroke-dasharray: 6 6;
-  animation: topology-edge-flow 1.8s linear infinite;
+.channel-bay-module-error {
+  border-color: var(--color-fail);
+  box-shadow: 0 0 0 1px var(--color-fail), 0 2px 8px -2px rgba(220, 38, 38, 0.25);
+}
+
+.channel-bay-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.channel-bay-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+}
+
+/* Status variants */
+.channel-bay-status-ready {
+  background-color: var(--color-bg-subtle);
+  border-color: var(--color-border-subtle);
+  color: var(--color-muted);
+}
+.channel-bay-status-ready .channel-bay-dot {
+  background-color: var(--color-muted);
+  opacity: 0.6;
+}
+
+.channel-bay-status-busy {
+  background-color: rgba(22, 139, 255, 0.1);
+  border-color: var(--color-signal);
+  color: var(--color-signal);
+}
+.channel-bay-status-busy .channel-bay-dot {
+  background-color: var(--color-signal);
+}
+
+.channel-bay-status-recent {
+  background-color: rgba(180, 83, 9, 0.1);
+  border-color: var(--color-warn);
+  color: var(--color-warn);
+}
+.channel-bay-status-recent .channel-bay-dot {
+  background-color: var(--color-warn);
+}
+
+.channel-bay-status-local {
+  background-color: rgba(14, 159, 110, 0.1);
+  border-color: var(--color-success, #0e9f6e);
+  color: var(--color-success, #0e9f6e);
+}
+.channel-bay-status-local .channel-bay-dot {
+  background-color: var(--color-success, #0e9f6e);
+}
+
+.channel-bay-status-error {
+  background-color: rgba(220, 38, 38, 0.1);
+  border-color: var(--color-fail);
+  color: var(--color-fail);
+}
+.channel-bay-status-error .channel-bay-dot {
+  background-color: var(--color-fail);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .topology-edge-active {
+  .channel-bay-module,
+  .channel-bay-status,
+  .dispatch-ledger-row,
+  .telemetry-chassis-bar {
+    transition: none !important;
     animation: none !important;
   }
 }
 
-/* React Flow controls: match app theme */
-.react-flow-controls-custom {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
+/* Instrument Console Telemetry Chassis & Ledger styles */
+.telemetry-chassis-bar {
+  border: 1px solid var(--color-border-subtle);
+  background-color: var(--color-surface);
 }
 
-.react-flow-controls-custom button {
-  background: var(--color-surface);
-  color: var(--color-text-main);
-  border: 0;
-  border-bottom: 1px solid var(--color-border);
+.dispatch-ledger-header,
+.dispatch-ledger-row {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) minmax(6.5rem, auto) 3.25rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
 }
 
-.react-flow-controls-custom button:last-child {
-  border-bottom: 0;
-}
+@media (max-width: 639px) {
+  .dispatch-ledger-header {
+    display: none;
+  }
 
-.react-flow-controls-custom button:hover {
-  background: var(--color-bg-alt);
+  .dispatch-ledger-row {
+    grid-template-columns: 3rem minmax(0, 1fr) auto;
+    grid-template-areas:
+      "state model when"
+      "state tokens tokens";
+    align-items: start;
+  }
+
+  .dispatch-ledger-state { grid-area: state; }
+  .dispatch-ledger-row > :nth-child(2) { grid-area: model; }
+  .dispatch-ledger-row > :nth-child(3) { grid-area: tokens; }
+  .dispatch-ledger-row > :nth-child(4) { grid-area: when; }
 }
 
 /* Changelog markdown body */

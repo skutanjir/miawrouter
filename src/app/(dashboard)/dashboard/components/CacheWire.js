@@ -2,158 +2,74 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Card } from "@/shared/components";
+import {
+  MAX_COUNT,
+  STORAGE_KEY,
+  ACT_MS,
+  LAYERS,
+  fmt,
+  fmtBytes,
+  timeOf,
+  computeEffectiveCacheLayers,
+  createInitialState,
+  loadState,
+  getLayerStatus,
+  parseCacheWireEvent,
+} from "./cacheWireUtils.js";
 
-const MAX_COUNT = 999999;
-const STORAGE_KEY = "miawrouter.cacheWire.v2"; // versioned — bumped from v1 (log → latest-line shape) to discard stale payloads
-const ACT_MS = 1200; // transient activity window, cleared by a ref-managed timer
-const LAYER_IDX = { L0: 1, L1: 2, L2: 3, L3: 4 }; // pipeline order past Router
-const KIND_META = {
-  hit: { glyph: "●", word: "hit", cls: "text-signal" },
-  activity: { glyph: "›", word: "activity", cls: "text-warn" },
-  dedup: { glyph: "◆", word: "dedup", cls: "text-ink" },
-};
+function LayerCard({ layer, status, active, kind }) {
+  const isOff = !status.enabled;
+  const badgeClass = !status.enabled
+    ? "bg-chassis/60 text-muted/60 border-border-subtle/50 font-normal"
+    : status.hasHits
+      ? "bg-signal/10 text-signal border-signal/25 font-semibold"
+      : "bg-surface text-ink/80 border-border-subtle font-medium";
 
-const NODES = ["L0", "L1", "L2", "L3"];
-const NODE_LABELS = {
-  L0: "Prompt cache",
-  L1: "Exact cache",
-  L2: "Semantic cache",
-  L3: "Dedup",
-};
-const NODE_TITLES = {
-  L0: "L0 prompt-cache orchestration — breakpoints and provider cache_read usage",
-  L1: "L1 exact-match response cache",
-  L2: "L2 semantic response cache (embedding similarity)",
-  L3: "L3 content-address dedup — activity and savings, not a provider cache hit",
-};
-
-const fmt = (n) => (n >= MAX_COUNT ? `${MAX_COUNT}+` : String(n));
-const fmtBytes = (n) => {
-  if (n >= 1048576) return `${(n / 1048576).toFixed(1)} MB`;
-  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${n} B`;
-};
-
-function LayerNode({ layer, hits, savings, active, kind }) {
-  const showHits = layer !== "L3";
   return (
     <div
-      className={`relative flex shrink-0 flex-col items-center gap-0.5 min-w-[62px] rounded-[var(--radius-brand)] border border-border-subtle bg-surface p-2 transition-all duration-150 ${active ? "cw-node-act" : ""}`}
-      data-kind={kind}
-      title={NODE_TITLES[layer]}
+      className={`cw-layer-card flex flex-col justify-between rounded-[var(--radius-brand)] border bg-surface p-2.5 transition-all duration-150 ${isOff ? "opacity-55" : ""} ${active ? "cw-layer-act" : "border-border-subtle"}`}
+      data-kind={active ? kind : ""}
+      title={`${layer.name} · ${layer.role} · ${status.statusLabel}${status.subDetail ? ` · ${status.subDetail}` : ""}`}
     >
-      {active && (
-        <span className="cw-badge" aria-hidden="true">
-          <span>{KIND_META[kind].glyph}</span>
-          {KIND_META[kind].word}
+      <div className="flex items-center justify-between gap-1.5 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-mono text-xs font-bold text-ink shrink-0">{layer.id}</span>
+          <span className="text-xs font-semibold text-ink truncate">{layer.name}</span>
+          {active && (
+            <span className="size-1.5 rounded-full bg-signal animate-pulse shrink-0" aria-hidden="true" />
+          )}
+        </div>
+        <span
+          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full border text-[10px] font-mono tabular-nums leading-tight ${badgeClass}`}
+          title={status.reason ? `Disabled: ${status.reason}` : status.statusLabel}
+        >
+          {status.badgeText || status.statusLabel}
         </span>
-      )}
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">{layer}</span>
-      <span className="w-full truncate text-center text-[10px] leading-tight text-muted">{NODE_LABELS[layer]}</span>
-      <div className="flex items-baseline gap-1 mt-0.5">
-        {showHits ? (
-          <span
-            className={`font-mono tabular-nums text-sm font-semibold ${hits > 0 ? "text-signal" : "text-ink"}`}
-            title={layer === "L0" ? "Provider-confirmed cache hits" : "Local response-cache hits"}
-          >
-            {fmt(hits)}
-          </span>
-        ) : (
-          <span className="font-mono tabular-nums text-sm font-semibold text-ink" title="Blocks deduped">
-            {fmt(savings.refs)}
-          </span>
-        )}
-        <span className="font-mono tabular-nums text-[9px] text-muted">{showHits ? "hits" : "refs"}</span>
       </div>
-      {!showHits && (
-        <span className="font-mono tabular-nums text-[9px] text-muted" title="Bytes saved by dedup">
-          {fmtBytes(savings.bytes)} saved
+
+      <div className="mt-2 flex items-baseline justify-between gap-1 text-[10px] min-w-0">
+        <span className="text-muted truncate" title={status.reason ? `Disabled (${status.reason})` : layer.role}>
+          {status.reason ? `Disabled (${status.reason})` : layer.role}
         </span>
-      )}
+        {status.subDetail ? (
+          <span className="font-mono tabular-nums text-muted shrink-0">{status.subDetail}</span>
+        ) : status.notice ? (
+          <span className="text-muted/70 shrink-0">{status.notice}</span>
+        ) : null}
+      </div>
     </div>
   );
-}
-
-function RouteSeg({ active, kind }) {
-  return (
-    <span className={`cw-seg ${active ? "cw-seg-act" : ""}`} data-kind={kind} aria-hidden="true">
-      {active ? <span className="cw-packet">{KIND_META[kind].glyph}</span> : "→"}
-    </span>
-  );
-}
-
-function EndpointNode({ label, icon, stat, title }) {
-  return (
-    <div className="flex shrink-0 flex-col items-center gap-0.5 min-w-[50px] rounded-[var(--radius-brand)] border border-border-subtle bg-surface p-2" title={title}>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted">{label}</span>
-      <span className="material-symbols-outlined text-[16px] text-muted" aria-hidden="true">{icon}</span>
-      <span className="font-mono tabular-nums text-[9px] text-muted truncate max-w-full">{stat}</span>
-    </div>
-  );
-}
-
-function timeOf(ts) {
-  const ms = Number(ts);
-  const d = Number.isFinite(ms) && ms > 0 ? new Date(ms) : new Date();
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
-}
-
-function createInitialState() {
-  return {
-    hits: { L0: 0, L1: 0, L2: 0 },
-    events: 0,
-    savings: { refs: 0, bytes: 0 },
-    interlock: { restored: 0, stable: 0, breakpoints: null },
-    latest: "",
-  };
-}
-
-function normalizeState(raw) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const num = (v, max, fallback = 0) => {
-    const n = Number(v);
-    return Number.isFinite(n) && n >= 0 ? Math.min(Math.floor(n), max) : fallback;
-  };
-  const obj = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
-  const hits = obj(raw.hits);
-  const savings = obj(raw.savings);
-  const interlock = obj(raw.interlock);
-  return {
-    hits: { L0: num(hits.L0, MAX_COUNT), L1: num(hits.L1, MAX_COUNT), L2: num(hits.L2, MAX_COUNT) },
-    events: num(raw.events, MAX_COUNT),
-    savings: { refs: num(savings.refs, MAX_COUNT), bytes: num(savings.bytes, Number.MAX_SAFE_INTEGER) },
-    interlock: {
-      restored: num(interlock.restored, MAX_COUNT),
-      stable: num(interlock.stable, MAX_COUNT),
-      breakpoints:
-        interlock.breakpoints === null || interlock.breakpoints === undefined
-          ? null
-          : num(interlock.breakpoints, MAX_COUNT, null),
-    },
-    latest: typeof raw.latest === "string" ? raw.latest.slice(0, 300) : "",
-  };
-}
-
-function loadState() {
-  if (typeof window === "undefined") return null;
-  try {
-    return normalizeState(JSON.parse(sessionStorage.getItem(STORAGE_KEY)));
-  } catch {
-    return null;
-  }
 }
 
 export default function CacheWire() {
   const [state, setState] = useState(createInitialState);
+  const [config, setConfig] = useState(null);
   const [conn, setConn] = useState("connecting"); // connecting | live | disconnected
   const [act, setAct] = useState(null); // transient activity: { id, layer, kind, label }
   const actTimer = useRef(null);
   const actIdRef = useRef(0);
   const hydratedRef = useRef(false);
 
-  // Declared before the hydrate effect: on mount the persist effect runs while
-  // hydratedRef is false, so the empty initial state can never overwrite
-  // stored data before hydration applies it.
   useEffect(() => {
     if (!hydratedRef.current) return;
     try {
@@ -164,9 +80,41 @@ export default function CacheWire() {
   }, [state]);
 
   useEffect(() => {
-    const stored = loadState();
-    if (stored) setState(stored);
-    hydratedRef.current = true;
+    let frameId;
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+      frameId = window.requestAnimationFrame(() => {
+        const stored = loadState();
+        if (stored) setState(stored);
+        hydratedRef.current = true;
+      });
+    } else {
+      hydratedRef.current = true;
+    }
+    return () => {
+      if (frameId && typeof window !== "undefined" && typeof window.cancelAnimationFrame === "function") {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/settings", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((settings) => {
+        if (cancelled) return;
+        if (!settings) {
+          setConfig(computeEffectiveCacheLayers(null, { error: true }));
+          return;
+        }
+        setConfig(computeEffectiveCacheLayers(settings));
+      })
+      .catch(() => {
+        if (!cancelled) setConfig(computeEffectiveCacheLayers(null, { error: true }));
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const triggerAct = (layer, kind, label) => {
@@ -193,51 +141,42 @@ export default function CacheWire() {
       }
       if (!msg || msg.type !== "cache" || !msg.event || typeof msg.event !== "object") return;
       const ev = msg.event;
+      const parsed = parseCacheWireEvent(ev);
       const t = timeOf(ev.ts || Date.now());
       const who = ev.provider ? (ev.model ? `${ev.provider}/${ev.model}` : ev.provider) : "";
       const line = (parts) => parts.filter(Boolean).join(" · ");
-      const hit = (layer, log) =>
-        setState((prev) => ({
-          ...prev,
-          hits: { ...prev.hits, [layer]: Math.min(prev.hits[layer] + 1, MAX_COUNT) },
-          events: Math.min(prev.events + 1, MAX_COUNT),
-          latest: log,
-        }));
-      const bump = (log) =>
-        setState((prev) => ({
-          ...prev,
-          events: Math.min(prev.events + 1, MAX_COUNT),
-          latest: log,
-        }));
+      const recordEvent = ({ layer, hit, miss, log }) =>
+        setState((prev) => {
+          const next = {
+            ...prev,
+            events: Math.min(prev.events + 1, MAX_COUNT),
+            latest: log,
+          };
+          if (layer && (hit || miss)) {
+            const currentLookups = prev.lookups?.[layer] || 0;
+            next.lookups = {
+              ...prev.lookups,
+              [layer]: Math.min(currentLookups + 1, MAX_COUNT),
+            };
+            if (hit) {
+              const currentHits = prev.hits?.[layer] || 0;
+              next.hits = {
+                ...prev.hits,
+                [layer]: Math.min(currentHits + 1, MAX_COUNT),
+              };
+            } else if (miss) {
+              const currentMisses = prev.misses?.[layer] || 0;
+              next.misses = {
+                ...prev.misses,
+                [layer]: Math.min(currentMisses + 1, MAX_COUNT),
+              };
+            }
+          }
+          return next;
+        });
 
-      let layer = null;
-      let kind = null;
-      let label = null;
-      if (ev.type === "cache_probe" || ev.type === "cache_usage") layer = "L0";
-      else if (ev.type === "cache_l1") layer = "L1";
-      else if (ev.type === "cache_l2") layer = "L2";
-      else if (ev.type === "cache_l3") layer = "L3";
-      if (layer) {
-        if (ev.type === "cache_probe") {
-          kind = "activity";
-          label = "L0 probe";
-        } else if (ev.type === "cache_usage") {
-          kind = Number(ev.cacheRead) > 0 ? "hit" : "activity";
-          label = `${layer} ${kind === "hit" ? "hit" : "miss"}`;
-        } else if (ev.type === "cache_l3") {
-          kind = "dedup";
-          label = "L3 dedup";
-        } else if (ev.action === "hit") {
-          kind = "hit";
-          label =
-            ev.type === "cache_l2" && ev.similarity !== undefined
-              ? `L2 hit · ${(ev.similarity * 100).toFixed(1)}%`
-              : `${layer} hit`;
-        } else {
-          kind = "activity";
-          label = `${layer} ${ev.action ?? "activity"}`;
-        }
-        triggerAct(layer, kind, label);
+      if (parsed?.layer) {
+        triggerAct(parsed.layer, parsed.kind, parsed.label);
       }
 
       if (ev.type === "cache_probe") {
@@ -259,24 +198,43 @@ export default function CacheWire() {
           latest: line(parts),
         }));
       } else if (ev.type === "cache_usage") {
-        if (Number(ev.cacheRead) > 0) {
-          hit("L0", line([`${t} L0 hit`, who, `${ev.cacheRead} read`]));
+        const isHit = Number(ev.cacheRead) > 0;
+        if (isHit) {
+          recordEvent({
+            layer: "L0",
+            hit: true,
+            log: line([`${t} L0 hit`, who, `${ev.cacheRead} read`]),
+          });
         } else {
-          bump(line([`${t} L0 miss`, who, `${ev.cacheCreation ?? 0} written`]));
+          recordEvent({
+            layer: "L0",
+            miss: true,
+            log: line([`${t} L0 miss`, who, `${ev.cacheCreation ?? 0} written`]),
+          });
         }
       } else if (ev.type === "cache_l1") {
-        if (ev.action === "hit") hit("L1", line([`${t} L1 hit`, who]));
-        else bump(line([`${t} L1 ${ev.action ?? "event"}`, who]));
+        if (ev.action === "hit") {
+          recordEvent({ layer: "L1", hit: true, log: line([`${t} L1 hit`, who]) });
+        } else if (ev.action === "miss") {
+          recordEvent({ layer: "L1", miss: true, log: line([`${t} L1 miss`, who]) });
+        } else {
+          bump(line([`${t} L1 ${ev.action ?? "event"}`, who]));
+        }
       } else if (ev.type === "cache_l2") {
         if (ev.action === "hit") {
-          const sim = ev.similarity !== undefined ? `${(ev.similarity * 100).toFixed(1)}% sim` : null;
-          hit("L2", line([`${t} L2 hit`, who, sim]));
+          const sim =
+            parsed?.validSim !== null && parsed?.validSim !== undefined
+              ? `${(parsed.validSim * 100).toFixed(1)}% sim`
+              : null;
+          recordEvent({ layer: "L2", hit: true, log: line([`${t} L2 hit`, who, sim]) });
+        } else if (ev.action === "miss") {
+          recordEvent({ layer: "L2", miss: true, log: line([`${t} L2 miss`, who]) });
         } else {
           bump(line([`${t} L2 ${ev.action ?? "event"}`, who]));
         }
       } else if (ev.type === "cache_l3") {
-        const refs = Number(ev.refs) || 0;
-        const bytes = Number(ev.bytesSaved) || 0;
+        const refs = parsed ? parsed.refs : Math.max(0, Number(ev.refs) || 0);
+        const bytes = parsed ? parsed.bytesSaved : Math.max(0, Number(ev.bytesSaved) || 0);
         setState((prev) => ({
           ...prev,
           events: Math.min(prev.events + 1, MAX_COUNT),
@@ -303,26 +261,36 @@ export default function CacheWire() {
     disconnected: { text: "Disconnected — reconnecting", cls: "text-fail", dot: "bg-fail" },
   }[conn];
 
+  const totalHits = (state.hits?.L0 || 0) + (state.hits?.L1 || 0) + (state.hits?.L2 || 0);
+  const totalMisses = (state.misses?.L0 || 0) + (state.misses?.L1 || 0) + (state.misses?.L2 || 0);
+  const totalLookups =
+    (state.lookups?.L0 || 0) + (state.lookups?.L1 || 0) + (state.lookups?.L2 || 0) ||
+    totalHits + totalMisses;
+  const overallHitRate = totalLookups > 0 ? Math.round((totalHits / totalLookups) * 100) : null;
+
   return (
-    <Card title="Cache wire" subtitle="Client → router → cache layers → provider · live runtime telemetry" padding="sm">
-      <style>{`.cw-seg{position:relative;display:inline-flex;align-items:center;justify-content:center;width:.75rem;font-size:.75rem;line-height:1;color:var(--color-muted)}
-.cw-packet{animation:cw-packet-pop .5s ease-out 1}
-.cw-seg-act{animation:cw-seg-pulse 1.2s ease-in-out 1}
-.cw-node-act{background-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 10%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 35%,transparent);transition:background-color .2s ease,box-shadow .2s ease}
-.cw-badge{position:absolute;top:-9px;right:-4px;display:inline-flex;align-items:center;gap:3px;padding:2px 5px;border-radius:9999px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:9px;line-height:1;text-transform:uppercase;letter-spacing:.04em;background:var(--color-panel, var(--color-surface));border:1px solid color-mix(in srgb,var(--cw-glow,var(--color-signal)) 40%,transparent);color:var(--cw-glow,var(--color-signal));box-shadow:var(--shadow-soft)}
+    <Card
+      title="Cache activity"
+      subtitle="Multi-layer cache performance and prefix interlock telemetry"
+      padding="sm"
+      className="flex h-full flex-col self-stretch"
+    >
+      <style>{`.cw-layer-card{transition:border-color .15s ease,background-color .15s ease}
+.cw-layer-act{border-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 45%,var(--color-border-subtle))!important;background-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 8%,var(--color-surface))!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 20%,transparent)}
+.cw-layer-act[data-kind="hit"]{--cw-glow:var(--color-signal)}
+.cw-layer-act[data-kind="activity"]{--cw-glow:var(--color-warn)}
+.cw-layer-act[data-kind="dedup"]{--cw-glow:var(--color-ink)}
 .cw-log-entry{border-radius:3px}
-.cw-seg-act[data-kind="hit"],.cw-node-act[data-kind="hit"],.cw-packet[data-kind="hit"]{--cw-glow:var(--color-signal);color:var(--color-signal)}
-.cw-seg-act[data-kind="activity"],.cw-node-act[data-kind="activity"],.cw-packet[data-kind="activity"]{--cw-glow:var(--color-warn);color:var(--color-warn)}
-.cw-seg-act[data-kind="dedup"],.cw-node-act[data-kind="dedup"],.cw-packet[data-kind="dedup"]{--cw-glow:var(--color-ink);color:var(--color-ink)}
-@keyframes cw-seg-pulse{0%,100%{opacity:.6}50%{opacity:1}}
-@keyframes cw-packet-pop{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
-@media (prefers-reduced-motion: reduce){.cw-node-act,.cw-seg-act,.cw-packet,.cw-log-entry{animation:none!important}.cw-node-act{transition:none}.cw-packet{opacity:0}}`}</style>
+@media (prefers-reduced-motion: reduce){.cw-layer-card,.cw-layer-act,.cw-log-entry{transition:none!important;animation:none!important}}`}</style>
       <div
         className="flex flex-col gap-2.5 rounded-[var(--radius-brand)] border p-3 bg-chassis"
-        style={{ borderColor: "var(--color-rule)" }}
+        style={{ borderColor: "var(--color-rule)", flex: 1 }}
       >
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted">Cache telemetry</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs font-medium text-muted">
+            Cache telemetry ·{" "}
+            <span className="font-mono tabular-nums font-semibold text-ink">{fmt(state.events)}</span> {state.events === 1 ? "event" : "events"}
+          </span>
           <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${connMeta.cls}`}>
             <span className={`size-2 rounded-full ${connMeta.dot}`} aria-hidden="true" />
             <span className="sr-only">Cache stream: </span>
@@ -330,52 +298,79 @@ export default function CacheWire() {
           </span>
         </div>
 
-        <p className="flex h-4 items-center gap-1.5 text-[11px] font-medium">
-          {act ? (
-            <>
-              <span aria-hidden="true" className={KIND_META[act.kind].cls}>
-                {KIND_META[act.kind].glyph}
-              </span>
-              <span className={KIND_META[act.kind].cls}>{act.label}</span>
-            </>
-          ) : (
-            <span className="text-muted">Live</span>
-          )}
-        </p>
+        {/* Cache performance metric tiles */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
+              Events
+            </span>
+            <span className="font-mono tabular-nums text-sm font-semibold text-ink leading-tight mt-0.5">
+              {fmt(state.events)} <span className="text-[10px] font-normal text-muted">{state.events === 1 ? "event" : "events"}</span>
+            </span>
+          </div>
 
-        <div className="overflow-x-auto pb-1">
-          <div
-            role="group"
-            aria-label="Cache pipeline: client, router, cache layers L0 through L3, provider"
-            className="flex min-w-max items-center gap-x-1.5 py-1"
-          >
-            <EndpointNode label="Client" icon="terminal" stat={`${fmt(state.events)} events`} title="Client: the AI tool sending requests" />
-            <RouteSeg active={!!act} kind={act?.kind} />
-            <EndpointNode label="Router" icon="hub" stat={`${fmt(state.events)} events`} title="MiawRouter gateway — cache events seen" />
-            {NODES.map((layer) => (
-              <div key={layer} className="flex items-center gap-x-1.5">
-                <RouteSeg
-                  active={!!act && LAYER_IDX[act.layer] >= LAYER_IDX[layer]}
-                  kind={act?.kind}
-                />
-                <LayerNode
-                  layer={layer}
-                  hits={state.hits[layer]}
-                  savings={state.savings}
-                  active={act?.layer === layer}
-                  kind={act?.kind}
-                />
-              </div>
-            ))}
-            <div className="flex items-center gap-x-1.5">
-              <RouteSeg active={false} />
-              <EndpointNode label="Provider" icon="cloud" stat="upstream" title="Provider: the upstream model API" />
-            </div>
+          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
+              Cache hits
+            </span>
+            <span
+              className={`font-mono tabular-nums text-sm font-semibold leading-tight mt-0.5 ${totalHits > 0 ? "text-signal" : "text-ink"}`}
+            >
+              {fmt(totalHits)} <span className="text-[10px] font-normal text-muted">hits</span>
+            </span>
+          </div>
+
+          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
+              Hit rate
+            </span>
+            <span
+              className={`font-mono tabular-nums text-sm font-semibold leading-tight mt-0.5 ${overallHitRate !== null && overallHitRate > 0 ? "text-signal" : "text-ink"}`}
+            >
+              {overallHitRate !== null ? `${overallHitRate}%` : "—"}{" "}
+              <span className="text-[10px] font-normal text-muted">
+                {totalLookups > 0 ? `(${fmt(totalHits)}/${fmt(totalLookups)})` : "no data"}
+              </span>
+            </span>
+          </div>
+
+          <div className="col-span-2 sm:col-span-1 flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
+              Dedup savings
+            </span>
+            <span
+              className="font-mono tabular-nums text-xs font-semibold text-ink leading-tight mt-1 truncate"
+              title={`${fmt(state.savings.refs)} refs · ${fmtBytes(state.savings.bytes)} saved`}
+            >
+              {fmt(state.savings.refs)} refs · {fmtBytes(state.savings.bytes)}
+            </span>
           </div>
         </div>
 
+        {/* L0-L3 Cache layers in responsive grid */}
         <div
-          className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5"
+          role="group"
+          aria-label="Cache layers: L0 Prompt, L1 Exact, L2 Semantic, L3 Dedup"
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+        >
+          {LAYERS.map((layer) => {
+            const active = !!act && act.layer === layer.id;
+            const status = getLayerStatus(layer.id, state, config);
+            return (
+              <LayerCard
+                key={layer.id}
+                layer={layer}
+                status={status}
+                active={active}
+                kind={active ? act.kind : ""}
+              />
+            );
+          })}
+        </div>
+
+        {/* Prefix interlock section */}
+        <div
+          className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5"
           style={{ borderColor: "var(--color-rule)" }}
         >
           <span className="text-xs font-semibold text-ink">Prefix interlock</span>
@@ -402,6 +397,7 @@ export default function CacheWire() {
           </span>
         </div>
 
+        {/* Single live region event log */}
         <p
           key={state.latest}
           role="status"

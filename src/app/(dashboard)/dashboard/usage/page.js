@@ -6,7 +6,6 @@ import { UsageStats, RequestLogger, CardSkeleton, SegmentedControl } from "@/sha
 import RequestDetailsTab from "./components/RequestDetailsTab";
 import CacheWire from "../components/CacheWire";
 import TokenSaverWire from "../components/TokenSaverWire";
-import CacheStatsPanel from "../components/CacheStatsPanel";
 
 const PERIODS = [
   { value: "today", label: "Today" },
@@ -86,7 +85,6 @@ function UsageContent() {
               <CacheWire />
               <TokenSaverWire />
             </div>
-            <CacheStatsPanel period={period} setPeriod={setPeriod} />
             <UsageStats period={period} setPeriod={setPeriod} hidePeriodSelector />
           </div>
         </Suspense>

@@ -1,5 +1,7 @@
 // Guards forceStream moved from chatCore hardcode → PROVIDERS schema (#5).
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { PROVIDERS } from "../../open-sse/config/providers.js";
+import { handleChatCore } from "../../open-sse/handlers/chatCore.js";
 
 const { executeMock } = vi.hoisted(() => ({
   executeMock: vi.fn(),
@@ -134,8 +136,7 @@ describe("forceStream provider config", () => {
     executeMock.mockRejectedValue(new Error("boom"));
   });
 
-  it("only openai/codex/commandcode force streaming", async () => {
-    const { PROVIDERS } = await import("../../open-sse/config/providers.js");
+  it("only openai/codex/commandcode force streaming", () => {
     for (const id of FORCED) {
       expect(PROVIDERS[id]?.forceStream, `${id} forced`).toBe(true);
     }
@@ -145,12 +146,13 @@ describe("forceStream provider config", () => {
     }
   });
 
-  it.each([undefined, false])( "keeps forced-stream providers streaming for JSON clients when body.stream is %s", async (bodyStream) => {
-    const { handleChatCore } = await import("../../open-sse/handlers/chatCore.js");
+  it.each([undefined, false])(
+    "keeps forced-stream providers streaming for JSON clients when body.stream is %s",
+    async (bodyStream) => {
+      await handleChatCore(makeOptions(bodyStream));
 
-    await handleChatCore(makeOptions(bodyStream));
-
-    expect(executeMock).toHaveBeenCalledTimes(1);
-    expect(executeMock.mock.calls[0][0].stream).toBe(true);
-  });
+      expect(executeMock).toHaveBeenCalledTimes(1);
+      expect(executeMock.mock.calls[0][0].stream).toBe(true);
+    }
+  );
 });
