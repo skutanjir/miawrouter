@@ -1,6 +1,7 @@
 import { BaseExecutor } from "./base.js";
 import { CODEX_DEFAULT_INSTRUCTIONS } from "../config/codexInstructions.js";
 import { PROVIDERS } from "../config/providers.js";
+import { ROLE, RESPONSES_ITEM } from "../translator/schema/index.js";
 import {
   refreshProviderCredentials,
   shouldRefreshCredentials,
@@ -46,12 +47,22 @@ const RESPONSES_API_ALLOWLIST = new Set([
 ]);
 
 // Convert role=system → role=developer in body.input (keeps content in cacheable prefix)
+// Also normalizes legacy/chat message shapes {role, content:string} into Responses items {type:"message", role, content:[{type:"input_text"|"output_text", text}]}
 function convertSystemToDeveloperRole(body) {
   if (!Array.isArray(body.input)) return;
   for (const item of body.input) {
     if (!item || typeof item !== "object" || Array.isArray(item)) continue;
     const isSystemMsg = item.role === "system" && (!item.type || item.type === "message");
     if (isSystemMsg) item.role = "developer";
+
+    const role = item.role;
+    if (role === "developer" || role === "system" || role === "user" || role === "assistant") {
+      if (!item.type) item.type = "message";
+      if (typeof item.content === "string") {
+        const partType = role === "assistant" ? "output_text" : "input_text";
+        item.content = [{ type: partType, text: item.content }];
+      }
+    }
   }
 }
 
@@ -414,9 +425,12 @@ export class CodexExecutor extends BaseExecutor {
     // Ensure streaming is enabled (Codex API requires it)
     body.stream = true;
 
-    // If no instructions provided, inject default Codex instructions
+    // Ensure default Codex instructions are present; if RTK added modifier instructions
+    // to an initially instructionless body, prepend CODEX_DEFAULT_INSTRUCTIONS without duplicating
     if (!body.instructions || body.instructions.trim() === "") {
       body.instructions = CODEX_DEFAULT_INSTRUCTIONS;
+    } else if (!body.instructions.includes(CODEX_DEFAULT_INSTRUCTIONS)) {
+      body.instructions = `${CODEX_DEFAULT_INSTRUCTIONS}\n\n${body.instructions}`;
     }
 
     // Ensure store is false (Codex requirement)

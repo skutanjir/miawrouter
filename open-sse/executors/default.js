@@ -17,6 +17,18 @@ const AUTH_DESCRIPTORS = Object.fromEntries(
     .map(([id, t]) => [id, t.auth])
 );
 
+export function isOfficialAnthropicHost(targetUrl) {
+  if (!targetUrl || typeof targetUrl !== "string") return false;
+  const trimmed = targetUrl.trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
+    return parsed.hostname.toLowerCase() === "api.anthropic.com";
+  } catch {
+    return false;
+  }
+}
+
 // Apply a token to a header per scheme (matches legacy: combined always sets, even when undefined).
 function setAuth(headers, spec, token) {
   headers[spec.header] = spec.scheme === "bearer" ? `Bearer ${token}` : token;
@@ -155,19 +167,97 @@ export class DefaultExecutor extends BaseExecutor {
     for (const hook of desc.hooks || []) HEADER_HOOKS[hook]?.(headers, credentials);
     applyAuth(headers, desc, credentials);
 
-    if (this.provider === "claude" && model) {
+    const isAnthropicFamily = this.provider === "claude" || this.provider === "anthropic" || this.provider?.startsWith?.("anthropic-compatible-") || this.config?.format === "claude";
+
+    const targetEndpoint = url || credentials?.providerSpecificData?.baseUrl || (this.provider?.startsWith?.("anthropic-compatible-") ? "" : this.config.baseUrl) || "";
+    const isOfficialAnthropic = isOfficialAnthropicHost(targetEndpoint) || (targetEndpoint === "" && (this.provider === "claude" || this.provider === "anthropic" || this.provider?.startsWith?.("anthropic-compatible-")));
+
+    // Deduplicate / canonicalize anthropic-version header, or strip completely for non-Anthropic providers
+    const versionKeys = Object.keys(headers).filter(k => k.toLowerCase() === "anthropic-version");
+    if (isAnthropicFamily) {
+      if (versionKeys.length > 0) {
+        const canonicalVal = headers[versionKeys[0]] || ANTHROPIC_API_VERSION;
+        // Keep the first existing casing to preserve provider registration conventions, remove duplicate casings
+        for (let i = 1; i < versionKeys.length; i++) {
+          delete headers[versionKeys[i]];
+        }
+        headers[versionKeys[0]] = canonicalVal;
+      }
+    } else {
+      for (const k of versionKeys) {
+        delete headers[k];
+      }
+    }
+
+    if ((this.provider === "claude" || this.provider === "anthropic") && model) {
       headers["Anthropic-Beta"] = selectAnthropicBeta(model);
     }
 
-    // Strip first-party Claude Code identity headers for non-Anthropic anthropic-compatible upstreams
-    if (this.provider?.startsWith?.("anthropic-compatible-")) {
-      const baseUrl = credentials?.providerSpecificData?.baseUrl || "";
-      const isOfficialAnthropic = baseUrl === "" || baseUrl.includes("api.anthropic.com");
+    // Forward Claude Code / Anthropic headers from credentials.rawHeaders for official Anthropic targets
+    if (isOfficialAnthropic && (this.provider === "claude" || this.provider === "anthropic" || this.provider?.startsWith?.("anthropic-compatible-"))) {
+      const rawHeaders = credentials?.rawHeaders;
+      if (rawHeaders && typeof rawHeaders === "object") {
+        const rawMap = new Map();
+        for (const [k, v] of Object.entries(rawHeaders)) {
+          rawMap.set(k.toLowerCase(), { key: k, value: v });
+        }
+
+        // 1. anthropic-beta: merge incoming beta flags with existing defaults
+        const rawBeta = rawMap.get("anthropic-beta");
+        if (rawBeta && rawBeta.value) {
+          const existingBetaKey = Object.keys(headers).find(k => k.toLowerCase() === "anthropic-beta") || "Anthropic-Beta";
+          const existingVal = headers[existingBetaKey] || "";
+          const existingList = existingVal ? existingVal.split(",").map(s => s.trim()).filter(Boolean) : [];
+          const incomingList = String(rawBeta.value).split(",").map(s => s.trim()).filter(Boolean);
+          const merged = [...existingList];
+          for (const flag of incomingList) {
+            if (!merged.includes(flag)) {
+              merged.push(flag);
+            }
+          }
+          // Remove any other casing of anthropic-beta to avoid duplicates
+          for (const k of Object.keys(headers)) {
+            if (k.toLowerCase() === "anthropic-beta" && k !== existingBetaKey) {
+              delete headers[k];
+            }
+          }
+          headers[existingBetaKey] = merged.join(",");
+        }
+
+        // 2. anthropic-version: preserve incoming unchanged with exactly one casing
+        const rawVersion = rawMap.get("anthropic-version");
+        if (rawVersion && rawVersion.value) {
+          for (const k of Object.keys(headers)) {
+            if (k.toLowerCase() === "anthropic-version") {
+              delete headers[k];
+            }
+          }
+          headers[rawVersion.key] = String(rawVersion.value);
+        }
+
+        // 3. tracking / identity headers: forward specified headers if present
+        const FORWARD_HEADERS = [
+          "x-claude-code-session-id",
+          "x-claude-code-agent-id",
+          "x-claude-code-parent-agent-id",
+          "anthropic-workspace-id",
+        ];
+        for (const name of FORWARD_HEADERS) {
+          const match = rawMap.get(name);
+          if (match && match.value !== undefined) {
+            headers[match.key] = match.value;
+          }
+        }
+      }
+    }
+
+    // Strip first-party Claude Code identity headers for non-Anthropic upstreams
+    if (this.provider?.startsWith?.("anthropic-compatible-") || this.provider === "claude" || this.provider === "anthropic") {
       if (!isOfficialAnthropic) {
         // Some third-party Anthropic-compatible gateways require Bearer auth in
         // addition to x-api-key. Send both (x-api-key already set above) so
         // gateways that read either header succeed.
-        if (credentials.apiKey && !headers["Authorization"]) {
+        if (credentials?.apiKey && !headers["Authorization"]) {
           headers["Authorization"] = `Bearer ${credentials.apiKey}`;
         }
         delete headers["anthropic-dangerous-direct-browser-access"];

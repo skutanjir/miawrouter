@@ -23,25 +23,48 @@ export function injectSystemPrompt(body, format, prompt) {
       // Antigravity wraps Gemini shape in body.request → injectGeminiSystem handles it
       injectGeminiSystem(body, prompt);
       return;
+    case FORMATS.OPENAI_RESPONSES:
+    case FORMATS.OPENAI_RESPONSE:
+    case FORMATS.CODEX:
+      // messages[] precedence: if messages[] is present, treat as chat completions
+      if (Array.isArray(body.messages)) {
+        injectMessagesSystem(body, prompt);
+        return;
+      }
+      injectResponsesSystem(body, prompt);
+      return;
     default:
-      // OpenAI and OpenAI-shaped formats (responses/codex/cursor/kiro/ollama)
+      // messages[] precedence: if messages[] is present, treat as chat completions
+      if (Array.isArray(body.messages)) {
+        injectMessagesSystem(body, prompt);
+        return;
+      }
+      // If body has Responses shape (input array or instructions field), use instructions
+      if (typeof body.instructions === "string" || Array.isArray(body.input)) {
+        injectResponsesSystem(body, prompt);
+        return;
+      }
       injectMessagesSystem(body, prompt);
   }
 }
 
-// OpenAI-shaped: messages[] (chat) or input[] (responses) or instructions (responses string)
-function injectMessagesSystem(body, prompt) {
-  // OpenAI Responses API: top-level string field
+function injectResponsesSystem(body, prompt) {
+  if (Array.isArray(body.messages)) {
+    injectMessagesSystem(body, prompt);
+    return;
+  }
   if (typeof body.instructions === "string") {
     body.instructions = body.instructions
       ? `${body.instructions}${SEP}${prompt}`
       : prompt;
-    return;
+  } else {
+    body.instructions = prompt;
   }
+}
 
-  const arr = Array.isArray(body.messages) ? body.messages
-    : Array.isArray(body.input) ? body.input
-    : null;
+// OpenAI-shaped: messages[] (chat)
+function injectMessagesSystem(body, prompt) {
+  const arr = Array.isArray(body.messages) ? body.messages : null;
   if (!arr) return;
 
   const idx = arr.findIndex(m => m && (m.role === "system" || m.role === "developer"));
