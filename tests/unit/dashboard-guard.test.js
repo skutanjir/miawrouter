@@ -279,6 +279,20 @@ describe("dashboard guard local-only access", () => {
 
     expect(response).toBe(mocks.nextResponse);
   });
+
+  it.each([
+    "/api/cli-tools/claude-settings",
+    "/api/cli-tools/oh-my-pi-settings",
+    "/api/cli-tools/hermes-settings",
+    "/api/pxpipe/install",
+  ])("rejects CLI/pxpipe writer %s from tunnel host", async (pathname) => {
+    mocks.getSettings.mockResolvedValue({ requireLogin: false });
+
+    const response = await proxy(request(pathname, { host: "router.example.com" }));
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe("Local only: CLI token required");
+  });
 });
 
 describe("dashboard guard always-protected routes", () => {

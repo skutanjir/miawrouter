@@ -25,6 +25,8 @@ describe("new provider models", () => {
         contextLength: 500000,
         maxOutputTokens: 64000,
       }),
+      expect.objectContaining({ id: "grok-4.6-xhigh", upstreamModelId: "grok-4.6(xhigh)" }),
+      expect.objectContaining({ id: "grok-4.3", contextLength: 1000000 }),
     ]));
   });
 
@@ -45,9 +47,16 @@ describe("new provider models", () => {
       reasoning: true,
       search: true,
       thinkingFormat: "openai",
+      thinkingCanDisable: false,
       contextWindow: 500000,
       maxOutput: 64000,
     });
+    expect(getCapabilitiesForModel("xai", "grok-4.3")).toMatchObject({
+      vision: true,
+      reasoning: true,
+      contextWindow: 1000000,
+    });
+    expect(getCapabilitiesForModel("xai", "grok-4.20-0309-non-reasoning").reasoning).toBe(false);
   });
 
   it("registers usage-accounting prices", () => {

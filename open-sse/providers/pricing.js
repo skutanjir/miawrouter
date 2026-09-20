@@ -131,8 +131,14 @@ export const MODEL_PRICING = {
   "minimax-m2.1":                 { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
   "minimax-m2.5":                 { input: 0.60,  output: 2.40,  cached: 0.30,  reasoning: 3.60,   cache_creation: 0.60  },
 
-  // === Grok ===
+  // === Grok (https://docs.x.ai/developers/models, <200k prompt rates) ===
   "grok-4.6":                      { input: 2.00,  output: 6.00,  cached: 0.50,  reasoning: 9.00,   cache_creation: 2.00  },
+  "grok-4.5":                      { input: 2.00,  output: 6.00,  cached: 0.30,  reasoning: 6.00,   cache_creation: 2.00  },
+  "grok-4.3":                      { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  },
+  "grok-4.20-0309-reasoning":      { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  },
+  "grok-4.20-0309-non-reasoning":  { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  },
+  "grok-4.20-multi-agent-0309":    { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  },
+  "grok-build-0.1":                { input: 1.00,  output: 2.00,  cached: 0.20,  reasoning: 2.00,   cache_creation: 1.00  },
   "grok-code-fast-1":             { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  },
 
   // === OpenRouter fallback ===
@@ -262,7 +268,8 @@ export const PROVIDER_PRICING = {
     "x-ai/grok-4.1-fast": { input: 0.2, output: 0.5, cached: 0.05, reasoning: 0.5 },
     "x-ai/grok-4.20-beta": { input: 2, output: 6, cached: 0.2, reasoning: 6 },
     "x-ai/grok-4.3": { input: 1.25, output: 2.5, cached: 0.2, reasoning: 2.5 },
-    "x-ai/grok-4.5": { input: 2, output: 6, cached: 0.5, reasoning: 6 },
+    "x-ai/grok-4.5": { input: 2, output: 6, cached: 0.3, reasoning: 6 },
+    "x-ai/grok-4.6": { input: 2, output: 6, cached: 0.5, reasoning: 6 },
     "x-ai/grok-build-0.1": { input: 1.0, output: 2.0, cached: 0.2, reasoning: 2.0 },
     "xiaomi/mimo-v2-flash": { input: 0.1, output: 0.3, cached: 0.01, reasoning: 0.3 },
     "xiaomi/mimo-v2-omni": { input: 0.4, output: 2.0, cached: 0.08, reasoning: 2.0 },
@@ -359,6 +366,10 @@ export const PATTERN_PRICING = [
 
   // --- Grok ---
   { pattern: "grok-4.6*",       pricing: { input: 2.00,  output: 6.00,  cached: 0.50,  reasoning: 9.00,   cache_creation: 2.00  } },
+  { pattern: "grok-4.5*",       pricing: { input: 2.00,  output: 6.00,  cached: 0.30,  reasoning: 6.00,   cache_creation: 2.00  } },
+  { pattern: "grok-4.3*",       pricing: { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  } },
+  { pattern: "grok-4.20*",      pricing: { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  } },
+  { pattern: "grok-build*",     pricing: { input: 1.00,  output: 2.00,  cached: 0.20,  reasoning: 2.00,   cache_creation: 1.00  } },
   { pattern: "grok-code-*",     pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
   { pattern: "grok-*",          pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
 

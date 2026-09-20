@@ -21,7 +21,26 @@ const MODEL_MAP = {
   "grok-4.2": { grokModel: "grok-420", modelMode: "MODEL_MODE_GROK_420", isThinking: false },
   "grok-4.20": { grokModel: "grok-420", modelMode: "MODEL_MODE_GROK_420", isThinking: false },
   "grok-4.20-beta": { grokModel: "grok-420", modelMode: "MODEL_MODE_GROK_420", isThinking: false },
+  "grok-4.20-thinking": { grokModel: "grok-420", modelMode: "MODEL_MODE_GROK_420_THINKING", isThinking: true },
+  "grok-4.3": { grokModel: "grok-4-3", modelMode: "MODEL_MODE_GROK_4_3", isThinking: false },
+  "grok-4.3-thinking": { grokModel: "grok-4-3", modelMode: "MODEL_MODE_GROK_4_3_THINKING", isThinking: true },
+  "grok-4.5": { grokModel: "grok-4-5", modelMode: "MODEL_MODE_GROK_4_5", isThinking: true },
+  "grok-4.5-fast": { grokModel: "grok-4-5", modelMode: "MODEL_MODE_FAST", isThinking: false },
+  "grok-4.5-thinking": { grokModel: "grok-4-5", modelMode: "MODEL_MODE_GROK_4_5_THINKING", isThinking: true },
+  "grok-4.5-expert": { grokModel: "grok-4-5", modelMode: "MODEL_MODE_EXPERT", isThinking: true },
+  "grok-4.6": { grokModel: "grok-4-6", modelMode: "MODEL_MODE_GROK_4_6", isThinking: true },
+  "grok-4.6-fast": { grokModel: "grok-4-6", modelMode: "MODEL_MODE_FAST", isThinking: false },
+  "grok-4.6-thinking": { grokModel: "grok-4-6", modelMode: "MODEL_MODE_GROK_4_6_THINKING", isThinking: true },
+  "grok-4.6-expert": { grokModel: "grok-4-6", modelMode: "MODEL_MODE_EXPERT", isThinking: true },
 };
+
+const DEFAULT_GROK_WEB_MODEL = "grok-4.6";
+
+export function resolveGrokWebModel(model) {
+  return MODEL_MAP[model] || MODEL_MAP[DEFAULT_GROK_WEB_MODEL];
+}
+
+export { MODEL_MAP as GROK_WEB_MODEL_MAP };
 
 function randomString(length, alphanumeric = false) {
   const chars = alphanumeric ? "abcdefghijklmnopqrstuvwxyz0123456789" : "abcdefghijklmnopqrstuvwxyz";
@@ -232,9 +251,9 @@ export class GrokWebExecutor extends BaseExecutor {
       return { response: errResp, url: GROK_CHAT_API, headers: {}, transformedBody: body };
     }
 
-    const modelInfo = MODEL_MAP[model];
-    if (!modelInfo) log?.info?.("GROK-WEB", `Unmapped model ${model}, defaulting to grok-4.1-fast`);
-    const { grokModel, modelMode, isThinking } = modelInfo || MODEL_MAP["grok-4.1-fast"];
+    const modelInfo = resolveGrokWebModel(model);
+    if (!MODEL_MAP[model]) log?.info?.("GROK-WEB", `Unmapped model ${model}, defaulting to ${DEFAULT_GROK_WEB_MODEL}`);
+    const { grokModel, modelMode, isThinking } = modelInfo;
 
     const message = parseOpenAIMessages(messages);
     if (!message.trim()) {

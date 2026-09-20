@@ -7,6 +7,7 @@ import {
   _getGrokCliTurnStoreSize,
   normalizeGrokCliEffort,
   supportsGrokCliReasoningEffort,
+  supportsGrokCliXhighEffort,
 } from "../../open-sse/executors/grok-cli.js";
 import { getExecutor, hasSpecializedExecutor } from "../../open-sse/executors/index.js";
 import { PROVIDERS, PROVIDER_OAUTH, PROVIDER_MODELS } from "../../open-sse/providers/index.js";
@@ -52,11 +53,16 @@ describe("grok-cli registry", () => {
     });
   });
 
-  it("maps effort virtual models to upstream grok-4.5", () => {
-    expect(getModelUpstreamId("gcli", "grok-4.5-high")).toBe("grok-4.5");
-    expect(getModelUpstreamId("gcli", "grok-4.5-medium")).toBe("grok-4.5");
-    expect(getModelUpstreamId("gcli", "grok-4.5-low")).toBe("grok-4.5");
+  it("maps effort virtual models to upstream grok-4.5 / 4.6 / 4.3", () => {
+    expect(getModelUpstreamId("gcli", "grok-4.5-high")).toBe("grok-4.5(high)");
+    expect(getModelUpstreamId("gcli", "grok-4.5-medium")).toBe("grok-4.5(medium)");
+    expect(getModelUpstreamId("gcli", "grok-4.5-low")).toBe("grok-4.5(low)");
     expect(getModelUpstreamId("gcli", "grok-4.5")).toBe("grok-4.5");
+    expect(getModelUpstreamId("gcli", "grok-4.6-xhigh")).toBe("grok-4.6(xhigh)");
+    expect(getModelUpstreamId("gcli", "grok-4.6-high")).toBe("grok-4.6(high)");
+    expect(getModelUpstreamId("gcli", "grok-4.6-low")).toBe("grok-4.6(low)");
+    expect(getModelUpstreamId("gcli", "grok-4.3-xhigh")).toBe("grok-4.3(xhigh)");
+    expect(getModelUpstreamId("gcli", "grok-4.3-low")).toBe("grok-4.3(low)");
   });
 });
 
@@ -324,8 +330,14 @@ describe("GrokCliExecutor", () => {
 
   it("omits reasoning effort for models that reject it", () => {
     expect(supportsGrokCliReasoningEffort("grok-4.5")).toBe(true);
+    expect(supportsGrokCliReasoningEffort("grok-4.6")).toBe(true);
+    expect(supportsGrokCliReasoningEffort("grok-4.3")).toBe(true);
+    expect(supportsGrokCliReasoningEffort("grok-4.6-xhigh")).toBe(true);
     expect(supportsGrokCliReasoningEffort("grok-build")).toBe(false);
     expect(supportsGrokCliReasoningEffort("grok-composer-2.5-fast")).toBe(false);
+    expect(supportsGrokCliXhighEffort("grok-4.6")).toBe(true);
+    expect(supportsGrokCliXhighEffort("grok-4.3")).toBe(true);
+    expect(supportsGrokCliXhighEffort("grok-4.5")).toBe(false);
 
     for (const model of ["grok-build", "grok-composer-2.5-fast"]) {
       const out = executor.transformRequest(model, {
@@ -336,6 +348,24 @@ describe("GrokCliExecutor", () => {
       expect(out.reasoning).toEqual({ summary: "concise" });
       expect(out.include).toContain("reasoning.encrypted_content");
     }
+  });
+
+  it("keeps xhigh on grok-4.6 virtual models and does not strip it to high", () => {
+    const out = executor.transformRequest("grok-4.6-xhigh", {
+      model: "grok-4.6-xhigh",
+      input: "hi",
+    }, true, { connectionId: "effort-46-xhigh" });
+    expect(out.model).toBe("grok-4.6");
+    expect(out.reasoning.effort).toBe("xhigh");
+  });
+
+  it("sends reasoning.effort for grok-4.3", () => {
+    const out = executor.transformRequest("grok-4.3-low", {
+      model: "grok-4.3-low",
+      input: "hi",
+    }, true, { connectionId: "effort-43-low" });
+    expect(out.model).toBe("grok-4.3");
+    expect(out.reasoning.effort).toBe("low");
   });
 
   it("drops stale tool_choice and normalizes converted custom choices", () => {

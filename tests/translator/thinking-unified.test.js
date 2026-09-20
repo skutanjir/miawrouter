@@ -34,6 +34,12 @@ describe("parseSuffix", () => {
   it("no suffix → passthrough", () => {
     expect(parseSuffix("claude-opus-4.7")).toEqual({ cleanModel: "claude-opus-4.7", override: null });
   });
+  it("parses xAI paren effort suffix", () => {
+    expect(parseSuffix("grok-4.6(xhigh)")).toEqual({
+      cleanModel: "grok-4.6",
+      override: { mode: "level", level: "xhigh" },
+    });
+  });
 });
 
 describe("extractThinking", () => {
@@ -61,14 +67,25 @@ describe("extractThinking", () => {
 });
 
 describe("applyThinking per provider format", () => {
+  it("xAI dash-mapped paren suffix sets reasoning_effort", () => {
+    const out = apply("openai", "grok-4.6(xhigh)", {}, "xai");
+    expect(out.reasoning_effort).toBe("xhigh");
+    const low = apply("openai", "grok-4.5(low)", {}, "xai");
+    expect(low.reasoning_effort).toBe("low");
+  });
   it("claude 4.6+ → adaptive thinking + output_config (no budget_tokens)", () => {
     const out = apply("claude", "claude-opus-4.7", { reasoning_effort: "high" }, "claude");
     expect(out.output_config).toEqual({ effort: "high" });
-    // Anthropic: on Opus 4.6/4.7/4.8 and Sonnet 4.6 thinking stays OFF unless
-    // thinking:{type:"adaptive"} is sent explicitly; output_config alone is not
-    // enough (and Anthropic-compatible shims like Copilot default off even on
-    // Sonnet 5). Both fields together are the documented adaptive shape.
     expect(out.thinking).toEqual({ type: "adaptive" });
+  });
+  it("claude opus 5 keeps xhigh effort", () => {
+    const out = apply("claude", "claude-opus-5", { reasoning_effort: "xhigh" }, "claude");
+    expect(out.output_config).toEqual({ effort: "xhigh" });
+    expect(out.thinking).toEqual({ type: "adaptive" });
+  });
+  it("claude opus 4.6 clamps xhigh to high", () => {
+    const out = apply("claude", "claude-opus-4-6", { reasoning_effort: "xhigh" }, "claude");
+    expect(out.output_config).toEqual({ effort: "high" });
   });
   it("claude haiku → enabled+budget", () => {
     const out = apply("claude", "claude-haiku-4.5", { reasoning_effort: "high" }, "claude");

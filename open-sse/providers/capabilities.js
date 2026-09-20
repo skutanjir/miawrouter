@@ -97,9 +97,8 @@ export const MODEL_CAPABILITIES = {
   "claude-sonnet-5-agentic": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 },
   "claude-sonnet-5-thinking-agentic": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 },
 
-  // Gemini image-gen / OpenAI image / xai image variants
   "gpt-image-1":       { imageOutput: true, tools: false },
-
+  "gemini-pro-agent":  { vision: true, audioInput: true, videoInput: true, reasoning: true, search: true, thinkingFormat: "gemini-level", thinkingCanDisable: false, contextWindow: 1048576, maxOutput: 65535 },
   // GLM vision variant (text GLM has no vision)
   "glm-4.6v":          { vision: true, reasoning: true, thinkingFormat: "zai", contextWindow: 128000 },
 
@@ -146,6 +145,10 @@ export const PROVIDER_CAPABILITIES = {
     "gpt-5.6-terra-review":      CODEX_GPT_56_DEFAULT_CAPS,
     "gpt-5.6-luna":              CODEX_GPT_56_DEFAULT_CAPS,
     "gpt-5.6-luna-review":       CODEX_GPT_56_DEFAULT_CAPS,
+  },
+  "antigravity": {
+    // Registry marks this SKU thinking:false — honor it over *gemini-3*.
+    "gemini-3-flash": { vision: true, audioInput: true, videoInput: true, search: true, reasoning: false, contextWindow: 1048576, maxOutput: 65536 },
   },
   "kiro": {
     "gpt-5.6-sol": KIRO_GPT_5_6_CAPABILITIES,
@@ -223,7 +226,8 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*gemma*",         caps: { vision: true, contextWindow: 128000 } },
   { pattern: "*nanobanana*",    caps: { vision: true, imageOutput: true } },
 
-  // ── OpenAI GPT-5.x (vision + thinking + web search) ──────────────
+  // ── OpenAI GPT-6 / GPT-5.x (vision + thinking + web search) ──────
+  { pattern: "*gpt-6*",         caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 400000, maxOutput: 128000 } },
   { pattern: "*gpt-5*image*",   caps: { imageOutput: true } },
   { pattern: "*gpt-5*codex*",   caps: { reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 400000, maxOutput: 128000 } },
   { pattern: "*gpt-5*",         caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 400000, maxOutput: 128000 } },
@@ -243,9 +247,13 @@ export const PATTERN_CAPABILITIES = [
   // ── Grok (vision + Live Search) ──────────────────────────────────
   { pattern: "*grok*image*",    caps: { imageOutput: true } },
   { pattern: "*grok-code*",     caps: { reasoning: true, thinkingFormat: "openai", contextWindow: 256000 } },
-  // Grok CLI / Grok Build: 500k context per cli-chat-proxy /v1/models
-  { pattern: "*grok-4.5*",      caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 500000, maxOutput: 64000 } },
-  { pattern: "*grok-4.6*",      caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 500000, maxOutput: 64000 } },
+  { pattern: "*grok-build-0.1*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 256000 } },
+  { pattern: "*grok-build*",    caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 500000, maxOutput: 64000 } },
+  { pattern: "*grok-4.6*",      caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 500000, maxOutput: 64000 } },
+  { pattern: "*grok-4.5*",      caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 500000, maxOutput: 64000 } },
+  { pattern: "*grok-4.3*",      caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 64000 } },
+  { pattern: "*grok-4.20*non-reasoning*", caps: { vision: true, search: true, reasoning: false, contextWindow: 1000000 } },
+  { pattern: "*grok-4.20*",     caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 1000000 } },
   { pattern: "*grok-4*",        caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 256000 } },
   { pattern: "*grok-3*",        caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 131072 } },
   { pattern: "*grok*",          caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 256000 } },

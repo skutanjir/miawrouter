@@ -17,9 +17,12 @@ export default {
     options: [
       "auto",
       "none",
+      "minimal",
       "low",
       "medium",
       "high",
+      "xhigh",
+      "max",
     ],
     defaultMode: "auto",
   },

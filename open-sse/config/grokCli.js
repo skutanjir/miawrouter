@@ -5,6 +5,12 @@ export const GROK_CLI_CLIENT_IDENTIFIER = "grok-shell";
 export const GROK_CLI_USER_AGENT = `grok-shell/${GROK_CLI_VERSION} (linux; x86_64)`;
 
 export function supportsGrokCliReasoningEffort(model) {
-  // ponytail: unknown models omit effort until live metadata reaches dispatch.
-  return /^grok-4\.5(?:$|-)/.test(String(model || ""));
+  const id = String(model || "");
+  // grok-build / Composer reject reasoning.effort; 4.3/4.5/4.6 accept it.
+  return /^grok-4\.(?:3|5|6)(?:$|-)/.test(id);
+}
+
+export function supportsGrokCliXhighEffort(model) {
+  // xhigh is native on 4.6+ and 4.3; 4.5 treats it as high.
+  return /^grok-4\.(?:3|6)(?:$|-)/.test(String(model || ""));
 }

@@ -72,9 +72,9 @@ const PROTECTED_API_PATHS = [
 const LOCAL_ONLY_PATHS = [
   "/api/agents",
   "/api/cloud-agents",
-  "/api/cli-tools/cowork-settings",
-  "/api/cli-tools/antigravity-mitm",
+  "/api/cli-tools",
   "/api/mcp/",
+  "/api/pxpipe",
   "/api/tunnel/tailscale-install",
   "/api/tunnel/tailscale-enable",
   "/api/tunnel/tailscale-disable",

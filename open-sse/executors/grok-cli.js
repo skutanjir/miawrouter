@@ -7,6 +7,7 @@ import {
 } from "../services/oauthCredentialManager.js";
 import { normalizeResponsesInput } from "../translator/formats/responsesApi.js";
 import { getModelUpstreamId } from "../config/providerModels.js";
+import { parseSuffix, stripThinkingSuffix } from "../translator/concerns/thinkingUnified.js";
 import {
   GROK_CLI_CLIENT_IDENTIFIER,
   GROK_CLI_VERSION,
@@ -51,7 +52,7 @@ const RESPONSES_API_ALLOWLIST = new Set([
   "prompt_cache_key",
 ]);
 
-const EFFORT_LEVELS = ["low", "medium", "high", "xhigh"];
+const EFFORT_LEVELS = ["xhigh", "low", "medium", "high"];
 const GROK_CLI_TURN_STORE_MAX = 5000;
 const GROK_CLI_NATIVE_ITEM_ID = /^(?:rs|msg|fc)_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GROK_CLI_FREEFORM_TOOL_PARAMETERS = {
@@ -128,8 +129,7 @@ export function normalizeGrokCliEffort(value) {
   return "high";
 }
 
-export { supportsGrokCliReasoningEffort } from "../config/grokCli.js";
-
+export { supportsGrokCliReasoningEffort, supportsGrokCliXhighEffort } from "../config/grokCli.js";
 export function resolveGrokCliSessionId(credentials, body) {
   // ponytail: clients without stable thread metadata share one connection session;
   // split further when their wire format exposes a durable conversation id.
@@ -469,6 +469,9 @@ export class GrokCliExecutor extends BaseExecutor {
     if (resolvedModel === (body.model || model)) {
       resolvedModel = getModelUpstreamId("grok-cli", resolvedModel) || resolvedModel;
     }
+    const paren = parseSuffix(resolvedModel);
+    if (paren.override?.mode === "level" && !modelEffort) modelEffort = paren.override.level;
+    resolvedModel = stripThinkingSuffix(resolvedModel);
     body.model = resolvedModel;
     this._currentModel = resolvedModel;
 
