@@ -10,7 +10,7 @@ import {
   buildModelRotationUpdate,
 } from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
-import { isCircuitBlocked, admitProbe, recordFailure, recordSuccess, releaseProbe } from "open-sse/services/circuitBreaker.js";
+import { isCircuitBlocked, admitProbe, recordSuccess, releaseProbe } from "open-sse/services/circuitBreaker.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import * as log from "../utils/logger.js";
 
@@ -272,7 +272,6 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
     releaseProbe(resolveProviderId(provider), connectionId);
     return { shouldFallback: false, cooldownMs: 0 };
   }
-  recordFailure(resolveProviderId(provider), connectionId);
 
   const reason = typeof errorText === "string" ? errorText.slice(0, 100) : "Provider error";
   const lockUpdate = buildModelLockUpdate(githubResetAtMs ? null : model, cooldownMs);
