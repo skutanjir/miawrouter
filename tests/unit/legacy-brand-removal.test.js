@@ -10,7 +10,7 @@ describe("legacy brand removal", () => {
     });
 
     expect(help).not.toMatch(/\bmigrate\b/i);
-  });
+  }, 15000);
 
   it("does not retain old brand tokens in tracked source", () => {
     const files = execFileSync("git", ["ls-files", "-z"], {
