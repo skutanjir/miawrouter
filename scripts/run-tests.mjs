@@ -32,7 +32,7 @@ const candidates = [
 ];
 const vitest = candidates.find((p) => existsSync(p));
 if (!vitest) {
-  console.error("vitest not found. Run `npm --prefix tests ci` first.");
+  console.error("vitest not found. Run `npm --prefix tests install` first.");
   process.exit(1);
 }
 

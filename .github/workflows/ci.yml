@@ -42,7 +42,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Install test dependencies
-        run: npm --prefix tests ci
+        run: npm --prefix tests install
       # Blocking gate. Runs the whole suite minus the documented pre-existing
       # failures in tests/known-failing.json, so red means "this PR broke it".
       # Runs from the repo root: several suites resolve fixture paths relative
@@ -65,7 +65,7 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npm --prefix tests ci
+      - run: npm --prefix tests install
       - run: npm run test:all
         env:
           NODE_OPTIONS: --max-old-space-size=4096
