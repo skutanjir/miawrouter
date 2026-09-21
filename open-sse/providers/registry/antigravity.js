@@ -39,7 +39,8 @@ export default {
       },
     },
     usage: {
-      // Discovery (quota/project) on PROD; daily host rejects these.
+      // loadCodeAssist stays on PROD (daily rejects onboarding). Quota fetch
+      // prefers daily in services/usage/google.js — chat burns quota there.
       quotaApiUrl: "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
       loadProjectApiUrl: "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
       tokenUrl: "https://oauth2.googleapis.com/token",

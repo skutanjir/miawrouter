@@ -12,9 +12,15 @@ const ANTIGRAVITY_CONFIG = {
   ...U("antigravity"),
   ...ANTIGRAVITY_OAUTH_CLIENT,
   userAgent: ANTIGRAVITY_IDE_USER_AGENT,
+  // Chat and the official IDE burn quota on daily-cloudcode-pa. Prod often
+  // returns 200 with remainingFraction=1.0, so the tracker never moves.
+  quotaApiUrls: [
+    "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+    "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+  ],
   quotaSummaryUrls: [
-    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
     "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
   ],
 };
 
@@ -337,19 +343,31 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       subscriptionInfo = await getAntigravitySubscriptionInfo(accessToken, proxyOptions);
     }
 
-    const response = await fetchWithTimeout(ANTIGRAVITY_CONFIG.quotaApiUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${accessToken}`,
-        "User-Agent": ANTIGRAVITY_CONFIG.userAgent,
-        "Content-Type": "application/json",
-        "X-Client-Name": "antigravity",
-        "X-Client-Version": ANTIGRAVITY_IDE_VERSION,
-      },
-      body: JSON.stringify({
-        ...(projectId ? { project: projectId } : {})
-      }),
-    }, 10000, proxyOptions);
+    const quotaHeaders = {
+      "Authorization": `Bearer ${accessToken}`,
+      "User-Agent": ANTIGRAVITY_CONFIG.userAgent,
+      "Content-Type": "application/json",
+      "X-Client-Name": "antigravity",
+      "X-Client-Version": ANTIGRAVITY_IDE_VERSION,
+    };
+    const quotaBody = JSON.stringify(projectId ? { project: projectId } : {});
+
+    let response = null;
+    for (const url of ANTIGRAVITY_CONFIG.quotaApiUrls) {
+      try {
+        response = await fetchWithTimeout(url, {
+          method: "POST",
+          headers: quotaHeaders,
+          body: quotaBody,
+        }, 10000, proxyOptions);
+        if (response.ok || response.status === 401 || response.status === 403) break;
+      } catch {
+        // try next host
+      }
+    }
+    if (!response) {
+      throw new Error("Antigravity API error: no quota host responded");
+    }
 
     if (response.status === 403) {
       return {
@@ -394,18 +412,20 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
 
         const normalizedModelKey = normalizeAntigravityQuotaModelKey(modelKey);
 
-        const remainingFraction = info.quotaInfo.remainingFraction != null ? info.quotaInfo.remainingFraction : 0;
+        const remainingFraction = extractRemainingFraction(info.quotaInfo);
+        if (remainingFraction === null) continue;
         const remainingPercentage = remainingFraction * 100;
 
         // Convert percentage to used/total for UI compatibility
         const total = 1000; // Normalized base
         const remaining = Math.round(total * remainingFraction);
         const used = total - remaining;
+        const resetTime = info.quotaInfo.resetTime || info.quotaInfo.reset_time || info.quotaInfo.resetAt;
 
         quotas[normalizedModelKey] = {
           used,
           total,
-          resetAt: parseResetTime(info.quotaInfo.resetTime),
+          resetAt: parseResetTime(resetTime),
           remainingPercentage,
           unlimited: false,
           displayName: info.displayName || normalizedModelKey,
@@ -418,26 +438,28 @@ export async function getAntigravityUsage(accessToken, providerSpecificData, pro
       }
     }
 
-    // Reconcile stale summary 5h quotas against authoritative per-model data.
     // retrieveUserQuotaSummary 5h buckets often remain stale at 1.0 (100%) even when
     // active model usage has occurred. Per-model fetchAvailableModels is authoritative
-    // for short-window usage. Prefer honest unavailable over fake grouped percentage.
+    // for short-window usage. Replace the fake 100% bar with the most-consumed model
+    // remaining so grouped UI still moves instead of hiding per-model rows.
     for (const [key, familyName] of [["gemini_5h", "gemini"], ["claude_gpt_5h", "claude"]]) {
-      if (quotas[key]) {
-        const familyModels = modelEntries.filter(({ modelKey }) => {
-          const lower = modelKey.toLowerCase();
-          if (familyName === "gemini") {
-            return lower.includes("gemini");
-          }
-          return lower.includes("claude") || lower.includes("gpt");
-        });
-
-        if (familyModels.length > 0) {
-          const hasConsumption = familyModels.some((m) => m.remainingFraction < 0.999);
-          if (hasConsumption && quotas[key].remainingPercentage >= 99.9) {
-            delete quotas[key];
-          }
-        }
+      if (!quotas[key]) continue;
+      const familyModels = modelEntries.filter(({ modelKey }) => {
+        const lower = modelKey.toLowerCase();
+        if (familyName === "gemini") return lower.includes("gemini");
+        return lower.includes("claude") || lower.includes("gpt");
+      });
+      if (familyModels.length === 0) continue;
+      const minFraction = Math.min(...familyModels.map((m) => m.remainingFraction));
+      if (minFraction < 0.999 && quotas[key].remainingPercentage >= 99.9) {
+        const total = 1000;
+        const remaining = Math.round(total * minFraction);
+        quotas[key] = {
+          ...quotas[key],
+          used: total - remaining,
+          total,
+          remainingPercentage: minFraction * 100,
+        };
       }
     }
 

@@ -234,7 +234,72 @@ describe("Antigravity Quota Summary: 5h and Weekly Family Quotas", () => {
     expect(usage.quotas.gemini_weekly).toBeUndefined();
   });
 
-  it("falls back to daily endpoint when prod endpoint fails", async () => {
+  it("prefers daily Cloud Code quota over stale prod 100%", async () => {
+    const modelCalls = [];
+    const summaryCalls = [];
+
+    proxyAwareFetch.mockImplementation(async (url) => {
+      if (url.includes(":loadCodeAssist")) return jsonResponse(MOCK_LOAD_CODE_ASSIST);
+      if (url.includes(":fetchAvailableModels")) {
+        modelCalls.push(url);
+        if (url.includes("daily-cloudcode-pa")) {
+          return jsonResponse({
+            models: {
+              "gemini-3.8-flash-high": {
+                displayName: "Gemini 3.8 Flash (High)",
+                quotaInfo: { remainingFraction: 0.42, resetTime: "2026-09-21T12:00:00Z" },
+              },
+            },
+          });
+        }
+        return jsonResponse({
+          models: {
+            "gemini-3.8-flash-high": {
+              displayName: "Gemini 3.8 Flash (High)",
+              quotaInfo: { remainingFraction: 1, resetTime: "2026-09-21T12:00:00Z" },
+            },
+          },
+        });
+      }
+      if (url.includes(":retrieveUserQuotaSummary")) {
+        summaryCalls.push(url);
+        if (url.includes("daily-cloudcode-pa")) {
+          return jsonResponse({
+            groups: [{
+              displayName: "Gemini Models",
+              buckets: [{
+                bucketId: "gemini-5h",
+                window: "5h",
+                remainingFraction: 0.42,
+                resetTime: "2026-09-21T12:00:00Z",
+              }],
+            }],
+          });
+        }
+        return jsonResponse({
+          groups: [{
+            displayName: "Gemini Models",
+            buckets: [{
+              bucketId: "gemini-5h",
+              window: "5h",
+              remainingFraction: 1,
+              resetTime: "2026-09-21T12:00:00Z",
+            }],
+          }],
+        });
+      }
+      return jsonResponse({}, 404);
+    });
+
+    const usage = await getAntigravityUsage("test-access-token", {});
+
+    expect(modelCalls[0]).toContain("daily-cloudcode-pa.googleapis.com");
+    expect(summaryCalls[0]).toContain("daily-cloudcode-pa.googleapis.com");
+    expect(usage.quotas["gemini-3.8-flash-high"].remainingPercentage).toBe(42);
+    expect(usage.quotas.gemini_5h.remainingPercentage).toBe(42);
+  });
+
+  it("falls back to prod when daily quota endpoints fail", async () => {
     const summaryCalls = [];
 
     proxyAwareFetch.mockImplementation(async (url) => {
@@ -242,7 +307,7 @@ describe("Antigravity Quota Summary: 5h and Weekly Family Quotas", () => {
       if (url.includes(":fetchAvailableModels")) return jsonResponse(MOCK_FETCH_AVAILABLE_MODELS);
       if (url.includes(":retrieveUserQuotaSummary")) {
         summaryCalls.push(url);
-        if (url.includes("cloudcode-pa.googleapis.com") && !url.includes("daily-")) {
+        if (url.includes("daily-cloudcode-pa")) {
           return jsonResponse({ error: "Unavailable" }, 503);
         }
         return jsonResponse(MOCK_QUOTA_SUMMARY_VALID);
@@ -252,9 +317,8 @@ describe("Antigravity Quota Summary: 5h and Weekly Family Quotas", () => {
 
     const usage = await getAntigravityUsage("test-access-token", {});
 
-    expect(summaryCalls.length).toBeGreaterThanOrEqual(2);
-    expect(summaryCalls[0]).toContain("cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary");
-    expect(summaryCalls[1]).toContain("daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary");
+    expect(summaryCalls[0]).toContain("daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary");
+    expect(summaryCalls[1]).toContain("cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary");
     expect(usage.quotas).toHaveProperty("gemini_5h");
   });
 
@@ -325,9 +389,35 @@ describe("Antigravity Quota Summary: 5h and Weekly Family Quotas", () => {
     expect(usage.quotas.gemini_weekly).toBeDefined();
     expect(usage.quotas.gemini_weekly.remainingPercentage).toBe(95);
 
-    // Stale 5h 100% must NOT mask per-model consumption
-    // Either 5h is omitted (honest unavailable) or not reported as 100%
-    expect(usage.quotas.gemini_5h).toBeUndefined();
+    // Stale 5h 100% must track the most-consumed model in the family, not vanish
+    // (vanishing leaves weekly grouped mode which hides per-model bars).
+    expect(usage.quotas.gemini_5h.remainingPercentage).toBe(60);
+    expect(usage.quotas.gemini_5h.used).toBe(400);
+  });
+
+  it("reads nested quotaInfo remainingFraction from fetchAvailableModels", async () => {
+    proxyAwareFetch.mockImplementation(async (url) => {
+      if (url.includes(":loadCodeAssist")) return jsonResponse(MOCK_LOAD_CODE_ASSIST);
+      if (url.includes(":fetchAvailableModels")) {
+        return jsonResponse({
+          models: {
+            "gemini-3.8-flash-high": {
+              displayName: "Gemini 3.8 Flash (High)",
+              quotaInfo: {
+                remaining: { remainingFraction: 0.3 },
+                resetTime: "2026-09-21T12:00:00Z",
+              },
+            },
+          },
+        });
+      }
+      if (url.includes(":retrieveUserQuotaSummary")) return jsonResponse({ error: "Not Found" }, 404);
+      return jsonResponse({}, 404);
+    });
+
+    const usage = await getAntigravityUsage("test-access-token", {});
+    expect(usage.quotas["gemini-3.8-flash-high"].remainingPercentage).toBe(30);
+    expect(usage.quotas["gemini-3.8-flash-high"].used).toBe(700);
   });
 
   describe("parseQuotaData normalization in UI utils", () => {
