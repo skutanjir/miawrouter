@@ -14,6 +14,7 @@ import {
   evaluateGate,
   flakyClassSignature,
   writeAtomic,
+  ROOT,
 } from "../../scripts/test-baseline.mjs";
 
 const sig = (text) => failureSignature([text]);
@@ -38,7 +39,7 @@ describe("baseline gate comparison", () => {
   });
 
   it("failureSignature normalizes the repo root so path prefix changes do not break the signature", () => {
-    const rooted = sig("Cannot find module 'x' imported from /mnt/Data/miawrouter/tests/unit/a.test.js");
+    const rooted = sig(`Cannot find module 'x' imported from ${path.join(ROOT, "tests/unit/a.test.js")}`);
     const bare = sig("Cannot find module 'x' imported from <ROOT>/tests/unit/a.test.js");
     expect(rooted).toBe(bare);
   });
