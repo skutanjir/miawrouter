@@ -80,6 +80,33 @@ if (args[0] === "xai" && args[1] === "video") {
   return;
 }
 
+if (args.includes("--help") || args.includes("-h")) {
+  console.log(`
+Usage: ${pkg.name} [options]
+
+Options:
+  -p, --port <port>   Port to run the server (default: 21128)
+  -H, --host <host>   Host to bind (default: 0.0.0.0)
+  -n, --no-browser    Don't open browser automatically
+  -l, --log           Show server logs (default: hidden)
+  -t, --tray          Run in system tray mode (background)
+  --skip-update       Skip auto-update check
+  -h, --help          Show this help message
+  -v, --version       Show version
+
+Commands:
+  xai video --prompt "..." --output video.mp4
+                      Generate a Grok Imagine video via the running gateway
+                      (see: ${pkg.name} xai video --help)
+`);
+  process.exit(0);
+}
+
+if (args.includes("--version") || args.includes("-v")) {
+  console.log(pkg.version);
+  process.exit(0);
+}
+
 // Self-heal SQLite runtime deps (sql.js + better-sqlite3) into the data dir
 // runtime folder. Best-effort — sql.js is required, better-sqlite3 is
 // optional. Logs to stderr only on failure.
@@ -139,29 +166,6 @@ for (let i = 0; i < args.length; i++) {
   } else if (args[i] === "--tray" || args[i] === "-t") {
     trayMode = true;
     process.env.TRAY_MODE = "1";
-  } else if (args[i] === "--help" || args[i] === "-h") {
-    console.log(`
-Usage: ${APP_NAME} [options]
-
-Options:
-  -p, --port <port>   Port to run the server (default: ${DEFAULT_PORT})
-  -H, --host <host>   Host to bind (default: ${DEFAULT_HOST})
-  -n, --no-browser    Don't open browser automatically
-  -l, --log           Show server logs (default: hidden)
-  -t, --tray          Run in system tray mode (background)
-  --skip-update       Skip auto-update check
-  -h, --help          Show this help message
-  -v, --version       Show version
-
-Commands:
-  xai video --prompt "..." --output video.mp4
-                      Generate a Grok Imagine video via the running gateway
-                      (see: ${APP_NAME} xai video --help)
-`);
-    process.exit(0);
-  } else if (args[i] === "--version" || args[i] === "-v") {
-    console.log(pkg.version);
-    process.exit(0);
   }
 }
 

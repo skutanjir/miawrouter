@@ -65,6 +65,7 @@ export {
 // Request details
 export {
   saveRequestDetail, getRequestDetails, getRequestDetailById, getDistinctProviders,
+  getObservabilityConfig, invalidateObservabilityConfigCache,
 } from "./repos/requestDetailsRepo.js";
 
 // Runtime metrics (cache hit/miss/bypass + token-saver savings)
@@ -192,6 +193,9 @@ export async function importDb(payload) {
       db.run(`INSERT OR REPLACE INTO kv(scope, key, value) VALUES('pricing', ?, ?)`, [provider, stringifyJson(models || {})]);
     }
   });
+
+  const { invalidateObservabilityConfigCache } = await import("./repos/requestDetailsRepo.js");
+  invalidateObservabilityConfigCache();
 
   return await exportDb();
 }

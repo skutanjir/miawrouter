@@ -28,7 +28,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, "..");
+export const ROOT = path.resolve(HERE, "..");
 const TESTS_DIR = path.join(ROOT, "tests");
 const VITEST_BIN = path.join(TESTS_DIR, "node_modules", "vitest", "vitest.mjs");
 const CHAR_PATH = process.env.TEST_BASELINE_CHAR_PATH
@@ -63,6 +63,8 @@ export function normalizeFailureText(text) {
   let t = kept.join("\n");
   t = t.replaceAll("\\", "/");
   t = t.replaceAll("file://", "");
+  const normalizedRoot = ROOT.replaceAll("\\", "/");
+  t = t.replaceAll(normalizedRoot, "<ROOT>");
   t = t.replaceAll(ROOT, "<ROOT>");
   t = t.replaceAll(/[^\s"'<>()]+node_modules[^\s"'<>()]*/g, "<NM>");
   t = t.replace(/\s+/g, " ").trim();
