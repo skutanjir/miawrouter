@@ -1,5 +1,6 @@
 import { getAdapter } from "../driver.js";
 import { parseJson, stringifyJson } from "../helpers/jsonCol.js";
+import { invalidateObservabilityConfigCache } from "./requestDetailsRepo.js";
 import { DEFAULT_RTK_MODE, DEFAULT_AUTO_TRIGGER_TOKENS } from "open-sse/rtk/constants.js";
 
 const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
@@ -151,6 +152,7 @@ export async function updateSettings(updates) {
       [stringifyJson(next)],
     );
   });
+  invalidateObservabilityConfigCache();
   return mergeWithDefaults(next);
 }
 
