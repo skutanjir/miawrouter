@@ -54,7 +54,10 @@ export const MODEL_PRICING = {
   "gpt-5.6-luna":                 { input: 1.00,  output: 6.00,  cached: 0.10,  reasoning: 6.00,   cache_creation: 1.00  },
   "gpt-5.6-terra":                { input: 2.50,  output: 15.00, cached: 0.25,  reasoning: 15.00,  cache_creation: 2.50  },
   "gpt-5.6-sol":                  { input: 5.00,  output: 30.00, cached: 0.50,  reasoning: 30.00,  cache_creation: 5.00  },
-  "gpt-6-astra":                  { input: 6.00,  output: 36.00, cached: 0.60,  reasoning: 36.00,  cache_creation: 6.00  },
+  "gpt-6-luna":                   { input: 0.10,  output: 0.50,  cached: 0.01,  reasoning: 0.50,   cache_creation: 0.125 },
+  "gpt-6-sol":                    { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  },
+  "gpt-6-astra":                  { input: 10.00, output: 50.00, cached: 1.00,  reasoning: 50.00,  cache_creation: 12.50 },
+  "claude-opus-5-5":              { input: 4.00,  output: 20.00, cached: 0.20,  reasoning: 20.00,  cache_creation: 5.00  },
   "o1":                           { input: 15.00, output: 60.00, cached: 7.50,  reasoning: 90.00,  cache_creation: 15.00 },
   "o1-mini":                      { input: 3.00,  output: 12.00, cached: 1.50,  reasoning: 18.00,  cache_creation: 3.00  },
 
@@ -240,7 +243,10 @@ export const PROVIDER_PRICING = {
     "openai/gpt-5.5-pro": { input: 30, output: 180, reasoning: 180 },
     "openai/gpt-5.6-luna": { input: 0.2, output: 1.2, cached: 0.02, cache_creation: 0.25, reasoning: 1.2 },
     "openai/gpt-5.6-sol": { input: 5.0, output: 30.0, cached: 0.5, cache_creation: 6.25, reasoning: 30.0 },
-    "openai/gpt-6-astra": { input: 6.0, output: 36.0, cached: 0.6, cache_creation: 7.5, reasoning: 36.0 },
+    "openai/gpt-6-luna": { input: 0.1, output: 0.5, cached: 0.01, cache_creation: 0.125, reasoning: 0.5 },
+    "openai/gpt-6-sol": { input: 2.0, output: 10.0, cached: 0.2, cache_creation: 2.5, reasoning: 10.0 },
+    "openai/gpt-6-astra": { input: 10.0, output: 50.0, cached: 1.0, cache_creation: 12.5, reasoning: 50.0 },
+    "anthropic/claude-opus-5-5": { input: 4.0, output: 20.0, cached: 0.2, cache_creation: 5.0, reasoning: 20.0 },
     "openai/gpt-5.6-terra": { input: 2, output: 12, cached: 0.2, cache_creation: 2.5, reasoning: 12 },
     "openai/gpt-audio": { input: 2.5, output: 10.0, reasoning: 10.0 },
     "openai/gpt-audio-mini": { input: 0.6, output: 2.4, reasoning: 2.4 },
@@ -311,6 +317,7 @@ export const PATTERN_PRICING = [
   { pattern: "*-codex",         pricing: { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  } },
 
   // --- Claude ---
+  { pattern: "claude-opus-5-5*", pricing: { input: 4.00, output: 20.00, cached: 0.20, reasoning: 20.00, cache_creation: 5.00 } },
   { pattern: "claude-opus-*",   pricing: { input: 5.00,  output: 25.00, cached: 0.50,  reasoning: 25.00,  cache_creation: 6.25  } },
   { pattern: "claude-sonnet-*", pricing: { input: 3.00,  output: 15.00, cached: 0.30,  reasoning: 15.00,  cache_creation: 3.75  } },
   { pattern: "claude-haiku-*",  pricing: { input: 1.00,  output: 5.00,  cached: 0.10,  reasoning: 5.00,   cache_creation: 1.25  } },
@@ -325,6 +332,9 @@ export const PATTERN_PRICING = [
   { pattern: "gemini-*",        pricing: { input: 0.50,  output: 3.00,  cached: 0.03,  reasoning: 4.50,   cache_creation: 0.50  } },
 
   // --- GPT (specific first, generic last) ---
+  { pattern: "gpt-6-luna*",     pricing: { input: 0.10,  output: 0.50,  cached: 0.01,  reasoning: 0.50,   cache_creation: 0.125 } },
+  { pattern: "gpt-6-sol*",      pricing: { input: 2.00,  output: 10.00, cached: 0.20,  reasoning: 10.00,  cache_creation: 2.50  } },
+  { pattern: "gpt-6*",          pricing: { input: 10.00, output: 50.00, cached: 1.00,  reasoning: 50.00,  cache_creation: 12.50 } },
   { pattern: "gpt-5.6-*",       pricing: { input: 2.50,  output: 15.00, cached: 0.25,  reasoning: 15.00,  cache_creation: 2.50  } },
   { pattern: "gpt-5.3-*",       pricing: { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  } },
   { pattern: "gpt-5.2-*",       pricing: { input: 1.75,  output: 14.00, cached: 0.175, reasoning: 14.00,  cache_creation: 1.75  } },

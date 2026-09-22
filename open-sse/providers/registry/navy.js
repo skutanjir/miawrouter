@@ -24,12 +24,16 @@ export default {
   modelsFetcher: { url: "https://api.navy/v1/models", type: "openai" },
   // Seed list verified live 2026-08-26; full catalog (~160 ids) via modelsFetcher.
   models: [
+    { id: "gpt-6-luna", name: "GPT-6 Luna" },
+    { id: "gpt-6-sol", name: "GPT-6 Sol" },
+    { id: "gpt-6-astra", name: "GPT-6 Astra" },
     { id: "gpt-5.6-luna", name: "GPT-5.6 Luna" },
     { id: "gpt-5.6-sol", name: "GPT-5.6 Sol" },
     { id: "gpt-5.6-terra", name: "GPT-5.6 Terra" },
     { id: "gpt-5.5", name: "GPT-5.5" },
     { id: "gpt-5.4", name: "GPT-5.4" },
     { id: "gpt-5.3-codex", name: "GPT-5.3 Codex" },
+    { id: "claude-opus-5-5", name: "Claude Opus 5.5" },
     { id: "claude-opus-5", name: "Claude Opus 5" },
     { id: "claude-fable-5", name: "Claude Fable 5" },
     { id: "claude-opus-4.8", name: "Claude Opus 4.8" },

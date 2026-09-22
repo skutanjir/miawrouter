@@ -30,12 +30,13 @@ export default {
   },
   // Fallback catalog; the live /v1/models response replaces this list when available.
   models: [
-    ["claude-fable-5", "Claude Fable 5"], ["claude-opus-5", "Claude Opus 5"],
+    ["claude-fable-5", "Claude Fable 5"], ["claude-opus-5-5", "Claude Opus 5.5"], ["claude-opus-5", "Claude Opus 5"],
     ["claude-opus-4-8", "Claude Opus 4.8"], ["claude-opus-4-7", "Claude Opus 4.7"],
     ["claude-opus-4-6-1m", "Claude Opus 4.6 (1M)"], ["claude-sonnet-4-6-1m", "Claude Sonnet 4.6 (1M)"],
     ["claude-opus-4-6", "Claude Opus 4.6"], ["claude-sonnet-5", "Claude Sonnet 5"],
     ["claude-sonnet-4-6", "Claude Sonnet 4.6"], ["claude-haiku-4-5", "Claude Haiku 4.5"],
     ["gpt-5.2", "GPT-5.2"], ["gpt-5.4", "GPT-5.4"], ["gpt-5.5", "GPT-5.5"],
+    ["gpt-6-astra", "GPT-6 Astra"], ["gpt-6-sol", "GPT-6 Sol"], ["gpt-6-luna", "GPT-6 Luna"],
     ["gpt-5.6-sol", "GPT-5.6 Sol"], ["gpt-5.6-terra", "GPT-5.6 Terra"], ["gpt-5.6-luna", "GPT-5.6 Luna"],
     ["deep-seek-v4-pro-baseten", "DeepSeek V4 Pro (Baseten)"], ["deep-seek-v4-flash", "DeepSeek V4 Flash"],
     ["gpt-5.4-mini", "GPT-5.4 Mini"], ["gpt-5.4-nano", "GPT-5.4 Nano"],

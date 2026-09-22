@@ -91,6 +91,7 @@ export default {
     // Curated Zen Models
     { id: "claude-fable-5-1", name: "Claude Fable 5.1", contextLength: 1000000 },
     { id: "claude-fable-5", name: "Claude Fable 5", contextLength: 1000000 },
+    { id: "claude-opus-5-5", name: "Claude Opus 5.5", contextLength: 1000000 },
     { id: "claude-opus-5", name: "Claude Opus 5", contextLength: 1000000 },
     { id: "claude-opus-4-8", name: "Claude Opus 4.8", contextLength: 1000000 },
     { id: "claude-opus-4-7", name: "Claude Opus 4.7", contextLength: 1000000 },
@@ -108,6 +109,8 @@ export default {
     { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite", contextLength: 1048576 },
     { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", contextLength: 1048576 },
     { id: "gemini-3-flash", name: "Gemini 3 Flash", contextLength: 1048576 },
+    { id: "gpt-6-sol", name: "GPT-6 Sol", contextLength: 1050000 },
+    { id: "gpt-6-luna", name: "GPT-6 Luna", contextLength: 1050000 },
     { id: "gpt-6-astra", name: "GPT-6 Astra", contextLength: 1050000 },
     { id: "gpt-5.6-sol", name: "GPT-5.6 Sol", contextLength: 1050000 },
     { id: "gpt-5.6-terra", name: "GPT-5.6 Terra", contextLength: 1050000 },

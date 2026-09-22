@@ -59,6 +59,7 @@ export default {
   models: [
     { id: "claude-fable-5-1", name: "Claude Fable 5.1", contextLength: 1000000, maxOutputTokens: 128000, unsupportedParams: ["temperature", "top_p", "top_k"] },
     { id: "claude-fable-5", name: "Claude Fable 5", contextLength: 1000000, maxOutputTokens: 128000, unsupportedParams: ["temperature", "top_p", "top_k"] },
+    { id: "claude-opus-5-5", name: "Claude Opus 5.5", contextLength: 1000000, maxOutputTokens: 128000, unsupportedParams: ["temperature", "top_p", "top_k"] },
     { id: "claude-opus-5", name: "Claude Opus 5", contextLength: 1000000, maxOutputTokens: 128000, unsupportedParams: ["temperature", "top_p", "top_k"] },
     { id: "claude-opus-4-8", name: "Claude Opus 4.8", contextLength: 1000000, maxOutputTokens: 128000, unsupportedParams: ["temperature", "top_p", "top_k"] },
     { id: "claude-opus-4-7", name: "Claude Opus 4.7", contextLength: 1000000, maxOutputTokens: 128000, unsupportedParams: ["temperature", "top_p", "top_k"] },

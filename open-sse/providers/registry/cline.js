@@ -91,6 +91,33 @@ export default {
   "maxInputTokens": 500000,
   "maxOutputTokens": 500000
 }, {
+  "id": "openai/gpt-6-astra",
+  "name": "GPT-6 Astra",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "contextLength": 1050000,
+  "maxInputTokens": 922000,
+  "maxOutputTokens": 128000
+}, {
+  "id": "openai/gpt-6-sol",
+  "name": "GPT-6 Sol",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "contextLength": 1050000,
+  "maxInputTokens": 922000,
+  "maxOutputTokens": 128000
+}, {
+  "id": "openai/gpt-6-luna",
+  "name": "GPT-6 Luna",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "contextLength": 1050000,
+  "maxInputTokens": 922000,
+  "maxOutputTokens": 128000
+}, {
   "id": "openai/gpt-5.6-sol",
   "name": "GPT-5.6 Sol",
   "toolCalling": true,

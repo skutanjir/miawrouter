@@ -26,6 +26,18 @@ export default {
   },
   modelsFetcher: { url: "https://api.llm7.io/v1/models", type: "openai" },
   models: [{
+  id: "gpt-6-astra",
+  name: "GPT-6 Astra (LLM7)",
+  contextLength: 1050000
+}, {
+  id: "gpt-6-sol",
+  name: "GPT-6 Sol (LLM7)",
+  contextLength: 1050000
+}, {
+  id: "gpt-6-luna",
+  name: "GPT-6 Luna (LLM7)",
+  contextLength: 1050000
+}, {
   id: "gpt-5.6-sol",
   name: "GPT-5.6 Sol (LLM7)",
   contextLength: 1000000
@@ -41,6 +53,10 @@ export default {
   id: "gpt-5.4",
   name: "GPT-5.4 (LLM7)",
   contextLength: 1050000
+}, {
+  id: "claude-opus-5-5",
+  name: "Claude Opus 5.5 (LLM7)",
+  contextLength: 1000000
 }, {
   id: "claude-opus-5",
   name: "Claude Opus 5 (LLM7)",

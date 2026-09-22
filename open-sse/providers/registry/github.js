@@ -116,6 +116,13 @@ export default {
   "contextLength": 1000000,
   "maxOutputTokens": 64000
 }, {
+  "id": "claude-opus-5-5",
+  "name": "Claude Opus 5.5",
+  "targetFormat": "claude",
+  "contextLength": 1000000,
+  "maxOutputTokens": 128000,
+  "unsupportedParams": ["temperature", "top_p", "top_k"]
+}, {
   "id": "claude-opus-5",
   "name": "Claude Opus 5",
   "targetFormat": "claude",
@@ -147,6 +154,18 @@ export default {
   "name": "Gemini 3.5 Flash",
   "contextLength": 1000000,
   "maxOutputTokens": 64000
+}, {
+  "id": "gpt-6-astra",
+  "name": "GPT-6 Astra",
+  "maxOutputTokens": 128000
+}, {
+  "id": "gpt-6-sol",
+  "name": "GPT-6 Sol",
+  "maxOutputTokens": 128000
+}, {
+  "id": "gpt-6-luna",
+  "name": "GPT-6 Luna",
+  "maxOutputTokens": 128000
 }, {
   "id": "gpt-5.6-sol",
   "name": "GPT-5.6 Sol",
