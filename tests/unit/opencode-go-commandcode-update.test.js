@@ -18,10 +18,11 @@ describe("OpenCode Go and CommandCode model updates", () => {
       "deepseek-v4.1-flash-high",
       "deepseek-v4.1-flash-max",
       "grok-4.6",
-      "grok-4.6-low",
-      "grok-4.6-medium",
-      "grok-4.6-high",
-      "grok-4.6-xhigh",
+      "grok-4.7",
+      "grok-4.7-xhigh",
+      "mimo-v2.6-flash",
+      "mimo-v2.6-pro",
+      "mimo-v2.6-pro-max",
       "hy4-preview",
       "hy4-preview-none",
       "hy4-preview-high",
@@ -59,6 +60,11 @@ describe("OpenCode Go and CommandCode model updates", () => {
       "inclusionai/ling-3.0-flash-sante:free",
       "meta/muse-spark-1.3",
       "meta/muse-spark-1.3-contributor",
+      "meta/muse-spark-1.3-contributor",
+      "xiaomi/mimo-v2.6-pro",
+      "xiaomi/mimo-v2.6-flash",
+      "xiaomi/mimo-v2.6-pro-ultraspeed",
+      "xai/grok-4.7",
     ];
 
     for (const id of expected) {

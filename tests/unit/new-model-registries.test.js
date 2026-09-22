@@ -26,6 +26,8 @@ describe("new provider models", () => {
         maxOutputTokens: 64000,
       }),
       expect.objectContaining({ id: "grok-4.6-xhigh", upstreamModelId: "grok-4.6(xhigh)" }),
+      expect.objectContaining({ id: "grok-4.7", contextLength: 500000, maxOutputTokens: 64000 }),
+      expect.objectContaining({ id: "grok-4.7-xhigh", upstreamModelId: "grok-4.7(xhigh)" }),
       expect.objectContaining({ id: "grok-4.3", contextLength: 1000000 }),
     ]));
   });
@@ -69,6 +71,13 @@ describe("new provider models", () => {
       output: 6.00,
       cached: 0.50,
       reasoning: 9.00,
+      cache_creation: 2.00,
+    });
+    expect(MODEL_PRICING["grok-4.7"]).toEqual({
+      input: 2.00,
+      output: 6.00,
+      cached: 0.50,
+      reasoning: 6.00,
       cache_creation: 2.00,
     });
   });

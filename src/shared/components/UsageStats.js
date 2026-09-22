@@ -55,76 +55,50 @@ function RecentRequests({ requests = [] }) {
 
   return (
     <Card
-      className="dispatch-ledger flex min-w-0 flex-col overflow-hidden border border-border-subtle bg-surface shadow-soft"
+      className="dispatch-ledger flex h-full min-w-0 flex-col overflow-hidden border-0 bg-transparent p-3.5 shadow-none rounded-none sm:p-4"
       padding="none"
       title="Dispatch Ledger"
-      subtitle="Real-time request stream & completion tokens"
+      subtitle="Latest requests, input and output tokens"
     >
       {!requests.length ? (
-        <div className="flex h-48 flex-col items-center justify-center gap-1.5 p-4 text-xs text-muted">
-          <span className="material-symbols-outlined text-[20px] opacity-40">receipt_long</span>
-          <span>No requests recorded yet.</span>
+        <div className="flex h-40 flex-col justify-center gap-1 px-4 text-xs text-muted">
+          <p className="text-ink">No requests yet.</p>
+          <p>Send a chat completion to see the route, tokens, and result here.</p>
         </div>
       ) : (
-        <div className="max-h-[360px] min-w-0 overflow-x-hidden overflow-y-auto">
-          <div className="dispatch-ledger-header sticky top-0 z-10 border-b border-border-subtle bg-surface-2/95 text-[11px] font-semibold uppercase tracking-wider text-muted backdrop-blur-xs" aria-hidden="true">
-            <span>State</span>
-            <span>Model / Route</span>
-            <span className="text-right">Tokens</span>
-            <span className="text-right">When</span>
+        <div className="max-h-[420px] min-w-0 overflow-auto">
+          <div className="dispatch-ledger-header sticky top-0 z-10 border-b border-border-subtle bg-surface text-[11px] text-muted" aria-hidden="true">
+            <span>Result</span>
+            <span>Route</span>
+            <span className="text-right">In / out</span>
+            <span className="text-right">Age</span>
           </div>
-          <ul className="min-w-0 divide-y divide-border-subtle" aria-label="Recent dispatches">
+          <ul className="min-w-0" aria-label="Recent dispatches">
               {requests.map((r, i) => {
                 const ok = !r.status || r.status === "ok" || r.status === "success";
                 const isNewest = i === 0 && highlightLatest;
                 return (
                   <li
                     key={r.id || `${r.timestamp}-${r.model}-${i}`}
-                    className={`dispatch-ledger-row min-w-0 transition-colors hover:bg-surface-2 ${
-                      isNewest ? "bg-signal/10 transition-none" : ""
-                    }`}
+                    className={`dispatch-ledger-row border-b border-border-subtle last:border-b-0 ${isNewest ? "bg-surface-2" : ""}`}
                   >
-                    <div className="dispatch-ledger-state">
-                      <span
-                        className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase ${
-                          ok
-                            ? "bg-signal/10 text-signal border border-signal/30"
-                            : "bg-fail/10 text-fail border border-fail/30"
-                        }`}
-                        title={ok ? "Status: Success (200 OK)" : `Status: Failure (${r.status || "error"})`}
-                      >
-                        <span
-                          className={`size-1.5 rounded-full ${ok ? "bg-signal" : "bg-fail"}`}
-                          aria-hidden="true"
-                        />
-                        <span>{ok ? "OK" : "ERR"}</span>
-                      </span>
+                    <div className="dispatch-ledger-state font-mono text-[11px] font-medium">
+                      <span className={ok ? "text-signal" : "text-fail"}>{ok ? "OK" : "ERR"}</span>
                     </div>
-                    <div className="min-w-0 text-ink">
-                      <div className="flex min-w-0 flex-col" title={r.model}>
-                        <span className="truncate font-mono text-[11px] font-medium">
-                          {r.model}
-                        </span>
-                        {r.provider && (
-                          <span className="text-[10px] text-muted truncate">
-                            via {r.provider}
-                          </span>
-                        )}
-                      </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-[11px] text-ink" title={r.model}>{r.model}</p>
+                      {r.provider && (
+                        <p className="truncate text-[11px] text-muted">{r.provider}</p>
+                      )}
                     </div>
-                    <div className="min-w-0 text-right font-mono text-[11px] tabular-nums">
-                      <div className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-baseline sm:justify-end sm:gap-1.5">
-                        <span className="text-signal" title="Prompt input tokens">
-                          {fmt(r.promptTokens)} <span className="text-[9px] opacity-70">in</span>
-                        </span>
-                        <span className="text-ink font-semibold" title="Completion output tokens">
-                          {fmt(r.completionTokens)} <span className="text-[9px] opacity-70">out</span>
-                        </span>
-                      </div>
-                    </div>
-                    <div className="whitespace-nowrap text-right font-mono text-[10px] text-muted">
+                    <p className="text-right font-mono text-[11px] tabular-nums text-ink">
+                      {fmt(r.promptTokens)}
+                      <span className="text-muted"> / </span>
+                      {fmt(r.completionTokens)}
+                    </p>
+                    <p className="whitespace-nowrap text-right text-[11px] text-muted">
                       <TimeAgo timestamp={r.timestamp} />
-                    </div>
+                    </p>
                   </li>
                 );
               })}
@@ -547,13 +521,15 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       {loading ? (
         spinner
       ) : (
-        <div className="grid min-w-0 grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,2.2fr)_minmax(320px,1fr)]">
-          <ProviderTopology
-            providers={providers}
-            activeRequests={stats?.activeRequests || []}
-            lastProvider={stats?.recentRequests?.[0]?.provider || ""}
-            errorProvider={stats?.errorProvider || ""}
-          />
+        <div className="panel-lift grid min-w-0 grid-cols-1 overflow-hidden rounded-[var(--radius-brand)] border border-border bg-surface lg:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.85fr)]">
+          <div className="min-w-0 border-b border-border lg:border-b-0 lg:border-r">
+            <ProviderTopology
+              providers={providers}
+              activeRequests={stats?.activeRequests || []}
+              lastProvider={stats?.recentRequests?.[0]?.provider || ""}
+              errorProvider={stats?.errorProvider || ""}
+            />
+          </div>
           <RecentRequests requests={stats?.recentRequests || []} />
         </div>
       )}

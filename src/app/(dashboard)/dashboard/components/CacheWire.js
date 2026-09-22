@@ -19,42 +19,29 @@ import {
 
 function LayerCard({ layer, status, active, kind }) {
   const isOff = !status.enabled;
-  const badgeClass = !status.enabled
-    ? "bg-chassis/60 text-muted/60 border-border-subtle/50 font-normal"
-    : status.hasHits
-      ? "bg-signal/10 text-signal border-signal/25 font-semibold"
-      : "bg-surface text-ink/80 border-border-subtle font-medium";
-
   return (
     <div
-      className={`cw-layer-card flex flex-col justify-between rounded-[var(--radius-brand)] border bg-surface p-2.5 transition-all duration-150 ${isOff ? "opacity-55" : ""} ${active ? "cw-layer-act" : "border-border-subtle"}`}
+      className={`cw-layer-card flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border bg-surface px-2.5 py-2 ${isOff ? "opacity-60" : ""} ${active ? "cw-layer-act" : "border-border-subtle"}`}
       data-kind={active ? kind : ""}
       title={`${layer.name} · ${layer.role} · ${status.statusLabel}${status.subDetail ? ` · ${status.subDetail}` : ""}`}
     >
-      <div className="flex items-center justify-between gap-1.5 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="font-mono text-xs font-bold text-ink shrink-0">{layer.id}</span>
-          <span className="text-xs font-semibold text-ink truncate">{layer.name}</span>
-          {active && (
-            <span className="size-1.5 rounded-full bg-signal animate-pulse shrink-0" aria-hidden="true" />
-          )}
+      <div className="flex min-w-0 items-baseline justify-between gap-2">
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <span className="font-mono text-[11px] font-semibold text-muted">{layer.id}</span>
+          <span className="truncate text-xs font-medium text-ink">{layer.name}</span>
         </div>
-        <span
-          className={`shrink-0 inline-flex items-center px-1.5 py-0.5 rounded-full border text-[10px] font-mono tabular-nums leading-tight ${badgeClass}`}
-          title={status.reason ? `Disabled: ${status.reason}` : status.statusLabel}
-        >
+        <span className={`shrink-0 font-mono text-[10px] ${isOff ? "text-muted" : status.hasHits ? "text-signal" : "text-ink"}`}>
           {status.badgeText || status.statusLabel}
         </span>
       </div>
-
-      <div className="mt-2 flex items-baseline justify-between gap-1 text-[10px] min-w-0">
-        <span className="text-muted truncate" title={status.reason ? `Disabled (${status.reason})` : layer.role}>
-          {status.reason ? `Disabled (${status.reason})` : layer.role}
+      <div className="flex min-w-0 items-baseline justify-between gap-2 text-[11px]">
+        <span className="truncate text-muted" title={status.reason || layer.role}>
+          {status.reason ? `Off · ${status.reason}` : layer.role}
         </span>
         {status.subDetail ? (
-          <span className="font-mono tabular-nums text-muted shrink-0">{status.subDetail}</span>
+          <span className="shrink-0 font-mono tabular-nums text-ink">{status.subDetail}</span>
         ) : status.notice ? (
-          <span className="text-muted/70 shrink-0">{status.notice}</span>
+          <span className="shrink-0 text-muted">{status.notice}</span>
         ) : null}
       </div>
     </div>
@@ -271,83 +258,30 @@ export default function CacheWire() {
   return (
     <Card
       title="Cache activity"
-      subtitle="Multi-layer cache performance and prefix interlock telemetry"
+      subtitle="L0 prompt, L1 exact, L2 semantic, L3 dedup"
       padding="sm"
-      className="flex h-full flex-col self-stretch"
+      elev
+      className="panel-lift flex h-full flex-col self-stretch"
     >
       <style>{`.cw-layer-card{transition:border-color .15s ease,background-color .15s ease}
-.cw-layer-act{border-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 45%,var(--color-border-subtle))!important;background-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 8%,var(--color-surface))!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--cw-glow,var(--color-signal)) 20%,transparent)}
+.cw-layer-act{border-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 45%,var(--color-border-subtle))!important;background-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 8%,var(--color-surface))!important}
 .cw-layer-act[data-kind="hit"]{--cw-glow:var(--color-signal)}
 .cw-layer-act[data-kind="activity"]{--cw-glow:var(--color-warn)}
 .cw-layer-act[data-kind="dedup"]{--cw-glow:var(--color-ink)}
-.cw-log-entry{border-radius:3px}
-@media (prefers-reduced-motion: reduce){.cw-layer-card,.cw-layer-act,.cw-log-entry{transition:none!important;animation:none!important}}`}</style>
-      <div
-        className="flex flex-col gap-2.5 rounded-[var(--radius-brand)] border p-3 bg-chassis"
-        style={{ borderColor: "var(--color-rule)", flex: 1 }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted">
-            Cache telemetry ·{" "}
-            <span className="font-mono tabular-nums font-semibold text-ink">{fmt(state.events)}</span> {state.events === 1 ? "event" : "events"}
-          </span>
-          <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${connMeta.cls}`}>
-            <span className={`size-2 rounded-full ${connMeta.dot}`} aria-hidden="true" />
+@media (prefers-reduced-motion: reduce){.cw-layer-card,.cw-layer-act{transition:none!important}}`}</style>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="font-mono text-xs tabular-nums text-ink">
+            {overallHitRate !== null ? `${overallHitRate}% hit` : "No lookups yet"}
+            <span className="text-muted"> · {fmt(totalHits)} hit · {fmt(totalMisses)} miss · {fmt(state.events)} events</span>
+          </p>
+          <span className={`inline-flex items-center gap-1.5 text-xs ${connMeta.cls}`}>
+            <span className={`size-1.5 rounded-full ${connMeta.dot}`} aria-hidden="true" />
             <span className="sr-only">Cache stream: </span>
             {connMeta.text}
           </span>
         </div>
 
-        {/* Cache performance metric tiles */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
-              Events
-            </span>
-            <span className="font-mono tabular-nums text-sm font-semibold text-ink leading-tight mt-0.5">
-              {fmt(state.events)} <span className="text-[10px] font-normal text-muted">{state.events === 1 ? "event" : "events"}</span>
-            </span>
-          </div>
-
-          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
-              Cache hits
-            </span>
-            <span
-              className={`font-mono tabular-nums text-sm font-semibold leading-tight mt-0.5 ${totalHits > 0 ? "text-signal" : "text-ink"}`}
-            >
-              {fmt(totalHits)} <span className="text-[10px] font-normal text-muted">hits</span>
-            </span>
-          </div>
-
-          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
-              Hit rate
-            </span>
-            <span
-              className={`font-mono tabular-nums text-sm font-semibold leading-tight mt-0.5 ${overallHitRate !== null && overallHitRate > 0 ? "text-signal" : "text-ink"}`}
-            >
-              {overallHitRate !== null ? `${overallHitRate}%` : "—"}{" "}
-              <span className="text-[10px] font-normal text-muted">
-                {totalLookups > 0 ? `(${fmt(totalHits)}/${fmt(totalLookups)})` : "no data"}
-              </span>
-            </span>
-          </div>
-
-          <div className="col-span-2 sm:col-span-1 flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
-              Dedup savings
-            </span>
-            <span
-              className="font-mono tabular-nums text-xs font-semibold text-ink leading-tight mt-1 truncate"
-              title={`${fmt(state.savings.refs)} refs · ${fmtBytes(state.savings.bytes)} saved`}
-            >
-              {fmt(state.savings.refs)} refs · {fmtBytes(state.savings.bytes)}
-            </span>
-          </div>
-        </div>
-
-        {/* L0-L3 Cache layers in responsive grid */}
         <div
           role="group"
           aria-label="Cache layers: L0 Prompt, L1 Exact, L2 Semantic, L3 Dedup"
@@ -368,45 +302,32 @@ export default function CacheWire() {
           })}
         </div>
 
-        {/* Prefix interlock section */}
-        <div
-          className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5"
-          style={{ borderColor: "var(--color-rule)" }}
-        >
-          <span className="text-xs font-semibold text-ink">Prefix interlock</span>
-          <span
-            className="font-mono tabular-nums text-[11px] text-muted"
-            title="Probes where a protected-prefix edit was restored before dispatch"
-          >
-            restored <span className="text-warn font-medium">{fmt(state.interlock.restored)}</span>
-          </span>
-          <span
-            className="font-mono tabular-nums text-[11px] text-muted"
-            title="Probes that reached a stable prefix"
-          >
-            stable <span className="text-ink font-medium">{fmt(state.interlock.stable)}</span>
-          </span>
-          <span
-            className="font-mono tabular-nums text-[11px] text-muted"
-            title="Latest observed breakpoint count inserted for a stable prefix"
-          >
-            breakpoints <span className="text-ink font-medium">{state.interlock.breakpoints === null ? "—" : String(state.interlock.breakpoints)}</span>
-          </span>
-          <span className="text-[10px] text-muted ml-auto" style={{ opacity: 0.85 }}>
-            Raw telemetry · unbilled
-          </span>
-        </div>
+        <dl className="grid grid-cols-3 gap-2 border-t border-border-subtle pt-2.5 text-[11px]">
+          <div>
+            <dt className="text-muted">Restored</dt>
+            <dd className="font-mono tabular-nums text-ink">{fmt(state.interlock.restored)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Stable</dt>
+            <dd className="font-mono tabular-nums text-ink">{fmt(state.interlock.stable)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted">Breakpoints</dt>
+            <dd className="font-mono tabular-nums text-ink">{state.interlock.breakpoints === null ? "—" : String(state.interlock.breakpoints)}</dd>
+          </div>
+        </dl>
+        <p className="text-[11px] text-muted">
+          Dedup {fmt(state.savings.refs)} refs · {fmtBytes(state.savings.bytes)} saved. Unbilled telemetry.
+        </p>
 
-        {/* Single live region event log */}
         <p
           key={state.latest}
           role="status"
           aria-live="polite"
-          className="cw-log-entry truncate border-t pt-2 font-mono text-[11px] text-muted"
-          style={{ borderColor: "var(--color-rule)" }}
+          className="truncate border-t border-border-subtle pt-2 font-mono text-[11px] text-muted"
           title={state.latest}
         >
-          {state.latest || "Waiting for cache events — run a request to see activity."}
+          {state.latest || "No cache events yet. Send a request to see hits, misses, and dedup."}
         </p>
       </div>
     </Card>

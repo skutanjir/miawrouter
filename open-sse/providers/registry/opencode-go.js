@@ -65,6 +65,16 @@ export default {
   id: "mimo-v2.5-pro",
   name: "MiMo V2.5 Pro"
 }, {
+  id: "mimo-v2.6-flash",
+  name: "MiMo V2.6 Flash",
+  contextLength: 1048576,
+  supportsReasoning: true
+}, {
+  id: "mimo-v2.6-pro",
+  name: "MiMo V2.6 Pro",
+  contextLength: 1048576,
+  supportsReasoning: true
+}, {
   id: "minimax-m3",
   name: "MiniMax M3",
   targetFormat: "claude"
@@ -126,6 +136,26 @@ export default {
   "id": "mimo-v2.5-max",
   "name": "MiMo-V2.5 (max effort)",
   "upstreamModelId": "mimo-v2.5(max)",
+  "supportsReasoning": true
+}, {
+  "id": "mimo-v2.6-flash-high",
+  "name": "MiMo-V2.6 Flash (high effort)",
+  "upstreamModelId": "mimo-v2.6-flash(high)",
+  "supportsReasoning": true
+}, {
+  "id": "mimo-v2.6-flash-max",
+  "name": "MiMo-V2.6 Flash (max effort)",
+  "upstreamModelId": "mimo-v2.6-flash(max)",
+  "supportsReasoning": true
+}, {
+  "id": "mimo-v2.6-pro-high",
+  "name": "MiMo-V2.6 Pro (high effort)",
+  "upstreamModelId": "mimo-v2.6-pro(high)",
+  "supportsReasoning": true
+}, {
+  "id": "mimo-v2.6-pro-max",
+  "name": "MiMo-V2.6 Pro (max effort)",
+  "upstreamModelId": "mimo-v2.6-pro(max)",
   "supportsReasoning": true
 }, {
   "id": "qwen3.7-max-high",
@@ -303,6 +333,32 @@ export default {
   "id": "grok-4.6-xhigh",
   "name": "Grok 4.6 (xhigh effort)",
   "upstreamModelId": "grok-4.6(xhigh)",
+  "supportsReasoning": true
+}, {
+  "id": "grok-4.7",
+  "name": "Grok 4.7",
+  "contextLength": 500000,
+  "supportsVision": true,
+  "supportsReasoning": true
+}, {
+  "id": "grok-4.7-low",
+  "name": "Grok 4.7 (low effort)",
+  "upstreamModelId": "grok-4.7(low)",
+  "supportsReasoning": true
+}, {
+  "id": "grok-4.7-medium",
+  "name": "Grok 4.7 (medium effort)",
+  "upstreamModelId": "grok-4.7(medium)",
+  "supportsReasoning": true
+}, {
+  "id": "grok-4.7-high",
+  "name": "Grok 4.7 (high effort)",
+  "upstreamModelId": "grok-4.7(high)",
+  "supportsReasoning": true
+}, {
+  "id": "grok-4.7-xhigh",
+  "name": "Grok 4.7 (xhigh effort)",
+  "upstreamModelId": "grok-4.7(xhigh)",
   "supportsReasoning": true
 }, {
   "id": "hy4-preview",

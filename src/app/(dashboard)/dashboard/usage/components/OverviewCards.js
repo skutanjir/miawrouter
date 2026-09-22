@@ -13,75 +13,39 @@ export default function OverviewCards({ stats }) {
   return (
     <section
       aria-label="Usage overview totals"
-      className="telemetry-chassis-bar w-full rounded-[var(--radius-brand)] border border-border-subtle bg-surface shadow-soft"
+      className="panel-lift w-full overflow-hidden rounded-[var(--radius-brand)] border border-border bg-surface"
     >
-      <div className="grid grid-cols-1 divide-y divide-border-subtle min-[400px]:grid-cols-2 min-[400px]:divide-y-0 lg:grid-cols-5 lg:divide-x lg:divide-border-subtle">
-        {/* Cell 1: Total Requests */}
-        <div className="flex min-w-0 flex-col justify-between gap-1 p-3.5 sm:p-4 min-[400px]:border-b min-[400px]:border-r min-[400px]:border-border-subtle lg:border-b-0 lg:border-r-0">
-          <span className="label text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Total Requests
-          </span>
-          <span className="metric truncate font-mono text-xl sm:text-2xl font-semibold tabular-nums text-ink">
-            {fmt(stats?.totalRequests)}
-          </span>
-          <span className="text-[10px] text-muted truncate">
-            All dispatch channels
-          </span>
-        </div>
-
-        {/* Cell 2: Input Tokens */}
-        <div className="flex min-w-0 flex-col justify-between gap-1 p-3.5 sm:p-4 min-[400px]:border-b min-[400px]:border-border-subtle lg:border-b-0">
-          <span className="label text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Input Tokens
-          </span>
-          <span className="metric truncate font-mono text-xl sm:text-2xl font-semibold tabular-nums text-ink">
-            {fmt(promptTokens)}
-          </span>
-          <span className="text-[10px] text-muted truncate">
-            Inbound prompt volume
-          </span>
-        </div>
-
-        {/* Cell 3: Cached Tokens */}
-        <div className="flex min-w-0 flex-col justify-between gap-1 p-3.5 sm:p-4 min-[400px]:border-b min-[400px]:border-r min-[400px]:border-border-subtle lg:border-b-0 lg:border-r-0">
-          <span className="label text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Cached Tokens
-          </span>
-          <span className="metric truncate font-mono text-xl sm:text-2xl font-semibold tabular-nums text-signal">
-            {fmt(cachedTokens)}
-          </span>
-          <span className="text-[10px] font-mono font-medium text-signal truncate">
-            {cachedRatio}% cache ratio
-          </span>
-        </div>
-
-        {/* Cell 4: Output Tokens */}
-        <div className="flex min-w-0 flex-col justify-between gap-1 p-3.5 sm:p-4 min-[400px]:border-b min-[400px]:border-border-subtle min-[400px]:border-b-0 lg:border-b-0">
-          <span className="label text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Output Tokens
-          </span>
-          <span className="metric truncate font-mono text-xl sm:text-2xl font-semibold tabular-nums text-ink">
-            {fmt(stats?.totalCompletionTokens)}
-          </span>
-          <span className="text-[10px] text-muted truncate">
-            Outbound completions
-          </span>
-        </div>
-
-        {/* Cell 5: Est. Cost */}
-        <div className="flex min-w-0 flex-col justify-between gap-1 p-3.5 sm:p-4 min-[400px]:col-span-2 lg:col-span-1 min-[400px]:border-t min-[400px]:border-border-subtle lg:border-t-0">
-          <span className="label text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted">
-            Est. Cost
-          </span>
-          <span className="metric truncate font-mono text-xl sm:text-2xl font-semibold tabular-nums text-ink">
-            ~{fmtCost(stats?.totalCost)}
-          </span>
-          <span className="text-[10px] text-muted truncate">
-            Estimated, non-billed
-          </span>
-        </div>
+      <div className="grid grid-cols-2 gap-px bg-border-subtle sm:grid-cols-3 lg:grid-cols-5">
+        <Metric label="Requests" value={fmt(stats?.totalRequests)} hint="This period" />
+        <Metric label="Input" value={fmt(promptTokens)} hint="Prompt tokens" />
+        <Metric
+          label="Cached"
+          value={fmt(cachedTokens)}
+          hint={`${cachedRatio}% of input`}
+          accent
+          ratio={promptTokens > 0 ? cachedTokens / promptTokens : 0}
+        />
+        <Metric label="Output" value={fmt(stats?.totalCompletionTokens)} hint="Completion tokens" />
+        <Metric label="Est. cost" value={fmtCost(stats?.totalCost)} hint="Not a bill" className="col-span-2 sm:col-span-1" />
       </div>
     </section>
+  );
+}
+
+function Metric({ label, value, hint, accent = false, ratio = null, className = "" }) {
+  return (
+    <div className={`flex min-w-0 flex-col gap-1 bg-surface px-3.5 py-3 ${className}`}>
+      <span className="text-[11px] text-muted">{label}</span>
+      <span className={`truncate font-mono text-xl font-semibold tabular-nums ${accent ? "text-signal" : "text-ink"}`}>
+        {value}
+      </span>
+      {ratio !== null ? (
+        <span className="mt-0.5 block h-1 overflow-hidden rounded-full bg-border-subtle" aria-hidden="true">
+          <span className="block h-full bg-signal" style={{ width: `${Math.min(100, Math.round(ratio * 100))}%` }} />
+        </span>
+      ) : null}
+      <span className="truncate text-[11px] text-muted">{hint}</span>
+    </div>
   );
 }
 

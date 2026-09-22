@@ -415,6 +415,24 @@ export default {
 }, {
   "id": "grok-4.5-fast-xhigh",
   "name": "Grok 4.5 Fast XHigh"
+}, {
+  "id": "grok-4.7-medium",
+  "name": "Grok 4.7 Medium"
+}, {
+  "id": "grok-4.7-fast-medium",
+  "name": "Grok 4.7 Fast Medium"
+}, {
+  "id": "grok-4.7-high",
+  "name": "Grok 4.7 High"
+}, {
+  "id": "grok-4.7-fast-high",
+  "name": "Grok 4.7 Fast High"
+}, {
+  "id": "grok-4.7-xhigh",
+  "name": "Grok 4.7 XHigh"
+}, {
+  "id": "grok-4.7-fast-xhigh",
+  "name": "Grok 4.7 Fast XHigh"
 }],
   oauth: {
     apiEndpoint: "https://api2.cursor.sh",

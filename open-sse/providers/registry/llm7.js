@@ -86,6 +86,10 @@ export default {
   name: "GLM 5.3 (LLM7)",
   contextLength: 1000000
 }, {
+  id: "grok-4.7",
+  name: "Grok 4.7 (LLM7)",
+  contextLength: 500000
+}, {
   id: "grok-4.6",
   name: "Grok 4.6 (LLM7)",
   contextLength: 500000

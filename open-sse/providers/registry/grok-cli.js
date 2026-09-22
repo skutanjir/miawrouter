@@ -68,6 +68,11 @@ export default {
   },
   models: [
     { id: GROK_CLI_MODEL, name: "Grok Build", contextLength: 500000, maxOutputTokens: 64000 },
+    { id: "grok-4.7", name: "Grok 4.7", contextLength: 500000, maxOutputTokens: 64000 },
+    { id: "grok-4.7-xhigh", name: "Grok 4.7 (xhigh)", contextLength: 500000, maxOutputTokens: 64000, upstreamModelId: "grok-4.7(xhigh)" },
+    { id: "grok-4.7-high", name: "Grok 4.7 (High)", contextLength: 500000, maxOutputTokens: 64000, upstreamModelId: "grok-4.7(high)" },
+    { id: "grok-4.7-medium", name: "Grok 4.7 (Medium)", contextLength: 500000, maxOutputTokens: 64000, upstreamModelId: "grok-4.7(medium)" },
+    { id: "grok-4.7-low", name: "Grok 4.7 (Low)", contextLength: 500000, maxOutputTokens: 64000, upstreamModelId: "grok-4.7(low)" },
     { id: "grok-4.6", name: "Grok 4.6", contextLength: 500000, maxOutputTokens: 64000 },
     { id: "grok-4.6-xhigh", name: "Grok 4.6 (xhigh)", contextLength: 500000, maxOutputTokens: 64000, upstreamModelId: "grok-4.6(xhigh)" },
     { id: "grok-4.6-high", name: "Grok 4.6 (High)", contextLength: 500000, maxOutputTokens: 64000, upstreamModelId: "grok-4.6(high)" },

@@ -46,6 +46,10 @@ export default {
     { id: "grok-4.6-fast", name: "Grok 4.6 Fast" },
     { id: "grok-4.6-thinking", name: "Grok 4.6 Thinking" },
     { id: "grok-4.6-expert", name: "Grok 4.6 Expert" },
+    { id: "grok-4.7", name: "Grok 4.7" },
+    { id: "grok-4.7-fast", name: "Grok 4.7 Fast" },
+    { id: "grok-4.7-thinking", name: "Grok 4.7 Thinking" },
+    { id: "grok-4.7-expert", name: "Grok 4.7 Expert" },
   ],
   passthroughModels: true,
 };

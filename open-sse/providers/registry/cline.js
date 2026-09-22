@@ -64,6 +64,24 @@ export default {
   "maxInputTokens": 1040000,
   "maxOutputTokens": 128000
 }, {
+  "id": "x-ai/grok-4.7",
+  "name": "Grok 4.7",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "contextLength": 500000,
+  "maxInputTokens": 500000,
+  "maxOutputTokens": 64000
+}, {
+  "id": "x-ai/grok-4.6",
+  "name": "Grok 4.6",
+  "toolCalling": true,
+  "supportsReasoning": true,
+  "supportsVision": true,
+  "contextLength": 500000,
+  "maxInputTokens": 500000,
+  "maxOutputTokens": 64000
+}, {
   "id": "x-ai/grok-4.5",
   "name": "Grok 4.5",
   "toolCalling": true,

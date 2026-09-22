@@ -32,6 +32,10 @@ const MODEL_MAP = {
   "grok-4.6-fast": { grokModel: "grok-4-6", modelMode: "MODEL_MODE_FAST", isThinking: false },
   "grok-4.6-thinking": { grokModel: "grok-4-6", modelMode: "MODEL_MODE_GROK_4_6_THINKING", isThinking: true },
   "grok-4.6-expert": { grokModel: "grok-4-6", modelMode: "MODEL_MODE_EXPERT", isThinking: true },
+  "grok-4.7": { grokModel: "grok-4-7", modelMode: "MODEL_MODE_GROK_4_7", isThinking: true },
+  "grok-4.7-fast": { grokModel: "grok-4-7", modelMode: "MODEL_MODE_FAST", isThinking: false },
+  "grok-4.7-thinking": { grokModel: "grok-4-7", modelMode: "MODEL_MODE_GROK_4_7_THINKING", isThinking: true },
+  "grok-4.7-expert": { grokModel: "grok-4-7", modelMode: "MODEL_MODE_EXPERT", isThinking: true },
 };
 
 const DEFAULT_GROK_WEB_MODEL = "grok-4.6";

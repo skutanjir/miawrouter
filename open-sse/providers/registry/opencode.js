@@ -62,6 +62,12 @@ export default {
       isFreeTier: true
     },
     {
+      id: "mimo-v2.6-flash-free",
+      name: "MiMo V2.6 Flash Free",
+      contextLength: 1048576,
+      isFreeTier: true
+    },
+    {
       id: "mimo-v2.5-free",
       name: "MiMo V2.5 Free",
       contextLength: 131000,

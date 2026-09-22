@@ -62,78 +62,44 @@ function ChannelModule({
   const activeAccount = activeRequest?.account || null;
 
   return (
-    <div
-      className={`channel-bay-module flex flex-col justify-between ${isActive ? "channel-bay-module-busy" : ""} ${isError ? "channel-bay-module-error" : ""}`}
+    <article
+      className={`channel-bay-module ${isActive ? "channel-bay-module-busy" : ""} ${isError ? "channel-bay-module-error" : ""}`}
       data-status={status.toLowerCase()}
     >
-      <div>
-        <div className="flex items-center justify-between gap-2 border-b border-border-subtle pb-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div
-              className="w-6 h-6 rounded flex items-center justify-center shrink-0 border border-border-subtle bg-surface"
-              style={{ backgroundColor: `${color}12` }}
-            >
-              {imageUrl && !imgError ? (
-                <img
-                  src={imageUrl}
-                  alt=""
-                  className="w-4 h-4 rounded-xs object-contain"
-                  loading="lazy"
-                  decoding="async"
-                  onError={() => {
-                    const m = imageUrl?.match(/^\/providers\/([^/]+)\.png$/i);
-                    if (m) markProviderIconMissing(m[1]);
-                    setImgError(true);
-                  }}
-                />
-              ) : (
-                <span className="text-[10px] font-bold" style={{ color }}>{textIcon}</span>
-              )}
-            </div>
-            <span className="text-xs font-semibold text-ink truncate" title={label}>
-              {label}
-            </span>
-          </div>
-
-          <span
-            className={`channel-bay-status channel-bay-status-${statusBadgeVariant}`}
-            title={`Status: ${status}`}
-          >
-            <span className="channel-bay-dot" aria-hidden="true" />
-            <span className="channel-bay-status-text">{status}</span>
-          </span>
-        </div>
-
-        <div className="mt-2.5 flex flex-col gap-1 text-[11px]">
-          {activeModel ? (
-            <div className="flex items-center gap-1.5 min-w-0" title={`Model: ${activeModel}`}>
-              <span className="text-muted text-[10px] font-mono shrink-0 uppercase tracking-wider">Model</span>
-              <span className="font-mono text-ink truncate">{activeModel}</span>
-            </div>
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded border border-border-subtle bg-bg">
+          {imageUrl && !imgError ? (
+            <img
+              src={imageUrl}
+              alt=""
+              className="size-4 object-contain"
+              loading="lazy"
+              decoding="async"
+              onError={() => {
+                const m = imageUrl?.match(/^\/providers\/([^/]+)\.png$/i);
+                if (m) markProviderIconMissing(m[1]);
+                setImgError(true);
+              }}
+            />
           ) : (
-            <div className="flex items-center gap-1.5 min-w-0 text-muted">
-              <span className="text-[10px] font-mono uppercase tracking-wider">State</span>
-              <span className="truncate">
-                {isError
-                  ? "Last dispatch failed"
-                  : isLast
-                  ? "Dispatched recently"
-                  : isLocal
-                  ? "Direct local instance"
-                  : "Standby route"}
-              </span>
-            </div>
-          )}
-
-          {activeAccount && (
-            <div className="flex items-center gap-1.5 min-w-0" title={`Account: ${activeAccount}`}>
-              <span className="text-muted text-[10px] font-mono shrink-0 uppercase tracking-wider">Acct</span>
-              <span className="text-muted truncate font-mono">{activeAccount}</span>
-            </div>
+            <span className="text-[10px] font-semibold" style={{ color }}>{textIcon}</span>
           )}
         </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[13px] font-medium text-ink" title={label}>{label}</h3>
+          <p className="truncate font-mono text-[11px] text-muted" title={activeModel || ""}>
+            {activeModel || (isError ? "Last dispatch failed" : isLast ? "Last route used" : isLocal ? "Local endpoint" : "Idle")}
+          </p>
+        </div>
+        <span className={`channel-bay-status channel-bay-status-${statusBadgeVariant} shrink-0`}>
+          <span className="channel-bay-dot" aria-hidden="true" />
+          {status}
+        </span>
       </div>
-    </div>
+      {activeAccount ? (
+        <p className="mt-1 truncate pl-9 font-mono text-[11px] text-muted" title={activeAccount}>{activeAccount}</p>
+      ) : null}
+    </article>
   );
 }
 
@@ -243,41 +209,17 @@ export default function ProviderTopology({
   return (
     <section
       aria-label="Provider switchboard channel bay"
-      className="flex min-w-0 flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-chassis p-3.5 sm:p-4 shadow-soft"
+      className="slot-well flex h-full min-w-0 flex-col p-3.5 sm:p-4"
     >
-      {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="size-7 rounded flex items-center justify-center bg-surface border border-border-subtle text-muted shrink-0 shadow-xs">
-            <span className="material-symbols-outlined text-[18px]">hub</span>
-          </div>
-          <div>
-            <h2 className="text-sm font-semibold tracking-tight text-ink">
-              Channel Bay
-            </h2>
-            <p className="text-xs text-muted">
-              Live provider topology & dispatch channels
-            </p>
-          </div>
+        <div className="min-w-0">
+          <h2 className="text-sm font-medium text-ink">Channel Bay</h2>
+          <p className="text-xs text-muted">
+            {busyCount > 0
+              ? `${busyCount} dispatching now`
+              : "No dispatch in flight"}
+            {` · ${providers.length} ${providers.length === 1 ? "provider" : "providers"}`}
+          </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          <span
-            aria-live="polite"
-            aria-atomic="true"
-            className="inline-flex items-center gap-1.5 rounded border border-border-subtle bg-surface px-2.5 py-1 text-xs font-mono font-medium text-ink shadow-xs"
-          >
-            <span
-              className={`inline-block size-2 rounded-full ${busyCount > 0 ? "bg-signal motion-safe:animate-pulse" : "bg-muted/40"}`}
-              aria-hidden="true"
-            />
-            <span>{busyCount > 0 ? `${busyCount} active dispatch${busyCount > 1 ? "es" : ""}` : "All idle"}</span>
-          </span>
-          <span className="hidden sm:inline-block text-xs font-mono text-muted border-l border-border-subtle pl-2">
-            {providers.length} {providers.length === 1 ? "channel" : "channels"}
-          </span>
-        </div>
-      </div>
 
       {/* Filter toolbar */}
       {providers.length > 0 && (
@@ -345,7 +287,7 @@ export default function ProviderTopology({
           </div>
         ) : (
           <div className="max-h-[360px] overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2.5 min-w-0">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 min-w-0">
               {filteredItems.map(({ provider, activeReq, isActive, isLast, isError }) => (
                 <ChannelModule
                   key={provider.provider}

@@ -17,7 +17,7 @@ export default {
     textIcon: "OZ",
     website: "https://opencode.ai/docs/zen/",
     notice: {
-      text: "Requires an OpenCode Zen API key from opencode.ai/auth (not keyless). Free-tier Zen models (DeepSeek V4 Flash, Big Pickle, MiMo V2.5, Ling 3.0 Flash Fin, Nemotron 3 Ultra / 3.5 Lightning, Muse Spark Contributor) still need that key — they are not usable without it.",
+      text: "Requires an OpenCode Zen API key from opencode.ai/auth (not keyless). Free-tier Zen models (DeepSeek V4 Flash, Big Pickle, MiMo V2.6 Flash, MiMo V2.5, Ling 3.0 Flash Fin, Nemotron 3 Ultra / 3.5 Lightning, Muse Spark Contributor) still need that key — they are not usable without it.",
       apiKeyUrl: "https://opencode.ai/auth",
     },
   },
@@ -49,6 +49,12 @@ export default {
     {
       id: "muse-spark-1.2-contributor-free",
       name: "Muse Spark 1.2 Contributor (Free)",
+      contextLength: 1048576,
+      isFreeTier: true
+    },
+    {
+      id: "mimo-v2.6-flash-free",
+      name: "MiMo V2.6 Flash (Free)",
       contextLength: 1048576,
       isFreeTier: true
     },
@@ -124,10 +130,12 @@ export default {
     { id: "gpt-5-codex", name: "GPT-5 Codex", contextLength: 400000 },
     { id: "gpt-5-nano", name: "GPT-5 Nano", contextLength: 400000 },
     { id: "grok-build-0.1", name: "Grok Build 0.1", contextLength: 500000 },
+    { id: "grok-4.7", name: "Grok 4.7", contextLength: 500000 },
     { id: "grok-4.6", name: "Grok 4.6", contextLength: 500000 },
     { id: "grok-4.5", name: "Grok 4.5", contextLength: 500000 },
     { id: "muse-spark-1.3", name: "Muse Spark 1.3", contextLength: 1048576 },
     { id: "muse-spark-1.2", name: "Muse Spark 1.2", contextLength: 1048576 },
+    { id: "deepseek-v4.1-flash", name: "DeepSeek V4.1 Flash", contextLength: 1000000 },
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", contextLength: 1000000 },
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", contextLength: 1000000 },
     { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4 Flash Vision Exp", contextLength: 1000000, supportsVision: true },
@@ -143,6 +151,7 @@ export default {
     { id: "kimi-k2.7-code", name: "Kimi K2.7 Code", contextLength: 262144 },
     { id: "kimi-k2.6", name: "Kimi K2.6", contextLength: 262144 },
     { id: "kimi-k2.5", name: "Kimi K2.5", contextLength: 262144 },
+    { id: "qwen3.8-flash", name: "Qwen 3.8 Flash", contextLength: 1000000 },
     { id: "qwen3.6-plus", name: "Qwen 3.6 Plus", contextLength: 1000000 },
     { id: "qwen3.5-plus", name: "Qwen 3.5 Plus", contextLength: 1000000 }
   ],

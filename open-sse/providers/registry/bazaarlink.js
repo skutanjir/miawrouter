@@ -51,6 +51,10 @@ export default {
   name: "GPT-5.3 Codex",
   contextLength: 400000
 }, {
+  id: "grok-4.7",
+  name: "Grok 4.7",
+  contextLength: 500000
+}, {
   id: "grok-4.20",
   name: "Grok 4.20",
   contextLength: 2000000
@@ -124,6 +128,14 @@ export default {
   id: "nemotron-3-super-120b-a12b",
   name: "Nemotron 3 Super",
   contextLength: 1000000
+}, {
+  id: "mimo-v2.6-pro",
+  name: "MiMo-V2.6-Pro",
+  contextLength: 1050000
+}, {
+  id: "mimo-v2.6-flash",
+  name: "MiMo-V2.6-Flash",
+  contextLength: 1050000
 }, {
   id: "mimo-v2.5-pro",
   name: "MiMo-V2.5-Pro",

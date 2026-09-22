@@ -71,6 +71,9 @@ export default {
     { id: "MiniMaxAI/MiniMax-M2.7", name: "MiniMax M2.7", contextLength: 200000 },
     { id: "MiniMaxAI/MiniMax-M2.5", name: "MiniMax M2.5", contextLength: 200000 },
     // MiMo Models
+    { id: "xiaomi/mimo-v2.6-pro", name: "MiMo V2.6 Pro", contextLength: 1000000 },
+    { id: "xiaomi/mimo-v2.6-flash", name: "MiMo V2.6 Flash", contextLength: 1000000 },
+    { id: "xiaomi/mimo-v2.6-pro-ultraspeed", name: "MiMo V2.6 Pro UltraSpeed", contextLength: 1000000 },
     { id: "xiaomi/mimo-v2.5-pro", name: "MiMo V2.5 Pro", contextLength: 1000000 },
     { id: "xiaomi/mimo-v2.5", name: "MiMo V2.5", contextLength: 1000000 },
     // Qwen Models
@@ -109,6 +112,7 @@ export default {
     { id: "meta/muse-spark-1.2-contributor", name: "Muse Spark 1.2 Contributor", contextLength: 1048576 },
     { id: "meta/muse-spark-1.3", name: "Muse Spark 1.3", contextLength: 1048576 },
     { id: "meta/muse-spark-1.3-contributor", name: "Muse Spark 1.3 Contributor", contextLength: 1048576 },
+    { id: "xai/grok-4.7", name: "Grok 4.7", contextLength: 500000 },
     { id: "xai/grok-4.5", name: "Grok 4.5", contextLength: 500000 },
     { id: "xai/grok-4.6", name: "Grok 4.6", contextLength: 500000 }
   ],

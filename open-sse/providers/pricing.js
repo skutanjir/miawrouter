@@ -132,6 +132,7 @@ export const MODEL_PRICING = {
   "minimax-m2.5":                 { input: 0.60,  output: 2.40,  cached: 0.30,  reasoning: 3.60,   cache_creation: 0.60  },
 
   // === Grok (https://docs.x.ai/developers/models, <200k prompt rates) ===
+  "grok-4.7":                      { input: 2.00,  output: 6.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 2.00  },
   "grok-4.6":                      { input: 2.00,  output: 6.00,  cached: 0.50,  reasoning: 9.00,   cache_creation: 2.00  },
   "grok-4.5":                      { input: 2.00,  output: 6.00,  cached: 0.30,  reasoning: 6.00,   cache_creation: 2.00  },
   "grok-4.3":                      { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  },
@@ -269,6 +270,7 @@ export const PROVIDER_PRICING = {
     "x-ai/grok-4.20-beta": { input: 2, output: 6, cached: 0.2, reasoning: 6 },
     "x-ai/grok-4.3": { input: 1.25, output: 2.5, cached: 0.2, reasoning: 2.5 },
     "x-ai/grok-4.5": { input: 2, output: 6, cached: 0.3, reasoning: 6 },
+    "x-ai/grok-4.7": { input: 2, output: 6, cached: 0.5, reasoning: 6 },
     "x-ai/grok-4.6": { input: 2, output: 6, cached: 0.5, reasoning: 6 },
     "x-ai/grok-build-0.1": { input: 1.0, output: 2.0, cached: 0.2, reasoning: 2.0 },
     "xiaomi/mimo-v2-flash": { input: 0.1, output: 0.3, cached: 0.01, reasoning: 0.3 },
@@ -276,6 +278,9 @@ export const PROVIDER_PRICING = {
     "xiaomi/mimo-v2-pro": { input: 1.0, output: 3.0, cached: 0.2, reasoning: 3.0 },
     "xiaomi/mimo-v2.5": { input: 0.4, output: 2.0, cached: 0.08, reasoning: 2.0 },
     "xiaomi/mimo-v2.5-pro": { input: 1.0, output: 3.0, cached: 0.2, reasoning: 3.0 },
+    "xiaomi/mimo-v2.6-flash": { input: 0.14, output: 0.28, cached: 0.0028, reasoning: 0.28 },
+    "xiaomi/mimo-v2.6-pro": { input: 0.435, output: 0.87, cached: 0.0036, reasoning: 0.87 },
+    "xiaomi/mimo-v2.6-pro-ultraspeed": { input: 4.35, output: 8.7, cached: 0.036, reasoning: 8.7 },
     "z-ai/glm-4.5-air": { input: 0.13, output: 0.85, cached: 0.025, reasoning: 0.85 },
     "z-ai/glm-4.6": { input: 0.6, output: 2.2, cached: 0.11, reasoning: 2.2 },
     "z-ai/glm-4.6v": { input: 0.3, output: 0.9, reasoning: 0.9 },
@@ -365,6 +370,7 @@ export const PATTERN_PRICING = [
   { pattern: "minimax-*",       pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
 
   // --- Grok ---
+  { pattern: "grok-4.7*",       pricing: { input: 2.00,  output: 6.00,  cached: 0.50,  reasoning: 6.00,   cache_creation: 2.00  } },
   { pattern: "grok-4.6*",       pricing: { input: 2.00,  output: 6.00,  cached: 0.50,  reasoning: 9.00,   cache_creation: 2.00  } },
   { pattern: "grok-4.5*",       pricing: { input: 2.00,  output: 6.00,  cached: 0.30,  reasoning: 6.00,   cache_creation: 2.00  } },
   { pattern: "grok-4.3*",       pricing: { input: 1.25,  output: 2.50,  cached: 0.20,  reasoning: 2.50,   cache_creation: 1.25  } },
@@ -373,7 +379,9 @@ export const PATTERN_PRICING = [
   { pattern: "grok-code-*",     pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
   { pattern: "grok-*",          pricing: { input: 0.50,  output: 2.00,  cached: 0.25,  reasoning: 3.00,   cache_creation: 0.50  } },
 
-  // --- Others ---
+  { pattern: "mimo-v2.6-pro-ultraspeed*", pricing: { input: 4.35, output: 8.70, cached: 0.036, reasoning: 8.70, cache_creation: 4.35 } },
+  { pattern: "mimo-v2.6-pro*",  pricing: { input: 0.435, output: 0.87, cached: 0.0036, reasoning: 0.87, cache_creation: 0.435 } },
+  { pattern: "mimo-v2.6*",      pricing: { input: 0.14,  output: 0.28, cached: 0.0028, reasoning: 0.28, cache_creation: 0.14 } },
   { pattern: "hy4*",            pricing: { input: 0.834, output: 2.501, cached: 0.042, reasoning: 2.501,  cache_creation: 0.834 } },
   { pattern: "muse-spark-1.3*", pricing: { input: 0.10,  output: 0.20,  cached: 0.002, reasoning: 0.20,   cache_creation: 0.10  } },
 ];

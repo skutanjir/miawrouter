@@ -19,7 +19,12 @@ describe("grok-web model modes", () => {
     expect(missing).toEqual([]);
   });
 
-  it("routes 4.5 / 4.6 / 4.3 instead of falling back to 4.1 Fast", () => {
+  it("routes 4.5 / 4.6 / 4.7 / 4.3 instead of falling back to 4.1 Fast", () => {
+    expect(resolveGrokWebModel("grok-4.7")).toMatchObject({
+      grokModel: "grok-4-7",
+      modelMode: "MODEL_MODE_GROK_4_7",
+      isThinking: true,
+    });
     expect(resolveGrokWebModel("grok-4.6")).toMatchObject({
       grokModel: "grok-4-6",
       modelMode: "MODEL_MODE_GROK_4_6",
@@ -46,6 +51,7 @@ describe("grok-web model modes", () => {
 describe("xAI Grok effort catalog", () => {
   it("exposes 4.6 xhigh and 4.5 without xhigh", () => {
     expect(getThinkingLevels("xai", "grok-4.6")).toEqual(["low", "medium", "high", "xhigh"]);
+    expect(getThinkingLevels("xai", "grok-4.7")).toEqual(["low", "medium", "high", "xhigh"]);
     expect(getThinkingLevels("grok-cli", "grok-4.5")).toEqual(["low", "medium", "high"]);
     expect(getThinkingLevels("xai", "grok-4.3")).toEqual(["none", "low", "medium", "high", "xhigh"]);
   });

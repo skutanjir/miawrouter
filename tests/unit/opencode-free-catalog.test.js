@@ -14,6 +14,7 @@ import { AI_PROVIDERS } from "../../src/shared/constants/providers.js";
 const LIVE_FREE_IDS = [
   "big-pickle",
   "deepseek-v4-flash-free",
+  "mimo-v2.6-flash-free",
   "mimo-v2.5-free",
   "ling-3.0-flash-fin-free",
   "muse-spark-1.2-contributor-free",

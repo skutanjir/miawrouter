@@ -47,10 +47,10 @@ function UsageContent() {
       <div className="flex flex-col gap-3 border-b border-border-subtle pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-text-main sm:text-2xl">
-            Usage & Telemetry
+            Usage
           </h1>
           <p className="mt-0.5 text-xs text-text-muted sm:text-sm">
-            Real-time token throughput, estimated cost, and cache layer telemetry across providers.
+            Token counts, cache hits, and the route each request took.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -80,8 +80,8 @@ function UsageContent() {
 
       {activeTab === "overview" && (
         <Suspense fallback={<CardSkeleton />}>
-          <div className="flex flex-col gap-6">
-            <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
               <CacheWire />
               <TokenSaverWire />
             </div>

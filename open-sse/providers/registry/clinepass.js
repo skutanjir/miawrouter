@@ -47,6 +47,12 @@ export default {
   id: "cline-pass/deepseek-v4-flash",
   name: "DeepSeek V4 Flash (ClinePass)"
 }, {
+  id: "cline-pass/mimo-v2.6",
+  name: "MiMo-V2.6 (ClinePass)"
+}, {
+  id: "cline-pass/mimo-v2.6-pro",
+  name: "MiMo-V2.6-Pro (ClinePass)"
+}, {
   id: "cline-pass/mimo-v2.5",
   name: "MiMo-V2.5 (ClinePass)"
 }, {

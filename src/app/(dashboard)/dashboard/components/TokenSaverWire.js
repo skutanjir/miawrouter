@@ -169,51 +169,29 @@ function getStagePresentation(stageId, st, config) {
 
 function StageInstrumentRow({ stage, presentation, active, kind }) {
   const isOff = presentation.status === "off";
-
-  const badgeClass = {
-    signal: "bg-signal/10 text-signal border-signal/25 font-semibold",
-    warn: "bg-warn/10 text-warn border-warn/25 font-medium",
-    neutral: "bg-surface text-ink/80 border-border-subtle font-medium",
-    off: "bg-chassis/60 text-muted/60 border-border-subtle/50 font-normal",
-  }[presentation.badgeKind] || "bg-surface text-muted border-border-subtle";
+  const tone = presentation.badgeKind === "signal"
+    ? "text-signal"
+    : presentation.badgeKind === "warn"
+      ? "text-warn"
+      : "text-muted";
 
   return (
     <div
-      className={`tsw-stage-row flex items-center justify-between gap-2 rounded-[var(--radius-brand)] border bg-surface px-2.5 py-1.5 transition-all duration-150 ${isOff ? "opacity-50" : ""} ${active ? "tsw-stage-act" : "border-border-subtle"}`}
+      className={`tsw-stage-row grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-baseline gap-2 border-b border-border-subtle py-1.5 last:border-b-0 ${isOff ? "opacity-55" : ""} ${active ? "tsw-stage-act" : ""}`}
       data-kind={kind}
       title={`${stage.label} (${stage.sub}) · ${presentation.badge} · ${presentation.detail}`}
     >
-      <div className="flex min-w-0 items-center gap-2">
-        <span className="font-mono text-[10px] text-muted/70 shrink-0 w-3.5 text-right" aria-hidden="true">
-          {stage.step}
-        </span>
-        <div className="size-5 rounded flex items-center justify-center bg-bg border border-border-subtle text-muted shrink-0">
-          <span className="material-symbols-outlined text-[13px] leading-none" aria-hidden="true">
-            {stage.icon}
-          </span>
+      <span className="font-mono text-[10px] text-muted">{stage.step}</span>
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <span className="text-xs font-medium text-ink">{stage.label}</span>
+          <span className="truncate text-[11px] text-muted">{stage.sub}</span>
         </div>
-        <div className="min-w-0 flex flex-col">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-xs font-semibold text-ink leading-none">{stage.label}</span>
-            <span className="hidden sm:inline text-[10px] text-muted leading-none">({stage.sub})</span>
-            {active && (
-              <span className="size-1.5 rounded-full bg-signal animate-pulse" aria-hidden="true" />
-            )}
-          </div>
-          <span className="text-[10px] font-mono text-muted/80 truncate leading-tight mt-0.5 max-w-[130px] sm:max-w-[200px]" title={presentation.detail}>
-            {presentation.detail}
-          </span>
-        </div>
+        <p className="truncate font-mono text-[11px] text-muted" title={presentation.detail}>
+          {presentation.detail}
+        </p>
       </div>
-
-      <div className="shrink-0 flex items-center gap-1.5">
-        <span
-          className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-mono tabular-nums leading-tight ${badgeClass}`}
-          title={presentation.badge}
-        >
-          {presentation.badge}
-        </span>
-      </div>
+      <span className={`font-mono text-[11px] tabular-nums ${tone}`}>{presentation.badge}</span>
     </div>
   );
 }
@@ -482,86 +460,27 @@ export default function TokenSaverWire() {
   return (
     <Card
       title="Token saver wire"
-      subtitle="Configured stages and live compression telemetry"
+      subtitle="Caveman, Ponytail, RTK, Headroom, PXPIPE"
       padding="sm"
-      className="flex h-full flex-col self-stretch"
+      elev
+      className="panel-lift flex h-full flex-col self-stretch"
     >
-      <style>{`.tsw-stage-row{transition:border-color .15s ease,background-color .15s ease}
-.tsw-stage-act{border-color:color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 45%,var(--color-border-subtle))!important;background-color:color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 8%,var(--color-surface))!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--tsw-glow,var(--color-signal)) 20%,transparent)}
-.tsw-stage-act[data-kind="ok"]{--tsw-glow:var(--color-signal)}
-.tsw-stage-act[data-kind="skip"]{--tsw-glow:var(--color-warn)}
-.tsw-log-entry{border-radius:3px}
-@media (prefers-reduced-motion: reduce){.tsw-stage-row,.tsw-stage-act,.tsw-log-entry{transition:none!important;animation:none!important}}`}</style>
-      <div
-        className="flex flex-col gap-3 rounded-[var(--radius-brand)] border p-3 bg-chassis"
-        style={{ borderColor: "var(--color-rule)", flex: 1 }}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-medium text-muted">
-            Token saver telemetry ·{" "}
-            <span className="font-mono tabular-nums font-semibold text-ink">{fmt(state.req)}</span> {state.req === 1 ? "dispatch" : "dispatches"}
-          </span>
-          <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${connMeta.cls}`}>
-            <span className={`size-2 rounded-full ${connMeta.dot}`} aria-hidden="true" />
+      <style>{`.tsw-stage-act{background:color-mix(in srgb,var(--color-signal) 8%,transparent)}
+@media (prefers-reduced-motion: reduce){.tsw-stage-row{transition:none!important}}`}</style>
+      <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="min-w-0 truncate font-mono text-xs text-ink" title={providerStat}>
+            {fmt(state.req)} {state.req === 1 ? "dispatch" : "dispatches"}
+            <span className="text-muted"> · {providerStat}</span>
+          </p>
+          <span className={`inline-flex items-center gap-1.5 text-xs ${connMeta.cls}`}>
+            <span className={`size-1.5 rounded-full ${connMeta.dot}`} aria-hidden="true" />
             <span className="sr-only">Token-saver stream: </span>
             {connMeta.text}
           </span>
         </div>
 
-        {/* Compression instrument metric header */}
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <div className="flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
-              Throughput
-            </span>
-            <span className="font-mono tabular-nums text-sm font-semibold text-ink leading-tight mt-0.5">
-              {fmt(state.req)} <span className="text-[10px] font-normal text-muted">dispatches</span>
-            </span>
-          </div>
-
-          <div
-            className={`flex flex-col rounded-[var(--radius-brand)] border bg-surface px-2.5 py-1.5 min-w-0 transition-all duration-150 ${act?.stage === "provider" ? "tsw-stage-act" : "border-border-subtle"}`}
-            data-kind={act?.stage === "provider" ? act.kind : ""}
-            title={providerStat === "—" ? "Provider: upstream model API" : `Provider: ${providerStat}`}
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
-              Provider
-            </span>
-            <span className="font-mono tabular-nums text-xs font-semibold text-ink leading-tight mt-1 truncate" title={providerStat}>
-              {providerStat}
-            </span>
-          </div>
-
-          <div className="col-span-2 sm:col-span-1 flex flex-col rounded-[var(--radius-brand)] border border-border-subtle bg-surface px-2.5 py-1.5 min-w-0">
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-muted truncate">
-              Latest Action
-            </span>
-            <div className="flex items-center gap-1.5 mt-1 min-w-0">
-              {act ? (
-                <>
-                  <span className={`size-1.5 shrink-0 rounded-full ${act.kind === "ok" ? "bg-signal" : "bg-warn"}`} aria-hidden="true" />
-                  <span className={`font-mono text-xs font-semibold truncate ${act.kind === "ok" ? "text-signal" : "text-warn"}`}>
-                    {act.note}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="size-1.5 shrink-0 rounded-full bg-muted/60" aria-hidden="true" />
-                  <span className="font-mono text-xs text-muted truncate">
-                    {state.latest ? "Telemetry synced" : "Ready"}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Compression stage meter list */}
-        <div
-          role="group"
-          aria-label="Token-saver compression stages: Caveman, Ponytail, RTK, Headroom, PXPIPE"
-          className="flex flex-col gap-1.5"
-        >
+        <div role="group" aria-label="Token-saver stages">
           {STAGES.map((stage) => {
             const active = !!act && act.stage === stage.id;
             const presentation = getStagePresentation(stage.id, state, config);
@@ -577,18 +496,16 @@ export default function TokenSaverWire() {
           })}
         </div>
 
-        <p className="mt-auto text-[10px] font-medium text-muted" style={{ opacity: 0.85 }}>
-          RTK/Headroom: reported deltas · PXPIPE: estimate.
+        <p className="text-[11px] text-muted">
+          RTK and Headroom show reported byte deltas. PXPIPE is an estimate.
         </p>
-
         <p
           role="status"
           aria-live="polite"
-          className="tsw-log-entry truncate border-t pt-2 font-mono text-[11px] text-ink/80 dark:text-ink/75"
-          style={{ borderColor: "var(--color-rule)" }}
-          title={state.latest}
+          className="truncate border-t border-border-subtle pt-2 font-mono text-[11px] text-muted"
+          title={state.latest || act?.note}
         >
-          {state.latest || "Waiting for token-saver events — run a request to see activity."}
+          {act?.note || state.latest || "No saver events yet. Send a request to see which stage compressed it."}
         </p>
       </div>
     </Card>

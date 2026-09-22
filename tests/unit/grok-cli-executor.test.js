@@ -59,6 +59,7 @@ describe("grok-cli registry", () => {
     expect(getModelUpstreamId("gcli", "grok-4.5-low")).toBe("grok-4.5(low)");
     expect(getModelUpstreamId("gcli", "grok-4.5")).toBe("grok-4.5");
     expect(getModelUpstreamId("gcli", "grok-4.6-xhigh")).toBe("grok-4.6(xhigh)");
+    expect(getModelUpstreamId("gcli", "grok-4.7-xhigh")).toBe("grok-4.7(xhigh)");
     expect(getModelUpstreamId("gcli", "grok-4.6-high")).toBe("grok-4.6(high)");
     expect(getModelUpstreamId("gcli", "grok-4.6-low")).toBe("grok-4.6(low)");
     expect(getModelUpstreamId("gcli", "grok-4.3-xhigh")).toBe("grok-4.3(xhigh)");
@@ -331,6 +332,8 @@ describe("GrokCliExecutor", () => {
   it("omits reasoning effort for models that reject it", () => {
     expect(supportsGrokCliReasoningEffort("grok-4.5")).toBe(true);
     expect(supportsGrokCliReasoningEffort("grok-4.6")).toBe(true);
+    expect(supportsGrokCliReasoningEffort("grok-4.7")).toBe(true);
+    expect(supportsGrokCliXhighEffort("grok-4.7")).toBe(true);
     expect(supportsGrokCliReasoningEffort("grok-4.3")).toBe(true);
     expect(supportsGrokCliReasoningEffort("grok-4.6-xhigh")).toBe(true);
     expect(supportsGrokCliReasoningEffort("grok-build")).toBe(false);

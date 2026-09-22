@@ -48,6 +48,7 @@ const PATTERN_THINKING = [
   { pattern: "*claude*opus-4-6*", levels: L.levelMax },
   { pattern: "*claude*sonnet-4.6*", levels: L.levelMax },
   { pattern: "*claude*sonnet-4-6*", levels: L.levelMax },
+  { pattern: "*grok-4.7*", levels: L.grok46 },
   { pattern: "*grok-4.6*", levels: L.grok46 },
   { pattern: "*grok-4.5*", levels: L.grok45 },
   { pattern: "*grok-4.3*", levels: L.grok43 },

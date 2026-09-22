@@ -148,7 +148,7 @@ describe("Genspark provider", () => {
 
   it("ships the complete fallback catalog", () => {
     const ids = new Set(REGISTRY.find((e) => e.id === "genspark").models.map((model) => model.id));
-    expect(ids.size).toBe(35);
+    expect(ids.size).toBe(36);
     for (const id of [
       "claude-fable-5",
       "claude-opus-5",
@@ -165,6 +165,7 @@ describe("Genspark provider", () => {
       "gpt-5.4-nano",
       "grok-4.5",
       "grok-4.6",
+      "grok-4.7",
       "kimi-k2p6",
       "minimax-m2p7",
       "minimax-m3",

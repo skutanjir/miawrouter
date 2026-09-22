@@ -50,6 +50,11 @@ export default {
     },
   ],
   models: [
+    { id: "mimo-v2.6-pro", name: "MiMo V2.6 Pro", contextLength: 1048576, maxOutputTokens: 131072 },
+    { id: "mimo-v2.6-pro-claude", name: "MiMo V2.6 Pro (Claude Native)", targetFormat: "claude", upstreamModelId: "mimo-v2.6-pro" },
+    { id: "mimo-v2.6-flash", name: "MiMo V2.6 Flash", contextLength: 1048576, maxOutputTokens: 131072 },
+    { id: "mimo-v2.6-flash-claude", name: "MiMo V2.6 Flash (Claude Native)", targetFormat: "claude", upstreamModelId: "mimo-v2.6-flash" },
+    { id: "mimo-v2.6-pro-ultraspeed", name: "MiMo V2.6 Pro UltraSpeed", contextLength: 1048576, maxOutputTokens: 131072 },
     { id: "mimo-v2.5-pro", name: "MiMo V2.5 Pro" },
     { id: "mimo-v2.5-pro-claude", name: "MiMo V2.5 Pro (Claude Native)", targetFormat: "claude", upstreamModelId: "mimo-v2.5-pro" },
     { id: "mimo-v2.5", name: "MiMo V2.5" },

@@ -34,6 +34,7 @@ export default {
     { id: "claude-fable-5", name: "Claude Fable 5" },
     { id: "claude-opus-4.8", name: "Claude Opus 4.8" },
     { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash" },
+    { id: "grok-4.7", name: "Grok 4.7" },
     { id: "grok-4.6", name: "Grok 4.6" },
     { id: "kimi-k3", name: "Kimi K3" },
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },

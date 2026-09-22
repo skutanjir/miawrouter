@@ -39,7 +39,7 @@ export default {
     ["gpt-5.6-sol", "GPT-5.6 Sol"], ["gpt-5.6-terra", "GPT-5.6 Terra"], ["gpt-5.6-luna", "GPT-5.6 Luna"],
     ["deep-seek-v4-pro-baseten", "DeepSeek V4 Pro (Baseten)"], ["deep-seek-v4-flash", "DeepSeek V4 Flash"],
     ["gpt-5.4-mini", "GPT-5.4 Mini"], ["gpt-5.4-nano", "GPT-5.4 Nano"],
-    ["grok-4.5", "Grok 4.5"], ["grok-4.6", "Grok 4.6"], ["kimi-k2p6", "Kimi K2.6"],
+    ["grok-4.5", "Grok 4.5"], ["grok-4.6", "Grok 4.6"], ["grok-4.7", "Grok 4.7"], ["kimi-k2p6", "Kimi K2.6"],
     ["minimax-m2p7", "MiniMax M2.7"], ["minimax-m3", "MiniMax M3"], ["glm-5p2", "GLM-5.2"],
     ["kimi-k3", "Kimi K3"], ["deepseek-v4-pro-0813", "DeepSeek V4 Pro 0813"], ["solar-pro4", "Solar Pro 4"],
     ["gemini-3.1-pro-preview", "Gemini 3.1 Pro Preview"], ["gemini-3-flash-preview", "Gemini 3 Flash Preview"],
