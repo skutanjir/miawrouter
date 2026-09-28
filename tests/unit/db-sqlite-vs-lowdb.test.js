@@ -174,6 +174,34 @@ describe("DB SQLite layer — public API parity", () => {
     expect(after.find((m) => m.id === "m1")).toBeUndefined();
   });
 
+  it("customModels: live upsert refreshes metadata but preserves manual fields", async () => {
+    await sqliteDb.addCustomModel({ providerAlias: "p-live", id: "m1", name: "Manual name" });
+    const first = await sqliteDb.upsertCustomModels([{
+      providerAlias: "p-live",
+      id: "m1",
+      type: "llm",
+      name: "Live name",
+      reasoningLevels: ["low", "high"],
+      source: "live",
+    }]);
+    expect(first.added).toBe(0);
+    expect(first.updated).toBe(1);
+
+    const model = (await sqliteDb.getCustomModels()).find((m) => m.providerAlias === "p-live");
+    expect(model.name).toBe("Manual name");
+    expect(model.reasoningLevels).toEqual(["low", "high"]);
+
+    const second = await sqliteDb.upsertCustomModels([{
+      providerAlias: "p-live",
+      id: "m1",
+      type: "llm",
+      name: "Live name",
+      reasoningLevels: ["low", "high"],
+      source: "live",
+    }]);
+    expect(second).toEqual({ added: 0, updated: 0 });
+  });
+
   it("mitmAlias: get/set per tool", async () => {
     await sqliteDb.setMitmAliasAll("cursor", { "gpt-5": "claude-3" });
     const a = await sqliteDb.getMitmAlias("cursor");

@@ -7,6 +7,9 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import { parseTOML, stringifyTOML } from "confbox";
+import { resolveProviderId } from "@/shared/constants/providers";
+import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
+import { writeCodexModelsCache } from "@/lib/catalog/liveModelCatalog.js";
 
 const execAsync = promisify(exec);
 
@@ -206,67 +209,19 @@ export async function POST(request) {
     authData.auth_mode = "apikey";
     await fs.writeFile(authPath, JSON.stringify(authData, null, 2));
 
-    // Ensure active model metadata exists in models_cache.json to avoid missing metadata warnings
+    // Repair existing Codex metadata too; append-only cache logic left new effort levels missing.
     try {
-      const modelsCachePath = path.join(codexDir, "models_cache.json");
-      let cacheData = { fetched_at: new Date().toISOString(), client_version: "0.153.4", models: [] };
-      try {
-        const rawCache = await fs.readFile(modelsCachePath, "utf-8");
-        cacheData = JSON.parse(rawCache);
-      } catch { /* create new cache */ }
-
-      if (Array.isArray(cacheData.models)) {
-        const exists = cacheData.models.some((m) => m.slug === model || m.id === model);
-        if (!exists) {
-          cacheData.models.push({
-            slug: model,
-            display_name: model,
-            description: `Model ${model} via MiawRouter`,
-            default_reasoning_level: "medium",
-            supported_reasoning_levels: [
-              { effort: "low", description: "Fast responses with lighter reasoning" },
-              { effort: "medium", description: "Balances speed and reasoning depth for everyday tasks" },
-              { effort: "high", description: "Greater reasoning depth for complex problems" },
-              { effort: "xhigh", description: "Extra high reasoning depth for complex problems" },
-              { effort: "max", description: "Maximum reasoning depth for the hardest problems" },
-              { effort: "ultra", description: "Maximum reasoning with automatic task delegation" },
-            ],
-            shell_type: "bash",
-            visibility: "public",
-            supported_in_api: true,
-            priority: 1,
-            additional_speed_tiers: [],
-            service_tiers: [],
-            availability_nux: null,
-            upgrade: null,
-            model_messages: null,
-            include_skills_usage_instructions: true,
-            include_plugin_usage_instructions: true,
-            include_apps_usage_instructions: true,
-            default_reasoning_summary: "none",
-            support_verbosity: true,
-            default_verbosity: "low",
-            apply_patch_tool_type: "freeform",
-            web_search_tool_type: "text_and_image",
-            truncation_policy: { mode: "tokens", limit: 10000 },
-            supports_image_detail_original: true,
-            context_window: 1048576,
-            max_context_window: 1048576,
-            comp_hash: "3000",
-            effective_context_window_percent: 95,
-            experimental_supported_tools: ["send_user_message_async", "clock"],
-            input_modalities: ["text", "image"],
-            supports_search_tool: true,
-            use_responses_lite: true,
-            node_repl_auto_review_required: true,
-            node_repl_disabled: false,
-            tool_mode: "code_mode_only",
-            multi_agent_version: "v2",
-            multi_agent_reasoning_effort: "medium",
-          });
-          await fs.writeFile(modelsCachePath, JSON.stringify(cacheData, null, 2));
-        }
-      }
+      const slash = String(model).indexOf("/");
+      const providerAlias = slash > 0 ? model.slice(0, slash) : "codex";
+      const modelId = slash > 0 ? model.slice(slash + 1) : model;
+      const providerId = resolveProviderId(providerAlias);
+      await writeCodexModelsCache([{
+        providerAlias,
+        id: modelId,
+        name: modelId,
+        type: "llm",
+        reasoningLevels: getThinkingLevels(providerId, modelId) || [],
+      }], { codexDir });
     } catch { /* non-fatal cache update failure */ }
 
     return NextResponse.json({

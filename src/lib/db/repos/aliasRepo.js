@@ -37,11 +37,39 @@ export async function addCustomModel({ providerAlias, id, type = "llm", name }) 
   db.transaction(() => {
     const row = db.get(`SELECT 1 FROM kv WHERE scope = 'customModels' AND key = ?`, [k]);
     if (row) return;
-    const value = stringifyJson({ providerAlias, id, type, name: name || id });
+    const value = stringifyJson({ providerAlias, id, type, name: name || id, source: "manual" });
     db.run(`INSERT INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [k, value]);
     added = true;
   });
   return added;
+}
+
+export async function upsertCustomModels(models) {
+  if (!Array.isArray(models) || models.length === 0) return { added: 0, updated: 0 };
+  const db = await getAdapter();
+  let added = 0;
+  let updated = 0;
+  db.transaction(() => {
+    for (const model of models) {
+      if (!model?.providerAlias || !model?.id) continue;
+      const type = model.type || model.kind || "llm";
+      const k = customKey(model.providerAlias, model.id, type);
+      const row = db.get(`SELECT value FROM kv WHERE scope = 'customModels' AND key = ?`, [k]);
+      const existing = row ? parseJson(row.value, {}) : null;
+      const next = existing
+        ? { ...model, ...existing, ...(existing.source === "live" ? model : {}), providerAlias: model.providerAlias, id: model.id, type }
+        : { ...model, providerAlias: model.providerAlias, id: model.id, type, source: model.source || "live" };
+      const value = stringifyJson(next);
+      if (!row) {
+        db.run(`INSERT INTO kv(scope, key, value) VALUES('customModels', ?, ?)`, [k, value]);
+        added += 1;
+      } else if (row.value !== value) {
+        db.run(`UPDATE kv SET value = ? WHERE scope = 'customModels' AND key = ?`, [value, k]);
+        updated += 1;
+      }
+    }
+  });
+  return { added, updated };
 }
 
 export async function deleteCustomModel({ providerAlias, id, type = "llm" }) {

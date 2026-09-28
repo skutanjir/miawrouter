@@ -82,6 +82,11 @@ async function refreshOne(connection) {
   return checkAndRefreshToken(connection.provider, connection, { force: true });
 }
 
+async function syncOne(connection) {
+  const { syncConnectionModelCatalog } = await import("../../lib/catalog/liveModelCatalog.js");
+  return syncConnectionModelCatalog(connection);
+}
+
 /**
  * One scheduler tick. Fail-open at top level and per connection.
  * @param {{ loadConnections?: Function, refreshConnection?: Function }} [deps]
@@ -95,6 +100,7 @@ export async function runBackgroundTokenRefreshTick(deps = {}) {
   try {
     const load = deps.loadConnections || loadActiveConnections;
     const refresh = deps.refreshConnection || refreshOne;
+    const sync = deps.syncConnection || syncOne;
 
     const connections = await load();
     const due = selectConnectionsNeedingRefresh(connections, Date.now());
@@ -103,24 +109,44 @@ export async function runBackgroundTokenRefreshTick(deps = {}) {
       log.debug("BG_TOKEN_REFRESH", "No connections due for refresh", {
         active: Array.isArray(connections) ? connections.length : 0,
       });
-      return;
+    } else {
+      log.info("BG_TOKEN_REFRESH", "Refreshing due OAuth connections", {
+        due: due.length,
+        ids: due.map((c) => c.id).filter(Boolean),
+      });
+
+      await Promise.allSettled(
+        due.map(async (conn) => {
+          try {
+            await refresh(conn);
+            log.info("BG_TOKEN_REFRESH", "Connection refresh finished", {
+              id: conn.id,
+              provider: conn.provider,
+            });
+          } catch (err) {
+            log.warn("BG_TOKEN_REFRESH", "Connection refresh failed (swallowed)", {
+              id: conn?.id,
+              provider: conn?.provider,
+              error: err?.message ?? String(err),
+            });
+          }
+        })
+      );
     }
 
-    log.info("BG_TOKEN_REFRESH", "Refreshing due OAuth connections", {
-      due: due.length,
-      ids: due.map((c) => c.id).filter(Boolean),
-    });
-
     await Promise.allSettled(
-      due.map(async (conn) => {
+      (Array.isArray(connections) ? connections : []).map(async (conn) => {
         try {
-          await refresh(conn);
-          log.info("BG_TOKEN_REFRESH", "Connection refresh finished", {
-            id: conn.id,
-            provider: conn.provider,
-          });
+          const result = await sync(conn);
+          if (result?.synced) {
+            log.info("BG_MODEL_SYNC", "Connection catalog synced", {
+              id: conn.id,
+              provider: conn.provider,
+              models: result.synced,
+            });
+          }
         } catch (err) {
-          log.warn("BG_TOKEN_REFRESH", "Connection refresh failed (swallowed)", {
+          log.warn("BG_MODEL_SYNC", "Connection catalog sync failed (swallowed)", {
             id: conn?.id,
             provider: conn?.provider,
             error: err?.message ?? String(err),

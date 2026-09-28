@@ -217,6 +217,38 @@ describe("Codex settings round-trip", () => {
     const auth = await readJson(path.join(tmpHome, ".codex", "auth.json"));
     expect(auth.OPENAI_API_KEY).toBe("sk-test-codex");
   });
+
+  it("repairs missing efforts on an existing model cache entry", async () => {
+    const codexDir = path.join(tmpHome, ".codex");
+    await fs.mkdir(codexDir, { recursive: true });
+    await fs.writeFile(path.join(codexDir, "models_cache.json"), JSON.stringify({
+      models: [
+        { slug: "keep/model", custom_field: "keep" },
+        { slug: "cx/gpt-6-sol", supported_reasoning_levels: [{ effort: "low" }] },
+      ],
+    }));
+
+    const { POST } = await import("../../src/app/api/cli-tools/codex-settings/route.js");
+    const res = await POST(new Request("http://localhost/api/cli-tools/codex-settings", {
+      method: "POST",
+      body: JSON.stringify({
+        baseUrl: BASE_URL,
+        apiKey: "sk-test-codex",
+        model: "cx/gpt-6-sol",
+      }),
+    }));
+    expect(res.status).toBe(200);
+
+    const cache = await readJson(path.join(codexDir, "models_cache.json"));
+    expect(cache.models.find((entry) => entry.slug === "keep/model")).toEqual({
+      slug: "keep/model",
+      custom_field: "keep",
+    });
+    expect(cache.models.find((entry) => entry.slug === "cx/gpt-6-sol")
+      .supported_reasoning_levels.map((level) => level.effort)).toEqual([
+        "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra",
+      ]);
+  });
 });
 
 describe("Copilot settings round-trip", () => {

@@ -123,6 +123,10 @@ describe("runBackgroundTokenRefreshTick", () => {
       if (c.id === "due") throw new Error("boom");
       return c;
     });
+    const syncConnection = vi.fn(async (c) => {
+      if (c.id === "not-due") throw new Error("catalog unavailable");
+      return c;
+    });
     const loadConnections = vi.fn(async () => [due, notDue, apikey]);
 
     const { runBackgroundTokenRefreshTick } = await import(
@@ -130,16 +134,18 @@ describe("runBackgroundTokenRefreshTick", () => {
     );
 
     await expect(
-      runBackgroundTokenRefreshTick({ loadConnections, refreshConnection })
+      runBackgroundTokenRefreshTick({ loadConnections, refreshConnection, syncConnection })
     ).resolves.toBeUndefined();
 
     expect(loadConnections).toHaveBeenCalledTimes(1);
     expect(refreshConnection).toHaveBeenCalledTimes(1);
     expect(refreshConnection.mock.calls[0][0].id).toBe("due");
+    expect(syncConnection).toHaveBeenCalledTimes(3);
   });
 
   it("does not call refresh when nothing is due", async () => {
     const refreshConnection = vi.fn();
+    const syncConnection = vi.fn();
     const loadConnections = vi.fn(async () => [
       conn({
         expiresAt: new Date(NOW + 3 * 60 * 60 * 1000).toISOString(),
@@ -150,9 +156,10 @@ describe("runBackgroundTokenRefreshTick", () => {
       "../../src/sse/services/backgroundTokenRefresh.js"
     );
 
-    await runBackgroundTokenRefreshTick({ loadConnections, refreshConnection });
+    await runBackgroundTokenRefreshTick({ loadConnections, refreshConnection, syncConnection });
 
     expect(refreshConnection).not.toHaveBeenCalled();
+    expect(syncConnection).toHaveBeenCalledTimes(1);
   });
 
   it("swallows top-level load errors", async () => {

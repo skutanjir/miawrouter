@@ -3,7 +3,7 @@ export function createAgentCard(skills, baseUrl) {
     name: "MiawRouter Local Agent",
     description: "Authenticated, read-only local provider and usage introspection.",
     protocolVersion: "0.3.0",
-    version: "1.0.0",
+    version: "1.2.0",
     url: `${baseUrl}/api/a2a`,
     preferredTransport: "JSONRPC",
     additionalInterfaces: [{ url: `${baseUrl}/api/a2a`, transport: "JSONRPC" }],
