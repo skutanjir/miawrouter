@@ -13,6 +13,7 @@ export default {
     },
   },
   category: "apikey",
+  modelsFetcher: { url: "https://api.anthropic.com/v1/models?limit=1000", type: "openai", authHeader: "x-api-key", authPrefix: "" },
   transport: {
     baseUrl: "https://api.anthropic.com/v1/messages",
     format: "claude",
@@ -22,6 +23,7 @@ export default {
     },
   },
   models: [
+    { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5", contextLength: 1000000, maxOutputTokens: 128000, supportsXHighEffort: true, unsupportedParams: ["temperature", "top_p", "top_k"] },
     { id: "claude-fable-5-1", name: "Claude Fable 5.1", contextLength: 1000000, maxOutputTokens: 128000, unsupportedParams: ["temperature", "top_p", "top_k"] },
     { id: "claude-fable-5", name: "Claude Fable 5", contextLength: 1048576, unsupportedParams: ["temperature", "top_p", "top_k"] },
     { id: "claude-opus-5-5", name: "Claude Opus 5.5", contextLength: 1000000, maxOutputTokens: 128000, supportsXHighEffort: true, unsupportedParams: ["temperature", "top_p", "top_k"] },

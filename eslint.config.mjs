@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     // Prebuilt Next output for the bundled CLI (generated, not source).
     ".next-cli-build/**",
     "cli/app/.next-cli-build/**",
+    // Local/production build snapshots (generated, never source).
+    ".next-production-*/**",
     // Generated knowledge-graph artifacts.
     "graphify-out/**",
   ]),

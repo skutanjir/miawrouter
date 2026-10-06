@@ -46,6 +46,7 @@ const configItems = [
   { href: "/dashboard/combos", label: "Combo & Vision Adapter", icon: "layers" },
   { href: "/dashboard/token-saver", label: "Token Saver", icon: "savings" },
   { href: "/dashboard/settings/feature-flags", label: "Feature Flags", icon: "flag" },
+  { href: "/dashboard/settings/pricing", label: "Pricing", icon: "price_change" },
   { href: "/dashboard/cache", label: "Cache", icon: "cached" },
   { href: "/dashboard/guardrails", label: "Guardrails", icon: "verified_user" },
 ];

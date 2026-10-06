@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { PROVIDER_MODELS, getModelTargetFormat } from "../../open-sse/config/providerModels.js";
 import { OpenCodeGoExecutor } from "../../open-sse/executors/opencode-go.js";
 
-const CHAT_MODELS = [
+const LEGACY_CHAT_MODELS = [
   "glm-5.2",
   "glm-5.1",
   "glm-5.3",
@@ -71,6 +71,8 @@ const CHAT_MODELS = [
   "omen-alpha",
   "ox-alpha-free",
 ];
+const RESPONSES_MODELS = [...LEGACY_CHAT_MODELS.filter((id) => /^(gpt-|grok-)/.test(id)), "gpt-6-luna"];
+const CHAT_MODELS = [...LEGACY_CHAT_MODELS.filter((id) => !/^(gpt-|grok-)/.test(id)), "deepseek-flash", "space-bunny-free", "longcat-2.5-preview-free"];
 
 const MESSAGES_MODELS = [
   "minimax-m3",
@@ -97,7 +99,7 @@ describe("OpenCode Go official model catalog", () => {
   it("matches the documented OpenCode Go model IDs", () => {
     const ids = (PROVIDER_MODELS["opencode-go"] || []).map((model) => model.id);
 
-    const expected = [...CHAT_MODELS, ...MESSAGES_MODELS];
+    const expected = [...CHAT_MODELS, ...MESSAGES_MODELS, ...RESPONSES_MODELS];
     expect(ids).toHaveLength(expected.length);
     expect(new Set(ids)).toEqual(new Set(expected));
   });
@@ -116,6 +118,14 @@ describe("OpenCode Go official model catalog", () => {
 });
 
 describe("OpenCode Go endpoint routing", () => {
+  it("routes GPT and Grok models to Responses with bearer authentication", () => {
+    const executor = new OpenCodeGoExecutor();
+    for (const model of RESPONSES_MODELS) {
+      expect(getModelTargetFormat("opencode-go", model)).toBe("openai-responses");
+      expect(executor.buildUrl(model)).toBe("https://opencode.ai/zen/go/v1/responses");
+      expect(executor.buildHeaders({ apiKey: "test" }, false).Authorization).toBe("Bearer test");
+    }
+  });
   it("routes Qwen and MiniMax models to the messages endpoint with x-api-key auth", () => {
     const executor = new OpenCodeGoExecutor();
 

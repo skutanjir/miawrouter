@@ -84,3 +84,8 @@ export const MODE_MIN_COMPRESS_SIZE = Object.freeze({
 export const DEFAULT_AUTO_TRIGGER_TOKENS = 4000;
 // ~4 characters per token (deterministic estimate, not a tokenizer).
 export const CHARS_PER_TOKEN = 4;
+
+// ASCII-only marker prepended to every blob RTK compresses. It makes repeat
+// compression idempotent: on the next turn the blob no longer matches the
+// auto-detectors, so it is passed through byte-for-byte instead of re-scanned.
+export const RTK_SENTINEL = "[rtk:compressed]\n";

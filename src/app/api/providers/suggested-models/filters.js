@@ -7,7 +7,7 @@
 //    Entries without an explicit `type` default to the generic OpenAI-compatible
 //    response shape (`{ data: [{ id }] }`, bare arrays and `{ models: [...] }` too).
 //  - Named special filters below keep their curated shaping (free-only cuts etc.).
-import REGISTRY from "open-sse/providers/registry/index.js";
+import { REGISTRY_MODEL_SOURCES, parseRegistryModels } from "@/lib/catalog/providerModelSources.js";
 import { OPENCODE_MODELS_URL, classifyModelFree } from "@/lib/catalog/opencodeCatalog";
 
 export const FILTER_URLS = {
@@ -45,7 +45,7 @@ export const FILTERS = {
   // registry declares a modelsFetcher without a specialized filter type. Also
   // tolerates id-less entries keyed by `name` (e.g. Pollinations).
   openai: (models) =>
-    (Array.isArray(models) ? models : [])
+    parseRegistryModels(models)
       .map((m) => {
         const id = typeof m?.id === "string" && m.id ? m.id : typeof m?.name === "string" ? m.name : null;
         if (!id) return null;
@@ -62,22 +62,9 @@ export const FILTERS = {
 
 // Registry-derived allowlist: providerId → { url, type }. Built once per server
 // process; a provider id param is resolved here before anything is fetched.
-export const PROVIDER_FETCHERS = [];
-const seenProviders = new Set();
-
-for (const entry of REGISTRY) {
-  const fetcher = entry.modelsFetcher;
-  if (fetcher && typeof fetcher.url === "string" && fetcher.url.startsWith("https://")) {
-    const type = typeof fetcher.type === "string" && FILTERS[fetcher.type] ? fetcher.type : "openai";
-    if (!FILTER_URLS[type]) FILTER_URLS[type] = fetcher.url;
-    PROVIDER_FETCHERS.push({ providerId: entry.id, url: fetcher.url, type });
-    seenProviders.add(entry.id);
-  } else if (entry.transport?.validateUrl && typeof entry.transport.validateUrl === "string" && entry.transport.validateUrl.startsWith("https://") && !seenProviders.has(entry.id)) {
-    // Automatically enable upstream model resolution for any provider with a validateUrl models endpoint
-    const url = entry.transport.validateUrl;
-    PROVIDER_FETCHERS.push({ providerId: entry.id, url, type: "openai" });
-    seenProviders.add(entry.id);
-  }
+export const PROVIDER_FETCHERS = REGISTRY_MODEL_SOURCES.map((source) => ({ ...source, type: FILTERS[source.type] ? source.type : "openai" }));
+for (const fetcher of PROVIDER_FETCHERS) {
+  if (!FILTER_URLS[fetcher.type]) FILTER_URLS[fetcher.type] = fetcher.url;
 }
 
 export function findProviderFetcher(providerId) {

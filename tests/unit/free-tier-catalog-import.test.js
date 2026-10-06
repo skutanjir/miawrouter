@@ -27,11 +27,11 @@ describe("OmniRoute Free Tier catalog import", () => {
     // retired (hy3-free, laguna-s-2.1-free, north-mini-code-free). The pinned
     // source revision is unchanged.
     expect(FREE_TIER_PROVIDERS).toHaveLength(135);
-    expect(FREE_TIER_MODEL_RECORDS).toHaveLength(507);
+    expect(FREE_TIER_MODEL_RECORDS).toHaveLength(511);
     expect(new Set(FREE_TIER_PROVIDERS.map((provider) => provider.id)).size).toBe(135);
     expect(
       new Set(FREE_TIER_MODEL_RECORDS.map((model) => `${model.provider}\0${model.modelId}`)).size
-    ).toBe(507);
+    ).toBe(511);
   });
 
   it("contains every model provider and the latest source additions", () => {

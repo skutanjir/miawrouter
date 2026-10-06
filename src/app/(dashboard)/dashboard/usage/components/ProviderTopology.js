@@ -208,15 +208,15 @@ export default function ProviderTopology({
 
   return (
     <section
-      aria-label="Provider switchboard channel bay"
-      className="slot-well flex h-full min-w-0 flex-col p-3.5 sm:p-4"
+      aria-label="Live provider routing"
+      className="routing-panel flex h-full min-w-0 flex-col p-4 sm:p-6"
     >
         <div className="min-w-0">
-          <h2 className="text-sm font-medium text-ink">Channel Bay</h2>
+          <h2 className="text-lg font-semibold text-ink">Live routing</h2>
           <p className="text-xs text-muted">
             {busyCount > 0
               ? `${busyCount} dispatching now`
-              : "No dispatch in flight"}
+              : "Ready for your next request"}
             {` · ${providers.length} ${providers.length === 1 ? "provider" : "providers"}`}
           </p>
         </div>
@@ -286,8 +286,19 @@ export default function ProviderTopology({
             No provider channels match the selected filter.
           </div>
         ) : (
-          <div className="max-h-[360px] overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 min-w-0">
+          <div className="routing-scroll overflow-auto max-h-[560px]" tabIndex={0} aria-label="Routing diagram. Scroll to view all providers.">
+            <div className="routing-canvas" style={{ height: Math.max(280, filteredItems.length * 78 + 48) }}>
+              <svg className="routing-lines" viewBox={`0 0 1000 ${Math.max(280, filteredItems.length * 78 + 48)}`} preserveAspectRatio="none" aria-hidden="true">
+                <path d={`M 230 ${Math.max(280, filteredItems.length * 78 + 48) / 2} H 350`} className={busyCount ? "routing-line routing-line-active" : "routing-line"} />
+                {filteredItems.map((item, index) => {
+                  const height = Math.max(280, filteredItems.length * 78 + 48);
+                  const y = 24 + index * 78 + 34;
+                  return <path key={item.provider.provider} d={`M 490 ${height / 2} C 555 ${height / 2}, 555 ${y}, 620 ${y}`} className={`routing-line ${item.isActive ? "routing-line-active" : item.isError ? "routing-line-error" : item.isLast ? "routing-line-recent" : ""}`} />;
+                })}
+              </svg>
+              <div className="routing-source routing-node"><span className="material-symbols-outlined text-primary text-2xl">terminal</span><strong>Clients</strong><span>Apps & CLI tools</span></div>
+              <div className={`routing-hub routing-node ${busyCount ? "routing-hub-active" : ""}`}><span className="material-symbols-outlined text-primary text-3xl">hub</span><strong>MiawRouter</strong><span>{busyCount ? `${busyCount} active routes` : "Listening"}</span></div>
+              <div className="routing-destinations">
               {filteredItems.map(({ provider, activeReq, isActive, isLast, isError }) => (
                 <ChannelModule
                   key={provider.provider}
@@ -298,10 +309,12 @@ export default function ProviderTopology({
                   isError={isError}
                 />
               ))}
+              </div>
             </div>
           </div>
         )}
       </div>
+      <div className="routing-legend"><span><i className="bg-primary" />Active request</span><span><i className="bg-amber-500" />Last route</span><span><i className="bg-red-500" />Failed</span><span><i className="bg-text-muted/40" />Ready</span></div>
     </section>
   );
 }

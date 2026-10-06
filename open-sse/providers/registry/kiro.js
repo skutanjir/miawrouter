@@ -41,6 +41,12 @@ export default {
     },
   },
   models: [
+// Updated from kiro.dev/docs/models on 2026-09-30; availability depends on the account.
+{ id: "claude-opus-5.5", name: "Claude Opus 5.5", contextLength: 1000000 },
+{ id: "claude-opus-5.5-thinking", name: "Claude Opus 5.5 (Thinking)", contextLength: 1000000 },
+{ id: "claude-opus-5.5-agentic", name: "Claude Opus 5.5 (Agentic)", contextLength: 1000000 },
+{ id: "claude-opus-5.5-thinking-agentic", name: "Claude Opus 5.5 (Thinking + Agentic)", contextLength: 1000000 },
+{ id: "claude-fable-5.1", name: "Claude Fable 5.1 (Experimental)", contextLength: 1000000 },
 // Opus (added per kiro.dev/changelog/models and kiro.dev/docs/models)
 {
   id: "claude-opus-5",

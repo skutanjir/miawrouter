@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/fulldiagnose/antigravity-fixer",
+  "revision": "ea7dbd46d4139b1b84dfd5b68824b9a7ad410800",
+  "license": "MIT",
+  "localChanges": ["English default; honor --lang in interactive mode without a language prompt"]
+}

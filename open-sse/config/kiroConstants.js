@@ -179,8 +179,7 @@ export function extractKiroEffortLevel(body) {
   if (typeof effort !== "string") return null;
   const normalized = effort.toLowerCase();
   if (normalized === "none" || normalized === "off" || normalized === "disabled") return null;
-  if (normalized === "xhigh" || normalized === "max") return "high";
-  if (["low", "medium", "high"].includes(normalized)) return normalized;
+  if (["low", "medium", "high", "xhigh", "max"].includes(normalized)) return normalized;
   return null;
 }
 
@@ -191,9 +190,8 @@ function extractKiroGptEffortLevel(body) {
     (typeof body?.reasoning === "object" ? body.reasoning?.effort : null);
   if (typeof effort !== "string") return null;
   const normalized = effort.toLowerCase();
-  if (normalized === "max") return "xhigh";
-  // Kiro CLI does not advertise an explicit GPT "none" wire value; omit it.
-  if (["low", "medium", "high", "xhigh"].includes(normalized)) {
+  // Kiro's current GPT-5.6 schema accepts none and max directly.
+  if (["none", "low", "medium", "high", "xhigh", "max"].includes(normalized)) {
     return normalized;
   }
   return null;
@@ -248,7 +246,9 @@ export function usesKiroNativeGptEffort(body, model) {
 export function buildKiroAdditionalModelRequestFieldsForModel(body, model) {
   const effortPath = resolveKiroEffortPath(model);
   if (!effortPath) return undefined;
-  return buildKiroAdditionalModelRequestFields(body, effortPath);
+  const fields = buildKiroAdditionalModelRequestFields(body, effortPath);
+  if (fields?.output_config?.effort === "xhigh" && /claude-(?:opus|sonnet)-4[.-]6/.test(model)) fields.output_config.effort = "high";
+  return fields;
 }
 
 /**

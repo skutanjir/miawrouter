@@ -15,6 +15,9 @@ const TOOL_HOSTS = {
     "agent.global.api5.cursor.sh",
     "agentn.global.api5.cursor.sh",
   ],
+  // Dedicated API hosts only — never shared web/console domains.
+  "grok-cli": ["cli-chat-proxy.grok.com"],
+  iflow: ["apis.iflow.cn"],
 };
 
 module.exports = { TOOL_HOSTS };

@@ -26,11 +26,16 @@ const HOST_REWRITE = {
   "cloudcode-pa.googleapis.com": "daily-cloudcode-pa.googleapis.com",
 };
 
+// Generic OpenAI/Responses JSON passthrough — rewrite model, forward to the
+// matching router endpoint. Reused by Copilot, Grok CLI and iFlow.
+const openaiJson = require("./handlers/copilot");
 const handlers = {
   antigravity: require("./handlers/antigravity"),
-  copilot: require("./handlers/copilot"),
+  copilot: openaiJson,
   kiro: require("./handlers/kiro"),
   cursor: require("./handlers/cursor"),
+  "grok-cli": openaiJson,
+  iflow: openaiJson,
 };
 
 // ── SSL / SNI ─────────────────────────────────────────────────

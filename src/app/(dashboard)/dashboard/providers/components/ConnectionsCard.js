@@ -19,7 +19,7 @@ function CooldownTimer({ until }) {
       else setRemaining(`${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`);
     };
     update();
-    const t = setInterval(update, 1000);
+    const t = setInterval(() => { if (!document.hidden) update(); }, 1000);
     return () => clearInterval(t);
   }, [until]);
 
@@ -71,7 +71,7 @@ function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMov
       setIsCooldown(!!until);
     };
     check();
-    const t = modelLockUntil ? setInterval(check, 1000) : null;
+    const t = modelLockUntil ? setInterval(() => { if (!document.hidden) check(); }, 1000) : null;
     return () => { if (t) clearInterval(t); };
   }, [modelLockUntil]);
 

@@ -76,7 +76,10 @@ export const MODEL_CAPABILITIES = {
   "deepseek-v4-flash-vision-exp": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
   "deepseek-v4-flash-fast": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
   "deepseek-v4.1-flash": { vision: true, reasoning: true, thinkingFormat: "openai", contextWindow: 1000000, maxOutput: 384000 },
-  "claude-fable-5-1": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 },
+  "claude-fable-5-1": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },
+  "claude-opus-4-5": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-budget", thinkingSupportsEffort: true, contextWindow: 200000, maxOutput: 64000 },
+  "claude-sonnet-5-5": { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, thinkingDisableType: "between_tools", contextWindow: 1000000, maxOutput: 128000 },
+  "gpt-6.1-sol": { vision: true, reasoning: true, search: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 1050000, maxOutput: 128000 },
   // Claude Opus 5, 4.6/4.7/4.8, and Kiro Sonnet 5 have 1M context + adaptive thinking (override generic claude pattern)
   "claude-opus-5-5":   { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 },
   "claude-opus-5":     { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 },
@@ -204,6 +207,13 @@ export const PROVIDER_CAPABILITIES = {
  * a broad family pattern swallowing an exception (e.g. glm-4.6v vs glm-5).
  */
 export const PATTERN_CAPABILITIES = [
+  { pattern: "*claude*opus-4-5*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-budget", thinkingSupportsEffort: true, contextWindow: 200000, maxOutput: 64000 } },
+  { pattern: "*claude*opus-4.5*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-budget", thinkingSupportsEffort: true, contextWindow: 200000, maxOutput: 64000 } },
+  { pattern: "*claude*fable*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 } },
+  { pattern: "*claude*mythos*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 } },
+  { pattern: "*claude*opus-5-5*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, contextWindow: 1000000, maxOutput: 128000 } },
+  { pattern: "*claude*sonnet-5-5*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", thinkingCanDisable: false, thinkingDisableType: "between_tools", contextWindow: 1000000, maxOutput: 128000 } },
+  { pattern: "*claude*sonnet-5*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 } },
   // ── Claude (4.6+ = adaptive thinking; older/haiku = budget) ──────
   { pattern: "*claude*opus-5*",     caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive", contextWindow: 1000000, maxOutput: 128000 } },
   { pattern: "*claude*opus-4.6*",   caps: { vision: true, reasoning: true, search: true, thinkingFormat: "claude-adaptive" } },
@@ -231,6 +241,7 @@ export const PATTERN_CAPABILITIES = [
   { pattern: "*nanobanana*",    caps: { vision: true, imageOutput: true } },
 
   // ── OpenAI GPT-6 / GPT-5.x (vision + thinking + web search) ──────
+  { pattern: "*gpt-6.1-sol*", caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 1050000, maxOutput: 128000 } },
   { pattern: "*gpt-6-astra*",   caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", thinkingCanDisable: false, contextWindow: 1050000, maxOutput: 128000 } },
   { pattern: "*gpt-6*",         caps: { vision: true, reasoning: true, search: true, thinkingFormat: "openai", contextWindow: 1050000, maxOutput: 128000 } },
   { pattern: "*gpt-5*image*",   caps: { imageOutput: true } },

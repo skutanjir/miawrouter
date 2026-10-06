@@ -5,6 +5,7 @@
 // cli.js will retry at runtime if anything is missing.
 const { ensureSqliteRuntime } = require("./sqliteRuntime");
 const { ensureTrayRuntime } = require("./trayRuntime");
+const { ensureAntigravityFixerRuntime } = require("./antigravityFixerRuntime");
 
 try {
   ensureSqliteRuntime({ silent: false });
@@ -17,6 +18,13 @@ try {
   ensureTrayRuntime({ silent: false });
 } catch (e) {
   console.warn(`[miawrouter] tray runtime skipped: ${e.message}`);
+}
+
+try {
+  ensureAntigravityFixerRuntime();
+  console.log("[miawrouter] Antigravity Fixer ready");
+} catch (e) {
+  console.warn(`[miawrouter] Antigravity Fixer source bundled; runtime setup deferred: ${e.message}`);
 }
 
 process.exit(0);

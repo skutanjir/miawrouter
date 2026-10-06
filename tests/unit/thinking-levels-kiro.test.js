@@ -10,5 +10,10 @@ describe("getThinkingLevels for Kiro", () => {
   it("advertises native levels for supported Kiro models", () => {
     expect(getThinkingLevels("kiro", "claude-sonnet-5")).toContain("high");
     expect(getThinkingLevels("kiro", "gpt-5.6-sol")).toContain("xhigh");
+    expect(getThinkingLevels("kiro", "gpt-5.6-sol")).toContain("max");
+    expect(getThinkingLevels("kiro", "gpt-5.6-sol")).not.toContain("minimal");
+  });
+  it("prefers validated upstream effort metadata for newly discovered models", () => {
+    expect(getThinkingLevels("commandcode", "new-model", { reasoningLevels: ["low", "high", "unknown"] })).toEqual(["low", "high"]);
   });
 });

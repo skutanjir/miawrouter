@@ -93,3 +93,4 @@ bench/out/
 *.db
 *.db-journal
 .playwright-mcp/
+.playwright-cli/

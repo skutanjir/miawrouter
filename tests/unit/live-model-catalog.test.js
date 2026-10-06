@@ -46,8 +46,6 @@ describe("live model catalog", () => {
 
     expect(rows.map((row) => row.id)).toEqual([
       "gpt-5.6-luna",
-      "gpt-5.6-luna-none",
-      "gpt-5.6-luna-minimal",
       "gpt-5.6-luna-low",
       "gpt-5.6-luna-medium",
       "gpt-5.6-luna-high",
@@ -61,8 +59,6 @@ describe("live model catalog", () => {
     );
     expect(gpt6Rows.map((row) => row.id)).toEqual([
       "gpt-6-luna",
-      "gpt-6-luna-none",
-      "gpt-6-luna-minimal",
       "gpt-6-luna-low",
       "gpt-6-luna-medium",
       "gpt-6-luna-high",

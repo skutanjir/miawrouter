@@ -13,6 +13,7 @@ export default {
     },
   },
   category: "apikey",
+  modelsFetcher: { url: "https://api.openai.com/v1/models", type: "openai" },
   thinkingConfig: {
     options: [
       "auto",
@@ -31,6 +32,15 @@ export default {
     forceStream: true,
   },
   models: [{
+  id: "gpt-6.1-sol",
+  name: "GPT-6.1 Sol",
+  targetFormat: "openai-responses",
+  supportsReasoning: true,
+  supportsVision: true,
+  toolCalling: true,
+  contextLength: 1050000,
+  maxOutputTokens: 128000
+}, {
   id: "gpt-5.4",
   name: "GPT-5.4"
 }, {

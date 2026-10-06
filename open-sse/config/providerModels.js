@@ -58,8 +58,10 @@ export function findModelName(aliasOrId, modelId) {
 
 export function getModelTargetFormat(aliasOrId, modelId) {
   const models = PROVIDER_MODELS[aliasOrId];
-  if (!models) return null;
-  return modelTargetFormat(findModel(models, modelId, aliasOrId));
+  const configured = modelTargetFormat(findModel(models, modelId, aliasOrId));
+  if (configured) return configured;
+  const provider = REGISTRY.find((entry) => entry.id === aliasOrId || entry.alias === aliasOrId);
+  return provider?.modelFormatRules?.find((rule) => rule.prefixes.some((prefix) => modelId?.startsWith(prefix)))?.format || null;
 }
 
 export function getModelType(aliasOrId, modelId) {

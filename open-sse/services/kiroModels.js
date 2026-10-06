@@ -158,7 +158,7 @@ function formatDisplayName(modelName, modelId, rateMultiplier) {
  */
 async function fetchKiroCatalogRaw(credentials, signal) {
   const profileArn = credentials?.providerSpecificData?.profileArn || "";
-  const region = regionFromProfileArn(profileArn);
+  const region = profileArn ? regionFromProfileArn(profileArn) : credentials?.providerSpecificData?.region || DEFAULT_REGION;
   const params = new URLSearchParams();
   params.set("origin", "AI_EDITOR");
   if (profileArn) params.set("profileArn", profileArn);
@@ -180,6 +180,7 @@ async function fetchKiroCatalogRaw(credentials, signal) {
   try {
     response = await fetch(url, {
       method: "GET",
+      redirect: "error",
       headers,
       signal: controller.signal
     });

@@ -26,7 +26,7 @@ async function intercept(req, res, bodyBuffer, mappedModel) {
     const routerRes = await fetchRouter(body, routerPath, req.headers);
     await pipeSSE(routerRes, res);
   } catch (error) {
-    err(`[copilot] ${error.message}`);
+    err(`[mitm] ${error.message}`);
     if (!res.headersSent) res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: { message: error.message, type: "mitm_error" } }));
   }

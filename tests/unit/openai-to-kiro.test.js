@@ -339,7 +339,7 @@ describe("openaiToKiroRequest", () => {
 
     it.each([
       ["xhigh", "gpt-5.6-terra", "xhigh"],
-      ["max", "gpt-5.6-sol", "xhigh"],
+      ["max", "gpt-5.6-sol", "max"],
     ])("preserves GPT-5.6 effort %s as supported wire effort %s", (effort, model, wireEffort) => {
       const body = {
         reasoning: { effort },
@@ -393,7 +393,7 @@ describe("openaiToKiroRequest", () => {
 
         const result = openaiToKiroRequest("gpt-5.6-luna", body, true, {});
 
-        expect(result.additionalModelRequestFields).toBeUndefined();
+        expect(result.additionalModelRequestFields).toEqual(effort === "none" ? { reasoning: { effort: "none" } } : undefined);
         expect(systemPromptOf(result)).not.toContain("<thinking_mode>");
         expect(systemPromptOf(result)).not.toContain("<max_thinking_length>");
       }
@@ -532,7 +532,7 @@ describe("openaiToKiroRequest", () => {
       const result = openaiToKiroRequest("claude-sonnet-4.6", body, true, {});
 
       expect(systemPromptOf(result)).toContain("<max_thinking_length>32000</max_thinking_length>");
-      expect(result.additionalModelRequestFields?.output_config?.effort).toBe("high");
+      expect(result.additionalModelRequestFields?.output_config?.effort).toBe("max");
     });
 
     it("clamps OpenAI Responses reasoning.effort xhigh to max_thinking_length 32000", () => {

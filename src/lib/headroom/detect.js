@@ -1,5 +1,7 @@
 import { execFileSync, execSync } from "child_process";
 import path from "path";
+import fs from "node:fs";
+import { HEADROOM_BINARY, HEADROOM_PYTHON, PACKAGE_METADATA_PROBE, findUv, hasPip } from "./environment.js";
 
 // Extras that improve headroom compression quality. `proxy` is the base;
 // `code` adds tree-sitter AST compression; `ml` adds Kompress-v2 HF model.
@@ -96,6 +98,7 @@ export function pythonCommandSpec(candidate, isWindows = IS_WIN) {
 
 // Detect whether the headroom CLI is installed and where its binary lives.
 export function findHeadroomBinary() {
+  if (fs.existsSync(HEADROOM_BINARY)) return HEADROOM_BINARY;
   try {
     const out = execSync(`${WHICH_CMD} headroom`, {
       stdio: ["ignore", "pipe", "ignore"],
@@ -120,6 +123,7 @@ export function findHeadroomBinary() {
 // bare names resolved via PATH.
 function pythonCandidates() {
   const list = [];
+  if (fs.existsSync(HEADROOM_PYTHON)) list.push(HEADROOM_PYTHON);
   const bin = findHeadroomBinary();
   if (bin) {
     const dir = path.dirname(bin);
@@ -134,24 +138,24 @@ function pythonCandidates() {
     for (const n of names) list.push(path.join(dir, n));
   }
   list.push(...PYTHON_CANDIDATES);
-  return list;
+  return [...new Set(list)];
 }
 
 export function findPython310Spec() {
   let fallback = null;
+  const requireInstalled = Boolean(findHeadroomBinary());
   for (const candidate of pythonCandidates()) {
     const spec = pythonCommandSpec(candidate);
     try {
-      const ver = IS_WIN
-        ? execFileSync(spec.command, [...spec.args, "--version"], { stdio: ["ignore", "pipe", "ignore"], windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH } }).toString().trim()
-        : execSync(`${spec.command} --version`, { stdio: ["ignore", "pipe", "ignore"], windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH } }).toString().trim();
+      const ver = execFileSync(spec.command, [...spec.args, "--version"], { timeout: 3000, stdio: ["ignore", "pipe", "ignore"], windowsHide: true, env: { ...process.env, PATH: EXTENDED_PATH } }).toString().trim();
       const match = ver.match(/(\d+)\.(\d+)/);
       if (!match) continue;
       const [major, minor] = [parseInt(match[1], 10), parseInt(match[2], 10)];
       if (!(major > MIN_VERSION[0] || (major === MIN_VERSION[0] && minor >= MIN_VERSION[1]))) continue;
       if (!fallback) fallback = spec;
+      if (!requireInstalled) return spec;
       try {
-        execFileSync(spec.command, [...spec.args, "-m", "pip", "show", "headroom-ai"], {
+        execFileSync(spec.command, [...spec.args, "-c", "import importlib.metadata as m; print(m.version('headroom-ai'))"], {
           stdio: ["ignore", "pipe", "ignore"],
           windowsHide: true,
           timeout: HEADROOM_PIP_TIMEOUT_MS,
@@ -199,6 +203,9 @@ export function isLoopbackHeadroomUrl(url) {
 export async function getHeadroomStatus(url) {
   const path = findHeadroomBinary();
   const python = findPython310();
+  const pythonSpec = pythonCommandSpec(python);
+  const uv = findUv();
+  const pip = hasPip(pythonSpec);
   const installed = Boolean(path);
   const running = await probeProxyRunning(url);
   const localUrl = isLoopbackHeadroomUrl(url);
@@ -212,6 +219,10 @@ export async function getHeadroomStatus(url) {
     canStart: installed && localUrl,
     version: extrasStatus.version,
     extras: extrasStatus.extras,
+    uv,
+    pip,
+    canInstall: localUrl && Boolean(uv || (python && pip)),
+    recommendedInstaller: uv ? "uv" : pip ? "pip" : null,
   };
 }
 
@@ -224,7 +235,7 @@ export function getInstalledHeadroomExtras(python) {
   const spec = pythonCommandSpec(python || findPython310());
   if (!spec.command) return { installed: false, version: null, extras: { code: false, ml: false } };
   try {
-    const out = execFileSync(spec.command, [...spec.args, "-m", "pip", "list", "--format=json", "--disable-pip-version-check"], {
+    const out = execFileSync(spec.command, [...spec.args, "-c", PACKAGE_METADATA_PROBE], {
       stdio: ["ignore", "pipe", "ignore"],
       windowsHide: true,
       timeout: HEADROOM_PIP_TIMEOUT_MS,

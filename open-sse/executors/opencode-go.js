@@ -20,7 +20,7 @@ export class OpenCodeGoExecutor extends BaseExecutor {
     this._lastModel = model;
     return usesMessagesFormat(model)
       ? `${BASE}/messages`
-      : `${BASE}/chat/completions`;
+      : getModelTargetFormat("opencode-go", model) === "openai-responses" ? `${BASE}/responses` : `${BASE}/chat/completions`;
   }
 
   transformRequest(model, body, stream, credentials) {
@@ -31,6 +31,7 @@ export class OpenCodeGoExecutor extends BaseExecutor {
   buildHeaders(credentials, stream = true) {
     const key = credentials?.apiKey || credentials?.accessToken;
     const headers = { "Content-Type": "application/json" };
+    headers["User-Agent"] = credentials?.rawHeaders?.["user-agent"] || this.config.headers?.["User-Agent"];
 
     if (usesMessagesFormat(this._lastModel)) {
       headers["x-api-key"] = key;
@@ -57,4 +58,3 @@ export class OpenCodeGoExecutor extends BaseExecutor {
     return headers;
   }
 }
-

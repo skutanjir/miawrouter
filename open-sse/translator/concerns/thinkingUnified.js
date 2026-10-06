@@ -3,7 +3,7 @@
 // never hardcoded per-model here. See .docs/thinking/plan.md MATRIX VI-A.
 
 import { getCapabilitiesForModel } from "../../providers/capabilities.js";
-import { getThinkingLevels } from "../../providers/thinkingLevels.js";
+import { getThinkingLevels, normalizeThinkingLevel } from "../../providers/thinkingLevels.js";
 import { PROVIDERS } from "../../providers/index.js";
 import { LEVEL_TO_BUDGET, budgetToLevel, effortToBudget, effortToThinkingLevel } from "./thinking.js";
 
@@ -222,38 +222,45 @@ function stripAll(body) {
 }
 
 // Apply unified thinking config to body in the resolved provider-native format.
-function applyFormat(fmt, body, cfg, caps, supportedLevels) {
+function applyFormat(fmt, body, cfg, caps, supportedLevels, model) {
   const none = cfg.mode === "none";
   const canDisable = caps.thinkingCanDisable !== false;
   // Model cannot disable thinking → clamp "none" to minimal effort instead.
-  const eff = none && !canDisable ? { mode: "level", level: "minimal" } : cfg;
+  const isOpenAIModel = /(?:^|\/)(?:gpt-|o[134](?:-|$))/.test(model || "");
+  const minimum = fmt === "claude-adaptive" || isOpenAIModel ? supportedLevels?.[0] : "minimal";
+  const eff = none && !canDisable ? { mode: "level", level: minimum || "minimal" } : cfg;
 
   switch (fmt) {
     case "openai": {
-      if (none && canDisable) { body.reasoning_effort = "none"; break; }
-      const level = toLevel(eff);
+      if (none && canDisable) { body.reasoning_effort = normalizeThinkingLevel("none", supportedLevels); break; }
+      const level = isOpenAIModel ? normalizeThinkingLevel(toLevel(eff), supportedLevels) : toLevel(eff);
       if (level) body.reasoning_effort = normalizeOpenAILevel(level, supportedLevels);
       break;
     }
     case "claude-adaptive": {
       if (none && canDisable) { body.thinking = { type: "disabled" }; break; }
+      if (none && caps.thinkingDisableType === "between_tools") {
+        body.thinking = { type: "between_tools" };
+        break;
+      }
       // output_config.effort alone does NOT turn thinking on: Anthropic requires
       // an explicit thinking:{type:"adaptive"} on Opus 4.6/4.7/4.8 and Sonnet 4.6
       // ("thinking is off unless you explicitly set it"), and Anthropic-compatible
       // shims (e.g. GitHub Copilot /v1/messages) default thinking off even for
       // Sonnet 5. Send both fields — the documented adaptive-thinking shape.
       body.thinking = { type: "adaptive" };
-      const level = toLevel(eff);
-      const effort = (level === "xhigh" && supportedLevels && !supportedLevels.includes("xhigh"))
-        ? "high"
-        : level;
-      body.output_config = { effort };
+      const effort = normalizeThinkingLevel(toLevel(eff), supportedLevels);
+      if (effort) body.output_config = { effort };
       break;
     }
     case "claude-budget": {
       if (none && canDisable) { body.thinking = { type: "disabled" }; break; }
       const budget = toBudget(eff, caps.thinkingRange);
       body.thinking = budget === -1 ? { type: "enabled" } : { type: "enabled", budget_tokens: budget || 8192 };
+      if (caps.thinkingSupportsEffort && cfg.mode === "level") {
+        const effort = normalizeThinkingLevel(toLevel(cfg), supportedLevels);
+        if (effort) body.output_config = { effort };
+      }
       break;
     }
     case "gemini-level": {
@@ -351,6 +358,6 @@ export function applyThinking(targetFormat, model, body, provider = null, intent
   const fmt = resolveFormat(targetFormat, cleanModel, provider);
   const supportedLevels = getThinkingLevels(provider, cleanModel);
   stripAll(body);
-  applyFormat(fmt, body, cfg, caps, supportedLevels);
+  applyFormat(fmt, body, cfg, caps, supportedLevels, cleanModel);
   return body;
 }

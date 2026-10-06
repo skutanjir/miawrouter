@@ -8,7 +8,7 @@ export const MITM_TOOLS = {
     description: "Google Antigravity IDE with MITM",
     configType: "mitm",
     mitmDomain: "daily-cloudcode-pa.googleapis.com",
-    modelAliases: ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "gemini-3.7-flash-high", "gemini-3.7-flash-medium", "gemini-3.7-flash-low", "gemini-3.6-flash-high", "gemini-3.6-flash-medium", "gemini-3.6-flash-low", "gemini-3.5-flash-low", "gemini-3-flash-agent", "gemini-3.5-flash-extra-low", "gemini-3.1-pro-low", "gemini-pro-agent", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium", "gemini-3-flash"],
+    modelAliases: ["gemini-3.8-flash-high", "gemini-3.8-flash-medium", "gemini-3.8-flash-low", "gemini-3.7-flash-high", "gemini-3.7-flash-medium", "gemini-3.7-flash-low", "gemini-3.6-flash-high", "gemini-3.6-flash-medium", "gemini-3.6-flash-low", "gemini-3.5-flash-low", "gemini-3-flash-agent", "gemini-3.5-flash-extra-low", "gemini-3.1-pro-low", "gemini-pro-agent", "claude-sonnet-5-5", "claude-opus-5-5", "claude-sonnet-4-6", "claude-opus-4-6-thinking", "gpt-oss-120b-medium", "gemini-3-flash"],
     defaultModels: [
       { id: "gemini-3.8-flash-high", name: "Gemini 3.8 Flash (High)", alias: "gemini-3.8-flash-high" },
       { id: "gemini-3.8-flash-medium", name: "Gemini 3.8 Flash (Medium) / Default", alias: "gemini-3.8-flash-medium", mandatory: true },
@@ -27,6 +27,8 @@ export const MITM_TOOLS = {
       { id: "gemini-3.5-flash-extra-low", name: "Gemini 3.5 Flash (Low)", alias: "gemini-3.5-flash-extra-low" },
       { id: "gemini-3.1-pro-low", name: "Gemini 3.1 Pro (Low)", alias: "gemini-3.1-pro-low" },
       { id: "gemini-pro-agent", name: "Gemini 3.1 Pro (High)", alias: "gemini-pro-agent" },
+      { id: "claude-sonnet-5-5", name: "Claude Sonnet 5.5 (Thinking)", alias: "claude-sonnet-5-5" },
+      { id: "claude-opus-5-5", name: "Claude Opus 5.5 (Thinking)", alias: "claude-opus-5-5" },
       { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6 (Thinking)", alias: "claude-sonnet-4-6" },
       { id: "claude-opus-4-6-thinking", name: "Claude Opus 4.6 (Thinking)", alias: "claude-opus-4-6-thinking" },
       { id: "gpt-oss-120b-medium", name: "GPT-OSS 120B (Medium)", alias: "gpt-oss-120b-medium" },
@@ -41,7 +43,7 @@ export const MITM_TOOLS = {
     description: "GitHub Copilot IDE with MITM",
     configType: "mitm",
     mitmDomain: "api.individual.githubcopilot.com",
-    modelAliases: ["gpt-5-mini", "gpt-5.4-nano", "claude-haiku-4.5", "gpt-4o", "gpt-4.1"],
+    modelAliases: ["gpt-5-mini", "gpt-5.4-nano", "claude-haiku-4.5", "gpt-4o", "gpt-4.1", "gpt-5.2", "gpt-5.2-codex", "gpt-5.3-codex", "gpt-5.4", "gpt-5.4-mini", "claude-opus-4.5", "claude-sonnet-4.5", "claude-sonnet-4.6", "claude-opus-4.6", "claude-opus-4.7", "gemini-2.5-pro", "gemini-3-flash-preview", "gemini-3.1-pro-preview", "grok-code-fast-1"],
     defaultModels: [
       // Verified via live MITM passthrough capture of the GitHub Copilot CLI: its model
       // picker offers "GPT-5 mini" (default → wire id "gpt-5-mini"), "Claude Haiku 4.5"
@@ -51,12 +53,27 @@ export const MITM_TOOLS = {
       // gpt-5-mini / gpt-5.4-nano, getMappedModel returns null and the /chat/completions
       // call is passed through to GitHub Copilot instead of the configured provider —
       // and gpt-5-mini is the CLI default, so the primary turn leaks (same class as the
-      // Kiro "auto" misrouting). gpt-4o / gpt-4.1 are kept for the VS Code Copilot Chat picker.
+      // Kiro "auto" misrouting). The rest track the github.js registry (VS Code /
+      // Copilot Chat picker) so newly exposed models stay mappable.
       { id: "gpt-5-mini", name: "GPT-5 mini", alias: "gpt-5-mini" },
       { id: "gpt-5.4-nano", name: "GPT-5.4 nano", alias: "gpt-5.4-nano" },
       { id: "claude-haiku-4.5", name: "Claude Haiku 4.5", alias: "claude-haiku-4.5" },
       { id: "gpt-4o", name: "GPT-4o", alias: "gpt-4o" },
       { id: "gpt-4.1", name: "GPT-4.1", alias: "gpt-4.1" },
+      { id: "gpt-5.2", name: "GPT-5.2", alias: "gpt-5.2" },
+      { id: "gpt-5.2-codex", name: "GPT-5.2 Codex", alias: "gpt-5.2-codex" },
+      { id: "gpt-5.3-codex", name: "GPT-5.3 Codex", alias: "gpt-5.3-codex" },
+      { id: "gpt-5.4", name: "GPT-5.4", alias: "gpt-5.4" },
+      { id: "gpt-5.4-mini", name: "GPT-5.4 Mini", alias: "gpt-5.4-mini" },
+      { id: "claude-opus-4.5", name: "Claude Opus 4.5", alias: "claude-opus-4.5" },
+      { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4.5" },
+      { id: "claude-sonnet-4.6", name: "Claude Sonnet 4.6", alias: "claude-sonnet-4.6" },
+      { id: "claude-opus-4.6", name: "Claude Opus 4.6", alias: "claude-opus-4.6" },
+      { id: "claude-opus-4.7", name: "Claude Opus 4.7", alias: "claude-opus-4.7" },
+      { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", alias: "gemini-2.5-pro" },
+      { id: "gemini-3-flash-preview", name: "Gemini 3 Flash", alias: "gemini-3-flash-preview" },
+      { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", alias: "gemini-3.1-pro-preview" },
+      { id: "grok-code-fast-1", name: "Grok Code Fast 1", alias: "grok-code-fast-1" },
     ],
   },
   kiro: {
@@ -68,12 +85,26 @@ export const MITM_TOOLS = {
     configType: "mitm",
     mitmDomain: "q.us-east-1.amazonaws.com",
     defaultModels: [
+      // Aligned with the kiro.js provider registry (kiro.dev/docs/models, 2026-09-30).
+      // Opus/Fable/GLM/Qwen rows were missing, so Kiro users picking those models
+      // leaked straight to AWS instead of routing. `simple-task` is the background
+      // sub-task wire id (pinned by kiro-model-slots.test.js) and `minimax-m2.1` is
+      // Kiro's lowercase wire id (see freeTierCatalog), so both stay as-is.
+      { id: "claude-opus-5.5", name: "Claude Opus 5.5", alias: "claude-opus-5.5" },
+      { id: "claude-fable-5.1", name: "Claude Fable 5.1", alias: "claude-fable-5.1" },
+      { id: "claude-opus-5", name: "Claude Opus 5", alias: "claude-opus-5" },
+      { id: "claude-opus-4.8", name: "Claude Opus 4.8", alias: "claude-opus-4.8" },
+      { id: "claude-opus-4.7", name: "Claude Opus 4.7", alias: "claude-opus-4.7" },
+      { id: "claude-opus-4.5", name: "Claude Opus 4.5", alias: "claude-opus-4.5" },
       { id: "claude-sonnet-5", name: "Claude Sonnet 5", alias: "claude-sonnet-5" },
       { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", alias: "claude-sonnet-4.5" },
       { id: "claude-sonnet-4", name: "Claude Sonnet 4", alias: "claude-sonnet-4" },
       { id: "claude-haiku-4.5", name: "Claude Haiku 4.5", alias: "claude-haiku-4.5" },
       { id: "deepseek-3.2", name: "DeepSeek 3.2", alias: "deepseek-3.2" },
+      { id: "glm-5", name: "GLM 5", alias: "glm-5" },
+      { id: "qwen3-coder-next", name: "Qwen3 Coder Next", alias: "qwen3-coder-next" },
       { id: "minimax-m2.1", name: "MiniMax M2.1", alias: "minimax-m2.1" },
+      { id: "MiniMax-M2.5", name: "MiniMax M2.5", alias: "MiniMax-M2.5" },
       { id: "gpt-6-astra", name: "GPT 6 Astra", alias: "gpt-6-astra", contextLength: 872000, rateMultiplier: 3.0 },
       { id: "gpt-5.6-sol", name: "GPT 5.6 Sol", alias: "gpt-5.6-sol", contextLength: 272000, rateMultiplier: 2.4 },
       { id: "gpt-5.6-terra", name: "GPT 5.6 Terra", alias: "gpt-5.6-terra", contextLength: 272000, rateMultiplier: 1.2 },
@@ -92,8 +123,53 @@ export const MITM_TOOLS = {
     modelAliases: ["composer-2.5-fast", "default"],
     routingAvailable: true,
     defaultModels: [
+      // Cursor's binary AgentService proto carries its own wire model id; only
+      // aliased slots are re-routed, the rest relay natively. `composer-2.5` maps
+      // via the handler's fallback to the `composer-2.5-fast` slot.
       { id: "composer-2.5-fast", name: "Composer 2.5 Fast (Free)", alias: "composer-2.5-fast" },
+      { id: "composer-2.5", name: "Composer 2.5", alias: "composer-2.5" },
+      { id: "composer-2-fast", name: "Composer 2 Fast", alias: "composer-2-fast" },
+      { id: "composer-2", name: "Composer 2", alias: "composer-2" },
+      { id: "auto", name: "Auto (Server Picks)", alias: "auto" },
       { id: "default", name: "Auto / Default", alias: "default" },
+    ],
+  },
+  "grok-cli": {
+    id: "grok-cli",
+    name: "Grok CLI",
+    image: "/providers/grok-cli.png",
+    color: "#1DA1F2",
+    description: "xAI Grok CLI / Grok Build with MITM",
+    configType: "mitm",
+    mitmDomain: "cli-chat-proxy.grok.com",
+    routingAvailable: true,
+    defaultModels: [
+      // Dedicated Responses-API host (cli-chat-proxy.grok.com). Wire model ids mirror
+      // the grok-cli provider registry; unmapped ids relay to Grok natively.
+      { id: "grok-build", name: "Grok Build (Default)", alias: "grok-build", mandatory: true },
+      { id: "grok-4.7", name: "Grok 4.7", alias: "grok-4.7" },
+      { id: "grok-4.6", name: "Grok 4.6", alias: "grok-4.6" },
+      { id: "grok-4.5", name: "Grok 4.5", alias: "grok-4.5" },
+      { id: "grok-4.3", name: "Grok 4.3", alias: "grok-4.3" },
+      { id: "grok-composer-2.5-fast", name: "Composer 2.5", alias: "grok-composer-2.5-fast" },
+    ],
+  },
+  iflow: {
+    id: "iflow",
+    name: "iFlow CLI",
+    image: "/providers/iflow.png",
+    color: "#6366F1",
+    description: "iFlow CLI with MITM",
+    configType: "mitm",
+    mitmDomain: "apis.iflow.cn",
+    routingAvailable: true,
+    defaultModels: [
+      // Dedicated OpenAI-compatible host (apis.iflow.cn/v1/chat/completions).
+      { id: "qwen3-coder-plus", name: "Qwen3 Coder Plus", alias: "qwen3-coder-plus", mandatory: true },
+      { id: "qwen3-max", name: "Qwen3 Max", alias: "qwen3-max" },
+      { id: "kimi-k2", name: "Kimi K2", alias: "kimi-k2" },
+      { id: "deepseek-v3.2", name: "DeepSeek V3.2", alias: "deepseek-v3.2" },
+      { id: "glm-4.7", name: "GLM 4.7", alias: "glm-4.7" },
     ],
   },
 };
@@ -632,6 +708,63 @@ gemini extensions install https://github.com/manalkaff/opendesign
 
 # OpenCode
 # Fetch and follow .opencode/INSTALL.md from the repo`,
+    },
+  },
+  aider: {
+    id: "aider",
+    name: "Aider",
+    icon: "terminal",
+    color: "#14B8A6",
+    description: "AI pair programming in your terminal — OpenAI-compatible endpoint",
+    docsUrl: "https://aider.chat/docs/llms/openai-compat.html",
+    configType: "guide",
+    defaultCommand: "aider",
+    notes: [
+      { type: "info", text: "Aider connects to any OpenAI-compatible endpoint. Set OPENAI_API_BASE to the /v1 URL and OPENAI_API_KEY, then prefix the model id with openai/." },
+      { type: "warning", text: "Use a MiawRouter dashboard API key, never an upstream provider secret." },
+    ],
+    guideSteps: [
+      { step: 1, title: "Install Aider", desc: "python -m pip install aider-install" },
+      { step: 2, title: "API Key", type: "apiKeySelector" },
+      { step: 3, title: "Base URL", value: "{{baseUrl}}", copyable: true },
+      { step: 4, title: "Select Model", type: "modelSelector" },
+      { step: 5, title: "Run", desc: "Prefix the selected model id with openai/ so Aider uses the OpenAI-compatible endpoint." },
+    ],
+    codeBlock: {
+      language: "bash",
+      code: `export OPENAI_API_BASE="{{baseUrl}}"
+export OPENAI_API_KEY="{{apiKey}}"
+
+aider --model "openai/{{model}}"`,
+    },
+  },
+  crush: {
+    id: "crush",
+    name: "Crush",
+    icon: "terminal",
+    color: "#8B5CF6",
+    description: "Charm's terminal coding agent — custom OpenAI-compatible provider",
+    docsUrl: "https://github.com/charmbracelet/crush",
+    configType: "guide",
+    defaultCommand: "crush",
+    notes: [
+      { type: "info", text: "Crush adds providers through its crushrc (Bash). Use type openai-compat for any non-OpenAI endpoint." },
+      { type: "warning", text: "Config path: ~/.config/crush/crushrc • Windows %USERPROFILE%\\.config\\crush\\crushrc" },
+    ],
+    guideSteps: [
+      { step: 1, title: "Install Crush", desc: "brew install charmbracelet/tap/crush • npm install -g @charmland/crush • winget install charmbracelet.crush" },
+      { step: 2, title: "API Key", type: "apiKeySelector" },
+      { step: 3, title: "Base URL", value: "{{baseUrl}}", copyable: true },
+      { step: 4, title: "Select Model", type: "modelSelector" },
+      { step: 5, title: "Register the provider", desc: "Add the lines below to your crushrc, then press ctrl+l in Crush to pick the model." },
+    ],
+    codeBlock: {
+      language: "bash",
+      code: `provider add miawrouter --type openai-compat \\
+  --base-url "{{baseUrl}}" \\
+  --api-key "{{apiKey}}"
+
+model add miawrouter/{{model}} --name "MiawRouter {{model}}" --context-window 128000`,
     },
   },
   // HIDDEN: gemini-cli

@@ -13,15 +13,20 @@ export default {
     textIcon: "OC",
     website: "https://opencode.ai/auth",
     notice: {
-      text: "OpenCode Go subscription: $5/mo (then  0/mo). Access to Kimi, GLM, Qwen, MiMo, MiniMax models.",
+      text: "OpenCode Go and Go Plus subscriptions provide access to coding models. Check current plans and account availability at opencode.ai/docs/go/.",
       apiKeyUrl: "https://opencode.ai/auth",
     },
   },
   category: "apikey",
   billingTier: "subscription",
+  modelFormatRules: [
+    { prefixes: ["gpt-", "grok-"], format: "openai-responses" },
+    { prefixes: ["qwen", "claude-"], format: "claude" },
+  ],
+  modelsFetcher: { url: "https://opencode.ai/zen/go/v1/models", type: "openai" },
   transport: {
     baseUrl: "https://opencode.ai/zen/go/v1/chat/completions",
-    headers: {},
+    headers: { "User-Agent": "MiawRouter/1.2.2" },
   },
   models: [{
   id: "glm-5.2",
@@ -425,5 +430,11 @@ export default {
   "upstreamModelId": "qwen3.8-flash(xhigh)",
   "targetFormat": "claude",
   "supportsReasoning": true
-},],
+},
+    // Added from the live catalog on 2026-09-30.
+    {"id":"deepseek-flash","name":"DeepSeek Flash"},
+    {"id":"space-bunny-free","name":"space-bunny-free"},
+    {"id":"longcat-2.5-preview-free","name":"longcat-2.5-preview-free"},
+    {"id":"gpt-6-luna","name":"GPT 6 Luna"}
+  ],
 };

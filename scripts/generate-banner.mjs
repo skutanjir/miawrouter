@@ -362,7 +362,7 @@ async function generateBanner() {
     <div class="badge-row">
       <div class="release-badge">
         <span class="pulse-dot"></span>
-          <span>v1.2.0 • PRODUCTION RELEASE</span>
+          <span>v1.2.2 • PRODUCTION RELEASE</span>
       </div>
       <span class="sub-tag">OPENAI &bull; CLAUDE &bull; GEMINI COMPAT</span>
     </div>
@@ -442,7 +442,8 @@ async function generateBanner() {
 </html>`;
 
   console.log("Launching Chromium to render updated banner...");
-  const browser = await chromium.launch({ executablePath: "/usr/bin/chromium" });
+  // Use Playwright's bundled browser so this works on any OS (no /usr/bin/chromium).
+  const browser = await chromium.launch();
   const page = await browser.newPage({
     viewport: { width: 1280, height: 640 },
     deviceScaleFactor: 2, // 2x Retina sharpness (2560x1280)
@@ -459,8 +460,10 @@ async function generateBanner() {
 
   console.log(`✅ Banner generated successfully at: ${outputPath}`);
 
-  const artifactDir = "/home/fajar/.gemini/antigravity-cli/brain/1fdf0d3c-3732-4655-bcee-1e65e8d76b63";
-  if (fs.existsSync(artifactDir)) {
+  // Optional extra destination, e.g. BANNER_ARTIFACT_DIR=/some/dir.
+  const artifactDir = process.env.BANNER_ARTIFACT_DIR;
+  if (artifactDir) {
+    fs.mkdirSync(artifactDir, { recursive: true });
     const artifactPath = path.join(artifactDir, "miawrouter-banner.png");
     fs.copyFileSync(outputPath, artifactPath);
     console.log(`✅ Copied to artifact directory: ${artifactPath}`);

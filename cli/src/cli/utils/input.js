@@ -85,9 +85,7 @@ async function pause(message = "Press Enter to continue...") {
 }
 
 /**
- * Interactive arrow-key menu. Renders ★/☆ icons; selected line uses reverse+bright
- * (no underline). Uses readline keypress + raw 'data' fallback to prevent
- * arrow-key escape sequence leaks on macOS.
+ * MiawRouter arrow-key menu with a shared cat header and contextual help.
  */
 async function selectMenu(title, items, defaultIndex = 0, subtitle = "", headerContent = "", breadcrumb = []) {
   return new Promise((resolve) => {
@@ -100,28 +98,24 @@ async function selectMenu(title, items, defaultIndex = 0, subtitle = "", headerC
     const renderMenu = () => {
       if (!isActive) return;
       process.stdout.write("\x1b[2J\x1b[H");
-      const width = Math.min(process.stdout.columns || 40, 40);
-      console.log(`\n${COLORS.terracotta}${"=".repeat(width)}${COLORS.reset}`);
-      console.log(`  ${COLORS.bright}${COLORS.terracotta}${title}${COLORS.reset}`);
-      if (subtitle) console.log(`  ${COLORS.dim}${subtitle}${COLORS.reset}`);
-      console.log(`${COLORS.terracotta}${"=".repeat(width)}${COLORS.reset}`);
+      const width = Math.max(1, Math.min((process.stdout.columns || 64) - 4, 60));
+      console.log(`\n  ${COLORS.cyan}${COLORS.bright} /\\_/\\   MiawRouter${COLORS.reset}`);
+      console.log(`  ${COLORS.cyan}( o.o )${COLORS.reset}  Your AI, one cozy home.`);
+      console.log(`  ${COLORS.cyan} > ^ <${COLORS.reset}`);
+      console.log(`\n  ${COLORS.bright}${title}${COLORS.reset}`);
+      if (subtitle) console.log(`  ${subtitle}`);
+      console.log(`  ${COLORS.cyan}${"-".repeat(width)}${COLORS.reset}`);
       if (breadcrumb.length > 0) console.log(`  ${COLORS.dim}${breadcrumb.join(" > ")}${COLORS.reset}`);
       console.log();
       if (headerContent) { console.log(headerContent); console.log(); }
 
-      const isWin = process.platform === "win32";
       items.forEach((item, index) => {
-        const isSelected = index === selectedIndex;
-        const selector = isSelected ? (isWin ? ">" : "★") : (isWin ? " " : "☆");
-        // Render a real item icon (e.g. 🌐 💻 🔔) when present, but skip the
-        // "☆"/"★" placeholder glyphs some callers pass as `icon`.
-        const itemIcon = item.icon && item.icon !== "★" && item.icon !== "☆" ? `${item.icon} ` : "";
-        if (isSelected) {
-          console.log(` ${COLORS.reverse}${COLORS.bright}${selector} ${itemIcon}${item.label}${COLORS.reset}`);
-        } else {
-          console.log(`  ${selector} ${itemIcon}${item.label}`);
-        }
+        if (index === selectedIndex) console.log(`  ${COLORS.cyan}${COLORS.bright}> ${COLORS.reverse} ${item.label} ${COLORS.reset}`);
+        else console.log(`    ${item.label}`);
       });
+      if (items[selectedIndex]?.description) console.log(`\n  ${items[selectedIndex].description}`);
+      console.log(`\n  ${COLORS.cyan}${"-".repeat(width)}${COLORS.reset}`);
+      console.log("  Up/Down: move   Enter: select   Esc: back");
     };
 
     const cleanup = () => {

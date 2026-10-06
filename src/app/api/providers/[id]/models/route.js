@@ -11,6 +11,9 @@ import { resolveQoderModels } from "open-sse/services/qoderModels.js";
 import { resolveGrokCliModels } from "open-sse/services/grokCliModels.js";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { resolveCursorModels } from "open-sse/services/cursorModels.js";
+import { findRegistryModelSource, fetchRegistryModels } from "@/lib/catalog/providerModelSources.js";
+import { normalizeLiveModels } from "@/lib/catalog/liveModelCatalog.js";
+import { upsertCustomModels } from "@/lib/db/repos/aliasRepo.js";
 
 const GEMINI_CLI_MODELS_URL = "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels";
 
@@ -163,6 +166,8 @@ const PROVIDER_MODELS_CONFIG = {
   antigravity: {
     customResolver: async () => ({
       models: getStaticProviderModels("antigravity"),
+      source: "static",
+      warning: "This integration uses the bundled catalog; live model discovery is unavailable.",
     }),
   },
   github: {
@@ -237,7 +242,7 @@ const PROVIDER_MODELS_CONFIG = {
   groq: createOpenAIModelsConfig("https://api.groq.com/openai/v1/models"),
   xai: createOpenAIModelsConfig("https://api.x.ai/v1/models"),
   mistral: createOpenAIModelsConfig("https://api.mistral.ai/v1/models"),
-  perplexity: createOpenAIModelsConfig("https://api.perplexity.ai/v1/models"),
+  perplexity: { customResolver: async () => ({ models: getStaticProviderModels("perplexity"), source: "static", warning: "Sonar does not expose a model-list API; showing the bundled catalog." }) },
   "perplexity-agent": createOpenAIModelsConfig("https://api.perplexity.ai/v1/models"),
   together: createOpenAIModelsConfig("https://api.together.xyz/v1/models"),
   fireworks: createOpenAIModelsConfig("https://api.fireworks.ai/inference/v1/models"),
@@ -295,6 +300,7 @@ const PROVIDER_MODELS_CONFIG = {
       let warning;
       try {
         const result = await resolveKiroModels(credentials, {
+          forceRefresh: true,
           log: console,
           onCredentialsRefreshed: async (refreshed) => {
             if (refreshed?.accessToken) {
@@ -310,6 +316,7 @@ const PROVIDER_MODELS_CONFIG = {
         });
         if (result?.models?.length) {
           return {
+            source: "live",
             models: result.models.map((m) => ({
               id: m.id,
               name: m.name,
@@ -326,7 +333,7 @@ const PROVIDER_MODELS_CONFIG = {
         warning = `Failed to fetch Kiro models: ${error.message}`;
         console.log("Failed to fetch Kiro models dynamically, falling back to static:", error.message);
       }
-      return { models: [], warning };
+      return { models: getStaticProviderModels("kiro"), source: "static", warning };
     }
   },
   qoder: {
@@ -466,7 +473,19 @@ export async function resolveProviderConnectionModels(connection) {
   }
 
   const config = PROVIDER_MODELS_CONFIG[connection.provider];
-  if (!config) return { error: `Provider ${connection.provider} does not support models listing`, status: 400 };
+  if (!config) {
+    const source = findRegistryModelSource(connection.provider);
+    let warning = "No live model-list endpoint is registered; showing the bundled catalog.";
+    if (source) {
+      try {
+        const result = await fetchRegistryModels(source, connection);
+        if (result.models.length) return result;
+        warning = result.warning;
+      } catch { warning = "Live model refresh failed or timed out; showing the bundled catalog."; }
+    }
+    const models = getStaticProviderModels(connection.provider);
+    return { models, source: "static", warning, fetchedAt: new Date().toISOString() };
+  }
   if (typeof config.customResolver === "function") return config.customResolver(connection);
 
   const token = connection.providerSpecificData?.copilotToken || connection.accessToken || connection.apiKey;
@@ -478,13 +497,13 @@ export async function resolveProviderConnectionModels(connection) {
   if (config.authHeader && !config.authQuery) {
     headers[config.authHeader] = (config.authPrefix || "") + token;
   }
-  const fetchOptions = { method: config.method, headers };
+  const fetchOptions = { method: config.method, headers, signal: AbortSignal.timeout(30000), redirect: "error" };
   if (config.body && config.method === "POST") fetchOptions.body = JSON.stringify(config.body);
 
   const response = await fetch(url, fetchOptions);
   if (!response.ok) return { error: `Failed to fetch models: ${response.status}`, status: response.status };
   const data = await response.json();
-  return { models: config.parseResponse(data) };
+  return { models: config.parseResponse(data), source: "live", fetchedAt: new Date().toISOString() };
 }
 
 export async function GET(request, { params }) {
@@ -500,11 +519,34 @@ export async function GET(request, { params }) {
     return NextResponse.json({
       provider: connection.provider,
       connectionId: connection.id,
-      models: result.models || [],
+      models: normalizeLiveModels(connection, result.models || []),
+      ...(result.source ? { source: result.source } : {}),
+      ...(result.fetchedAt ? { fetchedAt: result.fetchedAt } : {}),
       ...(result.warning ? { warning: result.warning } : {}),
     });
   } catch (error) {
     console.log("Error fetching provider models:", error);
     return NextResponse.json({ error: "Failed to fetch models" }, { status: 500 });
+  }
+}
+
+// Save only identities from a freshly resolved account catalog, never arbitrary client metadata.
+export async function POST(request, { params }) {
+  try {
+    const { id } = await params;
+    const connection = await getProviderConnectionById(id);
+    if (!connection) return NextResponse.json({ error: "Connection not found" }, { status: 404 });
+    const { modelIds } = await request.json();
+    if (!Array.isArray(modelIds) || !modelIds.length || modelIds.some((id) => typeof id !== "string")) return NextResponse.json({ error: "Select at least one model to save" }, { status: 400 });
+    const result = await resolveProviderConnectionModels(connection);
+    if (result.error) return NextResponse.json({ error: result.error }, { status: result.status || 502 });
+    if (result.source === "static" || result.warning) return NextResponse.json({ error: result.warning || "Live model discovery is unavailable for this provider" }, { status: 409 });
+    const wanted = new Set(modelIds);
+    const rows = normalizeLiveModels(connection, result.models || []).filter((model) => wanted.has(model.id));
+    if (new Set(rows.map((row) => row.id)).size !== wanted.size) return NextResponse.json({ error: "The upstream catalog changed. Get New Models again before saving." }, { status: 409 });
+    const saved = await upsertCustomModels(rows);
+    return NextResponse.json({ success: true, ...saved, saved: rows.length, models: rows });
+  } catch {
+    return NextResponse.json({ error: "Failed to save the live model catalog" }, { status: 500 });
   }
 }

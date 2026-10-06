@@ -150,6 +150,32 @@ import p147 from "./ovh-ai-endpoints.js";
 import p148 from "./pollinations.js";
 import p149 from "./navy.js";
 import p150 from "./zenmux.js";
+import p159 from "./longcat.js";
+import p160 from "./novita.js";
+import p161 from "./requesty.js";
+import p162 from "./routeway.js";
+import p163 from "./aion.js";
+import p164 from "./agnes.js";
+import p165 from "./arcee-ai.js";
+import p166 from "./typhoon.js";
+import p167 from "./360ai.js";
+import p169 from "./ainative.js";
+import p170 from "./ant-ling.js";
+import p171 from "./baichuan.js";
+import p172 from "./dgrid.js";
+import p173 from "./doubao.js";
+import p174 from "./freemodel-dev.js";
+import p175 from "./hcnsec.js";
+import p176 from "./inference-net.js";
+import p177 from "./nscale.js";
+import p178 from "./ollama-cloud.js";
+import p179 from "./openadapter.js";
+import p180 from "./openvecta.js";
+import p181 from "./publicai.js";
+import p182 from "./sarvam.js";
+import p183 from "./scaleway.js";
+import p184 from "./sealion.js";
+import p185 from "./stepfun.js";
 
 export default [
   p0,
@@ -301,4 +327,30 @@ export default [
   p148,
   p149,
   p150,
+  p159,
+  p160,
+  p161,
+  p162,
+  p163,
+  p164,
+  p165,
+  p166,
+  p167,
+  p169,
+  p170,
+  p171,
+  p172,
+  p173,
+  p174,
+  p175,
+  p176,
+  p177,
+  p178,
+  p179,
+  p180,
+  p181,
+  p182,
+  p183,
+  p184,
+  p185,
 ];

@@ -41,6 +41,8 @@ SectionControlStrip.propTypes = {
 export default function CLIToolsPageClient({ machineId }) {
   const [loading, setLoading] = useState(true);
   const [toolStatuses, setToolStatuses] = useState({});
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     let mounted = true;
@@ -67,8 +69,9 @@ export default function CLIToolsPageClient({ machineId }) {
     );
   }
 
-  const regularTools = Object.entries(CLI_TOOLS);
-  const mitmTools = Object.entries(MITM_TOOLS);
+  const matches = (tool) => `${tool.name} ${tool.description || ""}`.toLowerCase().includes(query.toLowerCase());
+  const regularTools = Object.entries(CLI_TOOLS).filter(([id, tool]) => matches(tool) && (filter === "all" || (filter === "connected" ? toolStatuses[id]?.hasMiawRouter || toolStatuses[id]?.configured : toolStatuses[id]?.installed)));
+  const mitmTools = Object.entries(MITM_TOOLS).filter(([, tool]) => filter === "all" && matches(tool));
 
   // Group regular CLI tools into Configured vs Available
   const configuredTools = regularTools.filter(([toolId, tool]) => {
@@ -82,7 +85,13 @@ export default function CLIToolsPageClient({ machineId }) {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
+    <div className="workspace-canvas cli-workspace mx-auto flex w-full max-w-7xl flex-col gap-7 px-1 sm:px-0">
+      <div className="workspace-heading"><div><h1>Connect your tools</h1><p>One router for your coding apps, models, and subagent teams.</p></div><span className="workspace-count">{Object.keys(CLI_TOOLS).length} integrations</span></div>
+      <div className="tool-directory-toolbar">
+        <label className="tool-directory-search"><span className="material-symbols-outlined" aria-hidden="true">search</span><input aria-label="Search CLI tools" placeholder="Find a tool or integration…" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+        <div className="tool-directory-filters" role="group" aria-label="Filter CLI tools">{["all", "installed", "connected"].map((value) => <button key={value} aria-pressed={filter === value} onClick={() => setFilter(value)}>{value.charAt(0).toUpperCase() + value.slice(1)}</button>)}</div>
+      </div>
+      {regularTools.length === 0 && mitmTools.length === 0 && <p className="p-8 text-center text-text-muted">No tools match. Try a different search or filter.</p>}
       {/* Configured Tools */}
       {configuredTools.length > 0 && (
         <div className="flex flex-col gap-3">
@@ -100,7 +109,7 @@ export default function CLIToolsPageClient({ machineId }) {
       )}
 
       {/* Available Tools */}
-      <div className="flex flex-col gap-3">
+      {availableTools.length > 0 && <div className="flex flex-col gap-3">
         <SectionControlStrip
           title="Available Tools"
           count={availableTools.length}
@@ -111,10 +120,10 @@ export default function CLIToolsPageClient({ machineId }) {
             <ToolSummaryCard key={toolId} toolId={toolId} tool={tool} status={toolStatuses[toolId]} />
           ))}
         </div>
-      </div>
+      </div>}
 
       {/* Intercepted (MITM) Tools */}
-      <div className="flex flex-col gap-3">
+      {mitmTools.length > 0 && <div className="flex flex-col gap-3">
         <SectionControlStrip
           title="Intercepted (MITM) Tools"
           count={mitmTools.length}
@@ -125,7 +134,7 @@ export default function CLIToolsPageClient({ machineId }) {
             <MitmLinkCard key={toolId} tool={tool} />
           ))}
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

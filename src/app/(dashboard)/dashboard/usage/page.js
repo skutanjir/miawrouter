@@ -42,12 +42,12 @@ function UsageContent() {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
+    <div className="workspace-canvas usage-workspace flex min-w-0 flex-col gap-6 px-1 sm:px-0">
       {/* Console header */}
       <div className="flex flex-col gap-3 border-b border-border-subtle pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight text-text-main sm:text-2xl">
-            Usage
+            Usage & routing
           </h1>
           <p className="mt-0.5 text-xs text-text-muted sm:text-sm">
             Token counts, cache hits, and the route each request took.

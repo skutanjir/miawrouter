@@ -89,21 +89,19 @@ export function begin(body) {
 
   // True pre-compression snapshot kept as a JSON STRING, not a cloned object
   // graph: same fidelity, but a plain string retains far less memory than a
-  // structuredClone of a large context and is only parsed if restoration into
-  // an incompatible shape is ever needed (rare). Bodies are HTTP-JSON-derived,
-  // so they are always serializable.
+  // structuredClone of a large context. The per-section `snapshot` is derived
+  // lazily from this string (memoized), so the hot path — every chat request
+  // with a messages[] shape — never deep-clones the whole prefix; only a rare
+  // restoration in finish() (or the bench integrity probe) pays the parse.
+  // Bodies are HTTP-JSON-derived, so they are always serializable.
   const originalJSON = JSON.stringify(body);
   const system = Array.isArray(body.system) || typeof body.system === "string" ? body.system : null;
   const tools = Array.isArray(body.tools) ? body.tools : null;
 
-  return {
+  let snapshot = null;
+  const state = {
     originalJSON,
     prefixLen: prefix.length,
-    snapshot: {
-      system: system !== null ? structuredClone(system) : null,
-      tools: tools !== null ? structuredClone(tools) : null,
-      messages: prefix.map((m) => structuredClone(m)),
-    },
     integrity: {
       system: system !== null ? contentHash(system) : null,
       tools: tools !== null ? contentHash(tools) : null,
@@ -111,6 +109,23 @@ export function begin(body) {
     },
     hash: stabilityHash({ system, tools, messages: prefix }),
   };
+  // Lazily materialize the pre-compression sections from originalJSON. Mirrors
+  // the old eager snapshot exactly (same section classification, prefix only).
+  Object.defineProperty(state, "snapshot", {
+    enumerable: true,
+    get() {
+      if (snapshot === null) {
+        const parsed = JSON.parse(originalJSON);
+        snapshot = {
+          system: Array.isArray(parsed.system) || typeof parsed.system === "string" ? parsed.system : null,
+          tools: Array.isArray(parsed.tools) ? parsed.tools : null,
+          messages: Array.isArray(parsed.messages) ? parsed.messages.slice(0, prefix.length) : [],
+        };
+      }
+      return snapshot;
+    },
+  });
+  return state;
 }
 
 /**

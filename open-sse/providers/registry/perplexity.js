@@ -18,6 +18,8 @@ export default {
   },
   category: "apikey",
   authType: "apikey",
+  // Sonar has no model-list API; use the bundled catalog.
+  modelsFetcher: false,
   transport: {
     baseUrl: "https://api.perplexity.ai/chat/completions",
     validateUrl: "https://api.perplexity.ai/models",

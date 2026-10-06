@@ -18,6 +18,31 @@ Or run directly:
 npx miawrouter
 ```
 
+## Bundled Antigravity Fixer
+
+The package includes the MIT-licensed `fulldiagnose/antigravity-fixer` source.
+With Python 3.10+ installed, the install hook prepares its isolated Python environment.
+If install scripts are disabled, Python is missing, or the download fails, install
+Python and run `miawrouter antigravity-fixer setup` to finish setup. Git is not required.
+
+```bash
+miawrouter antigravity-fixer --help
+miawrouter antigravity-fixer setup
+miawrouter antigravity-fixer clean --confirm-clean
+```
+
+Cleanup never runs during installation. The clean command stops Antigravity and
+deletes local credentials, data, cache, settings, and extensions. Back up first
+and run on the computer where Antigravity is installed. The full upstream terminal
+workflow is available with `miawrouter antigravity-fixer interactive --confirm-clean`;
+it downloads its browser when invoked and prompts for Google credentials there.
+The dashboard uses Google verification links and MiawRouter OAuth instead.
+English is the default in both the recovery panel and terminal workflow.
+The panel distinguishes Antigravity eligibility, Gemini Code Assist eligibility,
+Google validation requests, expired tokens, and generic access errors. It starts
+with verification or OAuth where appropriate; local cleanup is an optional
+Advanced step with a data-deletion acknowledgment, never a universal repair.
+
 ## Start
 
 ```bash

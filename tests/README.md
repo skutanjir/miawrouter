@@ -1,52 +1,63 @@
-# MiawRouter Embeddings Tests
+# MiawRouter Test Suite
 
-Unit tests for the `/v1/embeddings` endpoint implementation.
+Vitest suite covering the gateway engine (`open-sse/`), the Next.js app (`src/`),
+and the translators. Run through the wrapper, not bare `vitest`, so config
+resolution and the known-failing gate apply.
 
 ## Setup
 
-Install test dependencies from the `tests/` directory:
-
 ```bash
-cd tests/ && npm install
+npm install
+npm --prefix tests install
 ```
 
-## Running Tests
+## Running
 
-From the `tests/` directory:
+From the repository root:
+
+| Command | What it runs |
+| --- | --- |
+| `npm run test:ci` | Gated run — everything except `tests/known-failing.json` (currently empty). This is the CI gate. |
+| `npm test` | Everything, including the quarantined backlog. |
+| `npm run test:root` | Bare `vitest` for the whole repo (no gate). |
+| `npx vitest run --config tests/vitest.config.js --root . <file>` | One file or pattern. |
+
+`tests/vitest.config.js` aliases `@/` → `src/`, `open-sse/` → `open-sse/`, sets
+`environment: node`, and runs with `maxConcurrency: 60`. `scripts/run-tests.mjs`
+is the wrapper: no flags = gated, `--all` = everything, explicit paths = just
+those files.
+
+## Layout
+
+| Path | Contents |
+| --- | --- |
+| `unit/` | ~300 focused tests: translators/executors, cache L0–L3, DB, API route contracts, auth/security, combos, headroom/pxpipe, antigravity, benchmark harness. |
+| `translator/` | Data-driven matrix over `PROVIDER_MODELS`, golden snapshots, format round-trips, `bugs-*.test.js` (bug exposure via `it.fails`). |
+| `translator/real/` | Live provider smoke tests, gated behind `RUN_REAL=1`; reads credentials from the local `~/.miawrouter` DB. 401/402/403/429 are skipped as credential issues. |
+| `__baseline__/` | Characterization snapshots and the phase-1 gate artifacts (see below). |
+| `helpers/` | `providerContract.js`, `cacheContract.js` shared harnesses. |
+| `fixtures/providers/` | Provider-specific request/response fixtures. |
+
+## Characterization baseline
+
+`tests/__baseline__/phase1-characterization.json` pins the known failure set
+(ids + SHA-256 signatures). The gate `scripts/test-baseline.mjs` allows only
+failures that match an existing, categorized signature and never auto-rewrites
+the baseline:
 
 ```bash
-npm test
+node scripts/test-baseline.mjs            # compare; exit 0 only if all matches
+node scripts/test-baseline.mjs --record   # deliberate rewrite (requires categories)
+node scripts/test-baseline.mjs --json F   # compare against a pre-captured run
 ```
 
-Or run vitest directly with npx:
+`__baseline__/` also holds provider/alias/OAuth URL snapshots with their own
+`--snapshot` verifiers (`verify-providers.mjs`, `verify-alias.mjs`,
+`verify-oauth-urls.mjs`).
 
-```bash
-npx vitest run --reporter=verbose --config ./vitest.config.js
-```
+## Known failing
 
-## Test Files
-
-| File | What it tests |
-|------|--------------|
-| `unit/embeddingsCore.test.js` | `open-sse/handlers/embeddingsCore.js` — core logic: body builder, URL router, headers, handler flow |
-| `unit/embeddings.cloud.test.js` | `cloud/src/handlers/embeddings.js` — cloud worker handler: auth, validation, rate limits, CORS |
-
-## Coverage Summary (59 tests)
-
-### `embeddingsCore.test.js` (36 tests)
-- `buildEmbeddingsBody`: single string, array, encoding_format, default float
-- `buildEmbeddingsUrl`: openai, openrouter, openai-compatible-*, unsupported providers
-- `buildEmbeddingsHeaders`: per-provider header sets, fallback to accessToken
-- `handleEmbeddingsCore` input validation: missing, wrong type, null, empty
-- `handleEmbeddingsCore` success: response format, CORS, Content-Type, callbacks
-- `handleEmbeddingsCore` errors: 400/429/500, network error, invalid JSON
-- `handleEmbeddingsCore` token refresh: 401 retry, graceful fallback
-
-### `embeddings.cloud.test.js` (23 tests)
-- CORS OPTIONS: 200 response, empty body, correct headers
-- Authentication: missing key, bad format, old-format key, wrong key value, valid key
-- Body validation: invalid JSON, missing model, missing input, bad model
-- Happy path: single string, array, correct delegation, CORS header, machineId override
-- Rate limiting: all accounts rate-limited → 503 + Retry-After, no credentials → 400
-- Error propagation: non-fallback errors passed through, 429 exhausts accounts
-- machineId override: validates key, rejects wrong key
+`tests/known-failing.json` quarantines pre-existing failing suites from the
+blocking CI job. It is currently empty — quarantined suites were either fixed or
+replaced with an explicit self-skip. Add an entry only with the evidence a fix
+would need.

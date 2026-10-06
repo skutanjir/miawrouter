@@ -92,10 +92,30 @@ function getConnectionErrorTag(connection) {
   return "ERR";
 }
 
-function SectionControlStrip({ title, count, children }) {
+function SectionControlStrip({
+  title,
+  count,
+  collapsible,
+  collapsed,
+  onToggleCollapse,
+  children,
+}) {
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between py-1.5 border-b border-border/80">
       <div className="flex items-center gap-2.5 min-w-0">
+        {collapsible && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
+            className="-ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {collapsed ? "chevron_right" : "expand_more"}
+            </span>
+          </button>
+        )}
         <h2 className="text-xs sm:text-sm font-semibold tracking-tight text-text-main truncate">
           {title}
         </h2>
@@ -117,8 +137,17 @@ function SectionControlStrip({ title, count, children }) {
 SectionControlStrip.propTypes = {
   title: PropTypes.string.isRequired,
   count: PropTypes.number,
+  collapsible: PropTypes.bool,
+  collapsed: PropTypes.bool,
+  onToggleCollapse: PropTypes.func,
   children: PropTypes.node,
 };
+
+const FREE_INITIAL_VISIBLE = 12;
+
+// getProviderStats memo, keyed by the `connections` snapshot. Sort comparators and
+// every card call it (~1500x/render); without this each call rescans `connections`.
+const statsCache = new WeakMap();
 
 const APIKEY_INITIAL_VISIBLE = 20;
 
@@ -127,6 +156,14 @@ export default function ProvidersPage() {
   const [providerNodes, setProviderNodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAllApikey, setShowAllApikey] = useState(false);
+  const [showAllFree, setShowAllFree] = useState(false);
+  const [freeCollapsed, setFreeCollapsed] = useState(() => {
+    try {
+      return globalThis.localStorage?.getItem("providers:free-collapsed") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [showAddCompatibleModal, setShowAddCompatibleModal] = useState(false);
   const [showAddAnthropicCompatibleModal, setShowAddAnthropicCompatibleModal] =
     useState(false);
@@ -141,6 +178,16 @@ export default function ProvidersPage() {
     registerSearch("Search providers...");
     return () => unregisterSearch();
   }, [registerSearch, unregisterSearch]);
+
+  const toggleFreeCollapsed = () => {
+    setFreeCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("providers:free-collapsed", next ? "1" : "0");
+      } catch {}
+      return next;
+    });
+  };
 
   const matchSearch = (name) =>
     !searchQuery.trim() ||
@@ -212,8 +259,20 @@ export default function ProvidersPage() {
     };
   }, []);
 
+  // Per-render memo: getProviderStats is called from sort comparators plus every
+  // card (~1500x/render) and each call otherwise rescans `connections`. Cache on
+  // the connections snapshot so a render costs one scan, rebuilt when state changes.
   const getProviderStats = (providerId, authType) => {
     const authTypes = Array.isArray(authType) ? authType : [authType];
+    const key = `${providerId}\u0000${authTypes.join("\u0000")}`;
+    let cache = statsCache.get(connections);
+    if (!cache) {
+      cache = new Map();
+      statsCache.set(connections, cache);
+    }
+    const hit = cache.get(key);
+    if (hit) return hit;
+
     const providerConnections = connections.filter(
       (c) => c.provider === providerId && authTypes.includes(c.authType),
     );
@@ -253,7 +312,9 @@ export default function ProvidersPage() {
       ? getRelativeTime(latestError.lastErrorAt)
       : null;
 
-    return { connected, error, total, errorCode, errorTime, allDisabled };
+    const result = { connected, error, total, errorCode, errorTime, allDisabled };
+    cache.set(key, result);
+    return result;
   };
 
   // Toggle all connections for a provider on/off. authType may be a single
@@ -393,12 +454,23 @@ export default function ProvidersPage() {
   );
   const webCookieAuthTypes = (providerId) =>
     providerId === "kimi-web" ? ["cookie", "apikey", "api_key"] : "cookie";
-  const isApikeySearching = !!searchQuery.trim();
+  const isSearching = !!searchQuery.trim();
   const visibleApikeyEntries =
-    isApikeySearching || showAllApikey
+    isSearching || showAllApikey
       ? apikeyEntries
       : apikeyEntries.slice(0, APIKEY_INITIAL_VISIBLE);
   const hiddenApikeyCount = apikeyEntries.length - APIKEY_INITIAL_VISIBLE;
+  const freeCombined = [
+    ...freeEntries.map(([key, info]) => ({ key, info, tier: false })),
+    ...freeTierEntries.map(([key, info]) => ({ key, info, tier: true })),
+  ];
+  const visibleFree =
+    isSearching || showAllFree
+      ? freeCombined
+      : freeCombined.slice(0, FREE_INITIAL_VISIBLE);
+  const hiddenFreeCount = freeCombined.length - FREE_INITIAL_VISIBLE;
+  // Searching must reveal matches even while the section is collapsed.
+  const isFreeCollapsed = freeCollapsed && !isSearching;
 
   if (loading) {
     return (
@@ -533,6 +605,9 @@ export default function ProvidersPage() {
         <SectionControlStrip
           title="Free & Keyless"
           count={freeEntries.length + freeTierEntries.length}
+          collapsible
+          collapsed={isFreeCollapsed}
+          onToggleCollapse={toggleFreeCollapsed}
         >
           <button
             type="button"
@@ -556,45 +631,56 @@ export default function ProvidersPage() {
           </button>
         </SectionControlStrip>
 
-        <p className="text-xs text-text-muted leading-relaxed -mt-1 max-w-3xl">
-          <span className="font-medium text-text-main">Keyless</span> providers work without a key.
-          OpenCode Free through a third-party router is unavailable upstream — use{" "}
-          <span className="font-medium text-text-main">OpenCode Zen</span> (API key) or{" "}
-          <span className="font-medium text-text-main">Pollinations</span> (<span className="font-mono">pol</span>).
-        </p>
+        {!isFreeCollapsed && (
+          <>
+            <p className="text-xs text-text-muted leading-relaxed -mt-1 max-w-3xl">
+              <span className="font-medium text-text-main">Keyless</span> providers work without a key.
+              OpenCode Free through a third-party router is unavailable upstream — use{" "}
+              <span className="font-medium text-text-main">OpenCode Zen</span> (API key) or{" "}
+              <span className="font-medium text-text-main">Pollinations</span> (<span className="font-mono">pol</span>).
+            </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
-          {freeEntries.map(([key, info]) => {
-            // Dual-auth (e.g. kiro): count/toggle oauth + apikey/api_key so the
-            // card total matches the provider detail page.
-            const freeAuthTypes = dualAuthTypes(info, key);
-            return (
-              <ProviderCard
-                key={key}
-                providerId={key}
-                provider={info}
-                stats={getProviderStats(key, freeAuthTypes)}
-                authType="free"
-                onToggle={(active) =>
-                  handleToggleProvider(key, freeAuthTypes, active)
-                }
-              />
-            );
-          })}
-          {freeTierEntries.map(([key, info]) => {
-            const freeAuthTypes = dualAuthTypes(info, key);
-            return (
-              <ApiKeyProviderCard
-                key={key}
-                providerId={key}
-                provider={info}
-                stats={getProviderStats(key, freeAuthTypes)}
-                authType={Array.isArray(freeAuthTypes) ? (freeAuthTypes[0] ?? "apikey") : freeAuthTypes}
-                onToggle={(active) => handleToggleProvider(key, freeAuthTypes, active)}
-              />
-            );
-          })}
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+              {visibleFree.map(({ key, info, tier }) => {
+                // Dual-auth (e.g. kiro): count/toggle oauth + apikey/api_key so the
+                // card total matches the provider detail page.
+                const freeAuthTypes = dualAuthTypes(info, key);
+                return tier ? (
+                  <ApiKeyProviderCard
+                    key={key}
+                    providerId={key}
+                    provider={info}
+                    stats={getProviderStats(key, freeAuthTypes)}
+                    authType={Array.isArray(freeAuthTypes) ? (freeAuthTypes[0] ?? "apikey") : freeAuthTypes}
+                    onToggle={(active) => handleToggleProvider(key, freeAuthTypes, active)}
+                  />
+                ) : (
+                  <ProviderCard
+                    key={key}
+                    providerId={key}
+                    provider={info}
+                    stats={getProviderStats(key, freeAuthTypes)}
+                    authType="free"
+                    onToggle={(active) =>
+                      handleToggleProvider(key, freeAuthTypes, active)
+                    }
+                  />
+                );
+              })}
+            </div>
+
+            {!isSearching && !showAllFree && hiddenFreeCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllFree(true)}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-2.5 text-xs sm:text-sm font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                Show all {freeCombined.length} providers
+              </button>
+            )}
+          </>
+        )}
       </div>
       )}
 
@@ -639,7 +725,7 @@ export default function ProvidersPage() {
             />
           ))}
         </div>
-        {!isApikeySearching && !showAllApikey && hiddenApikeyCount > 0 && (
+        {!isSearching && !showAllApikey && hiddenApikeyCount > 0 && (
           <button
             type="button"
             onClick={() => setShowAllApikey(true)}

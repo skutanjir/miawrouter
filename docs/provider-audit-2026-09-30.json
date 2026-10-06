@@ -1,0 +1,1142 @@
+{
+  "auditedAt": "2026-09-30T02:21:22.028Z",
+  "live": true,
+  "providerCount": 146,
+  "bundledModels": 2041,
+  "structuralErrors": [],
+  "totals": {
+    "bundled_or_specialized": 89,
+    "credentials_required": 24,
+    "live": 25,
+    "upstream_unavailable_or_unrecognized": 3,
+    "network_error_or_timeout": 5
+  },
+  "providers": [
+    {
+      "provider": "alicode-intl",
+      "bundledModels": 17,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "alicode",
+      "bundledModels": 18,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "anthropic",
+      "bundledModels": 16,
+      "errors": [],
+      "endpoint": "https://api.anthropic.com/v1/models?limit=1000",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "antigravity",
+      "bundledModels": 24,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "assemblyai",
+      "bundledModels": 4,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "aws-polly",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "azure",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "black-forest-labs",
+      "bundledModels": 6,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "blackbox",
+      "bundledModels": 11,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "brave-search",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "byteplus",
+      "bundledModels": 9,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "cartesia",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "cerebras",
+      "bundledModels": 7,
+      "errors": [],
+      "endpoint": "https://api.cerebras.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 403,
+      "liveModels": 0
+    },
+    {
+      "provider": "chutes",
+      "bundledModels": 8,
+      "errors": [],
+      "endpoint": "https://llm.chutes.ai/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 14
+    },
+    {
+      "provider": "claude",
+      "bundledModels": 16,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "cline",
+      "bundledModels": 26,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "clinepass",
+      "bundledModels": 13,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "cloudflare-ai",
+      "bundledModels": 30,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "codebuddy-cn",
+      "bundledModels": 15,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "codex",
+      "bundledModels": 56,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "cohere",
+      "bundledModels": 10,
+      "errors": [],
+      "endpoint": "https://api.cohere.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "comfyui",
+      "bundledModels": 2,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "commandcode",
+      "bundledModels": 77,
+      "errors": [],
+      "endpoint": "https://api.commandcode.ai/provider/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 86
+    },
+    {
+      "provider": "coqui",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "cursor",
+      "bundledModels": 136,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "deepgram",
+      "bundledModels": 4,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "deepseek",
+      "bundledModels": 4,
+      "errors": [],
+      "endpoint": "https://api.deepseek.com/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "edge-tts",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "elevenlabs",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "exa",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "fal-ai",
+      "bundledModels": 7,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "featherless",
+      "bundledModels": 9,
+      "errors": [],
+      "endpoint": "https://api.featherless.ai/v1/models",
+      "status": "upstream_unavailable_or_unrecognized",
+      "httpStatus": 404,
+      "liveModels": 0
+    },
+    {
+      "provider": "firecrawl",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "fireworks",
+      "bundledModels": 18,
+      "errors": [],
+      "endpoint": "https://api.fireworks.ai/inference/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "gemini-cli",
+      "bundledModels": 10,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "gemini",
+      "bundledModels": 34,
+      "errors": [],
+      "endpoint": "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000",
+      "status": "credentials_required",
+      "httpStatus": 403,
+      "liveModels": 0
+    },
+    {
+      "provider": "genspark",
+      "bundledModels": 40,
+      "errors": [],
+      "endpoint": "https://www.genspark.ai/api/llm_proxy/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "github",
+      "bundledModels": 39,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "gitlab",
+      "bundledModels": 3,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "glm-cn",
+      "bundledModels": 18,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "glm",
+      "bundledModels": 20,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "google-pse",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "google-tts",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "grok-cli",
+      "bundledModels": 21,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "grok-web",
+      "bundledModels": 28,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "groq",
+      "bundledModels": 14,
+      "errors": [],
+      "endpoint": "https://api.groq.com/openai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "huggingface",
+      "bundledModels": 10,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "huggingface-router",
+      "bundledModels": 6,
+      "errors": [],
+      "endpoint": "https://router.huggingface.co/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 137
+    },
+    {
+      "provider": "hyperbolic",
+      "bundledModels": 13,
+      "errors": [],
+      "endpoint": "https://api.hyperbolic.xyz/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "iflow",
+      "bundledModels": 15,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "inworld",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "jina-ai",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "jina-reader",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "kilocode",
+      "bundledModels": 22,
+      "errors": [],
+      "endpoint": "https://api.kilo.ai/api/gateway/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 397
+    },
+    {
+      "provider": "kimchi",
+      "bundledModels": 8,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "kimi",
+      "bundledModels": 10,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "kimi-web",
+      "bundledModels": 2,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "kiro",
+      "bundledModels": 46,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "linkup",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "local-device",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "mimo-free",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": "https://models.dev/api.json",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 154
+    },
+    {
+      "provider": "modelscope",
+      "bundledModels": 5,
+      "errors": [],
+      "endpoint": "https://api-inference.modelscope.cn/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 35
+    },
+    {
+      "provider": "minimax-cn",
+      "bundledModels": 14,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "minimax",
+      "bundledModels": 15,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "mistral",
+      "bundledModels": 17,
+      "errors": [],
+      "endpoint": "https://api.mistral.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "mmf",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "nanobanana",
+      "bundledModels": 2,
+      "errors": [],
+      "endpoint": "https://api.nanobananaapi.ai/v1/models",
+      "status": "upstream_unavailable_or_unrecognized",
+      "httpStatus": 404,
+      "liveModels": 0
+    },
+    {
+      "provider": "nebius",
+      "bundledModels": 17,
+      "errors": [],
+      "endpoint": "https://api.studio.nebius.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "nvidia",
+      "bundledModels": 58,
+      "errors": [],
+      "endpoint": "https://integrate.api.nvidia.com/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 81
+    },
+    {
+      "provider": "ollama-local",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "ollama",
+      "bundledModels": 7,
+      "errors": [],
+      "endpoint": "https://ollama.com/api/tags",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 17
+    },
+    {
+      "provider": "openai",
+      "bundledModels": 49,
+      "errors": [],
+      "endpoint": "https://api.openai.com/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "opencode-go",
+      "bundledModels": 83,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "opencode",
+      "bundledModels": 9,
+      "errors": [],
+      "endpoint": "https://opencode.ai/zen/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 84
+    },
+    {
+      "provider": "openrouter",
+      "bundledModels": 33,
+      "errors": [],
+      "endpoint": "https://openrouter.ai/api/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 464
+    },
+    {
+      "provider": "ovh-ai-endpoints",
+      "bundledModels": 6,
+      "errors": [],
+      "endpoint": "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 24
+    },
+    {
+      "provider": "perplexity-web",
+      "bundledModels": 12,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "perplexity",
+      "bundledModels": 4,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "perplexity-agent",
+      "bundledModels": 11,
+      "errors": [],
+      "endpoint": "https://api.perplexity.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "playht",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "qoder",
+      "bundledModels": 22,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "recraft",
+      "bundledModels": 2,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "runwayml",
+      "bundledModels": 4,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "sdwebui",
+      "bundledModels": 2,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "searchapi",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "searxng",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "serper",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "siliconflow",
+      "bundledModels": 77,
+      "errors": [],
+      "endpoint": "https://api.siliconflow.com/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "stability-ai",
+      "bundledModels": 5,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "tavily",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "together",
+      "bundledModels": 26,
+      "errors": [],
+      "endpoint": "https://api.together.xyz/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "topaz",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "tortoise",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "venice",
+      "bundledModels": 16,
+      "errors": [],
+      "endpoint": "https://api.venice.ai/api/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 127
+    },
+    {
+      "provider": "vercel-ai-gateway",
+      "bundledModels": 9,
+      "errors": [],
+      "endpoint": "https://ai-gateway.vercel.sh/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 395
+    },
+    {
+      "provider": "vertex-partner",
+      "bundledModels": 12,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "vertex",
+      "bundledModels": 12,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "volcengine-ark",
+      "bundledModels": 13,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "voyage-ai",
+      "bundledModels": 7,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "xai",
+      "bundledModels": 43,
+      "errors": [],
+      "endpoint": "https://api.x.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "xiaomi-mimo",
+      "bundledModels": 8,
+      "errors": [],
+      "endpoint": "https://api.xiaomimimo.com/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "xiaomi-tokenplan",
+      "bundledModels": 14,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "youcom",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "alims-intl",
+      "bundledModels": 7,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "codebuddy-intl",
+      "bundledModels": 15,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "zed",
+      "bundledModels": 0,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "api-airforce",
+      "bundledModels": 30,
+      "errors": [],
+      "endpoint": "https://api.airforce/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 636
+    },
+    {
+      "provider": "baidu",
+      "bundledModels": 23,
+      "errors": [],
+      "endpoint": "https://qianfan.baidubce.com/v2/models",
+      "status": "credentials_required",
+      "httpStatus": 403,
+      "liveModels": 0
+    },
+    {
+      "provider": "bazaarlink",
+      "bundledModels": 39,
+      "errors": [],
+      "endpoint": "https://bazaarlink.ai/api/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 127
+    },
+    {
+      "provider": "bluesminds",
+      "bundledModels": 22,
+      "errors": [],
+      "endpoint": "https://api.bluesminds.com/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "kilo-gateway",
+      "bundledModels": 8,
+      "errors": [],
+      "endpoint": "https://api.kilo.ai/api/gateway/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 397
+    },
+    {
+      "provider": "llm7",
+      "bundledModels": 34,
+      "errors": [],
+      "endpoint": "https://api.llm7.io/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 64
+    },
+    {
+      "provider": "sambanova",
+      "bundledModels": 9,
+      "errors": [],
+      "endpoint": "https://api.sambanova.ai/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 7
+    },
+    {
+      "provider": "tencent",
+      "bundledModels": 6,
+      "errors": [],
+      "endpoint": "https://api.hunyuan.cloud.tencent.com/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "morph",
+      "bundledModels": 8,
+      "errors": [],
+      "endpoint": "https://api.morphllm.com/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "poolside",
+      "bundledModels": 2,
+      "errors": [],
+      "endpoint": "https://inference.poolside.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "tokenrouter",
+      "bundledModels": 15,
+      "errors": [],
+      "endpoint": "https://api.tokenrouter.com/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "selfhosted-stt",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "selfhosted-tts",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "selfhosted-embedding",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "meta-model-api",
+      "bundledModels": 3,
+      "errors": [],
+      "endpoint": "https://api.meta.ai/v1/models",
+      "status": "credentials_required",
+      "httpStatus": 401,
+      "liveModels": 0
+    },
+    {
+      "provider": "opencode-zen",
+      "bundledModels": 77,
+      "errors": [],
+      "endpoint": "https://opencode.ai/zen/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 84
+    },
+    {
+      "provider": "chatgpt-web",
+      "bundledModels": 7,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "claude-web",
+      "bundledModels": 10,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "gemini-web",
+      "bundledModels": 3,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "deepseek-web",
+      "bundledModels": 14,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "notion-web",
+      "bundledModels": 26,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "qwen-web",
+      "bundledModels": 4,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "zai-web",
+      "bundledModels": 7,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "venice-web",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "v0-vercel-web",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "manus-web",
+      "bundledModels": 3,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "ai21",
+      "bundledModels": 4,
+      "errors": [],
+      "endpoint": "https://api.ai21.com/studio/v1/models",
+      "status": "upstream_unavailable_or_unrecognized",
+      "httpStatus": 200,
+      "liveModels": 0
+    },
+    {
+      "provider": "deepinfra",
+      "bundledModels": 25,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "friendliai",
+      "bundledModels": 6,
+      "errors": [],
+      "endpoint": "https://api.friendli.ai/serverless/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 7
+    },
+    {
+      "provider": "github-models",
+      "bundledModels": 19,
+      "errors": [],
+      "endpoint": "https://models.github.ai/catalog/models",
+      "status": "network_error_or_timeout"
+    },
+    {
+      "provider": "inception",
+      "bundledModels": 3,
+      "errors": [],
+      "endpoint": "https://api.inceptionlabs.ai/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 2
+    },
+    {
+      "provider": "nous-research",
+      "bundledModels": 6,
+      "errors": [],
+      "endpoint": "https://inference-api.nousresearch.com/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 426
+    },
+    {
+      "provider": "reka",
+      "bundledModels": 3,
+      "errors": [],
+      "endpoint": null,
+      "status": "bundled_or_specialized"
+    },
+    {
+      "provider": "gorouter",
+      "bundledModels": 14,
+      "errors": [],
+      "endpoint": "https://api.gorouter.app/v1/models",
+      "status": "network_error_or_timeout"
+    },
+    {
+      "provider": "tabitoken",
+      "bundledModels": 10,
+      "errors": [],
+      "endpoint": "https://api.tabitoken.com/v1/models",
+      "status": "network_error_or_timeout"
+    },
+    {
+      "provider": "unikey",
+      "bundledModels": 9,
+      "errors": [],
+      "endpoint": "https://api.getunikey.ai/v1/models",
+      "status": "network_error_or_timeout"
+    },
+    {
+      "provider": "openagentic",
+      "bundledModels": 9,
+      "errors": [],
+      "endpoint": "https://api.openagentic.ai/v1/models",
+      "status": "network_error_or_timeout"
+    },
+    {
+      "provider": "pollinations",
+      "bundledModels": 1,
+      "errors": [],
+      "endpoint": "https://text.pollinations.ai/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 1
+    },
+    {
+      "provider": "navy",
+      "bundledModels": 18,
+      "errors": [],
+      "endpoint": "https://api.navy/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 144
+    },
+    {
+      "provider": "zenmux",
+      "bundledModels": 19,
+      "errors": [],
+      "endpoint": "https://zenmux.ai/api/v1/models",
+      "status": "live",
+      "httpStatus": 200,
+      "liveModels": 205
+    }
+  ]
+}

@@ -3,21 +3,21 @@ import { getThinkingLevels } from "../../open-sse/providers/thinkingLevels.js";
 
 describe("getThinkingLevels", () => {
   it.each([
-    ["gpt-6-astra", ["minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-6-astra-review", ["minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-sol", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-terra", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-luna", ["none", "minimal", "low", "medium", "high", "xhigh", "max"]],
-    ["gpt-5.6-sol-review", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-terra-review", ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]],
-    ["gpt-5.6-luna-review", ["none", "minimal", "low", "medium", "high", "xhigh", "max"]],
+    ["gpt-6-astra", ["low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-6-astra-review", ["low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-5.6-sol", ["low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-5.6-terra", ["low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-5.6-luna", ["low", "medium", "high", "xhigh", "max"]],
+    ["gpt-5.6-sol-review", ["low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-5.6-terra-review", ["low", "medium", "high", "xhigh", "max", "ultra"]],
+    ["gpt-5.6-luna-review", ["low", "medium", "high", "xhigh", "max"]],
   ])("returns Codex levels for %s", (model, expected) => {
     expect(getThinkingLevels("codex", model)).toEqual(expected);
   });
 
   it("does not expose Codex-only GPT-5.6 overrides on Kiro", () => {
     expect(getThinkingLevels("kiro", "gpt-5.6-sol")).toEqual([
-      "none", "minimal", "low", "medium", "high", "xhigh",
+      "none", "low", "medium", "high", "xhigh", "max",
     ]);
   });
 
@@ -32,7 +32,7 @@ describe("getThinkingLevels", () => {
   });
 
   it("gives OpenAI API and CommandCode gpt-6 thinking without none", () => {
-    const expected = ["minimal", "low", "medium", "high", "xhigh"];
+    const expected = ["low", "medium", "high", "xhigh", "max"];
     expect(getThinkingLevels("openai", "gpt-6-astra")).toEqual(expected);
     expect(getThinkingLevels("commandcode", "gpt-6-astra")).toEqual(expected);
   });
@@ -40,7 +40,7 @@ describe("getThinkingLevels", () => {
   it("gives Claude Opus 5 / Fable 5.1 / Sonnet 5 xhigh", () => {
     const expected = ["none", "low", "medium", "high", "xhigh", "max"];
     expect(getThinkingLevels("claude", "claude-opus-5")).toEqual(expected);
-    expect(getThinkingLevels("anthropic", "claude-fable-5-1")).toEqual(expected);
+    expect(getThinkingLevels("anthropic", "claude-fable-5-1")).toEqual(expected.filter((level) => level !== "none"));
     expect(getThinkingLevels("commandcode", "claude-sonnet-5")).toEqual(expected);
   });
 

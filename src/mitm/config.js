@@ -27,6 +27,8 @@ const TARGET_HOSTS = [
   "agentn.us.api5.cursor.sh",
   "agent.global.api5.cursor.sh",
   "agentn.global.api5.cursor.sh",
+  "cli-chat-proxy.grok.com",
+  "apis.iflow.cn",
 ];
 
 const URL_PATTERNS = {
@@ -34,6 +36,9 @@ const URL_PATTERNS = {
   copilot: ["/chat/completions", "/v1/messages", "/responses"],
   kiro: ["/generateAssistantResponse"],
   cursor: ["/BidiAppend", "/RunSSE", "/RunPoll", "/Run"],
+  // Grok CLI talks the OpenAI Responses API on a dedicated host; iFlow is plain Chat Completions.
+  "grok-cli": ["/responses"],
+  iflow: ["/chat/completions"],
 };
 
 // Synonym map: rawModel from request → canonical alias key in mitmAlias DB
@@ -54,6 +59,8 @@ const MODEL_SYNONYMS = {
     "gemini-3.1-pro-high": "gemini-pro-agent",
     "gemini-3-pro-high": "gemini-pro-agent",
     "gemini-3-pro-low": "gemini-3.1-pro-low",
+    "claude-sonnet-5-5-thinking": "claude-sonnet-5-5",
+    "claude-opus-5-5-thinking": "claude-opus-5-5",
   },
 };
 
@@ -74,8 +81,11 @@ const MODEL_PATTERNS = {
     { match: /flash.*agent|agent.*flash|flash/i,                   alias: "gemini-3-flash-agent" },
     { match: /pro.*low|low.*pro/i,                                 alias: "gemini-3.1-pro-low" },
     { match: /gemini.*pro|pro.*gemini/i,                           alias: "gemini-pro-agent" },
-    { match: /opus/i,                                              alias: "claude-opus-4-6-thinking" },
-    { match: /sonnet|claude/i,                                     alias: "claude-sonnet-4-6" },
+    { match: /claude[-.]opus[-.]5[-.]5/i,                          alias: "claude-opus-5-5" },
+    { match: /claude[-.]sonnet[-.]5[-.]5/i,                        alias: "claude-sonnet-5-5" },
+    // Unmapped 5.5 requests must pass through, even if a legacy slot is mapped.
+    { match: /^(?!.*5[-.]5).*opus/i,                               alias: "claude-opus-4-6-thinking" },
+    { match: /^(?!.*5[-.]5).*(?:sonnet|claude)/i,                  alias: "claude-sonnet-4-6" },
     { match: /gpt.*oss|oss/i,                                      alias: "gpt-oss-120b-medium" },
   ],
 };
@@ -105,6 +115,8 @@ function getToolForHost(host) {
   if (h === "daily-cloudcode-pa.googleapis.com" || h === "cloudcode-pa.googleapis.com") return "antigravity";
   if (h === "q.us-east-1.amazonaws.com" || h === "codewhisperer.us-east-1.amazonaws.com" || h === "runtime.us-east-1.kiro.dev") return "kiro";
   if (h === "api2.cursor.sh" || /^agentn?(?:\.(?:us|global))?\.api5\.cursor\.sh$/.test(h)) return "cursor";
+  if (h === "cli-chat-proxy.grok.com") return "grok-cli";
+  if (h === "apis.iflow.cn") return "iflow";
   return null;
 }
 

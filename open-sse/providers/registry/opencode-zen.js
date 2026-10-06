@@ -10,6 +10,12 @@ export default {
   hasFree: true,
   authType: "apikey",
   authModes: ["apikey"],
+  modelsFetcher: { url: `${BASE_URL}/models`, type: "openai" },
+  modelFormatRules: [
+    { prefixes: ["gpt-", "grok-"], format: "openai-responses" },
+    { prefixes: ["qwen", "claude-"], format: "claude" },
+    { prefixes: ["gemini-"], format: "gemini" },
+  ],
   display: {
     name: "OpenCode Zen",
     icon: "terminal",
@@ -156,6 +162,14 @@ export default {
     { id: "kimi-k2.5", name: "Kimi K2.5", contextLength: 262144 },
     { id: "qwen3.8-flash", name: "Qwen 3.8 Flash", contextLength: 1000000 },
     { id: "qwen3.6-plus", name: "Qwen 3.6 Plus", contextLength: 1000000 },
-    { id: "qwen3.5-plus", name: "Qwen 3.5 Plus", contextLength: 1000000 }
+    { id: "qwen3.5-plus", name: "Qwen 3.5 Plus", contextLength: 1000000 },
+    // Added from the live catalog on 2026-09-30.
+    {"id":"claude-sonnet-5-5","name":"claude-sonnet-5-5"},
+    {"id":"gpt-6.1-sol","name":"GPT 6.1 Sol"},
+    {"id":"jev-1.13","name":"jev-1.13"},
+    {"id":"jev-1.13-free","name":"jev-1.13-free"},
+    {"id":"space-bunny-free","name":"space-bunny-free"},
+    {"id":"longcat-2.5-preview-free","name":"longcat-2.5-preview-free"},
+    {"id":"qwen3.8-max","name":"Qwen 3.8 Max"}
   ],
 };

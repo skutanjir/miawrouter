@@ -34,18 +34,40 @@ const FORMAT_LEVELS = {
   step: L.base,
 };
 
-const CODEX_GPT_5_6_LEVELS = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
-const CODEX_GPT_6_ASTRA_LEVELS = ["minimal", "low", "medium", "high", "xhigh", "max", "ultra"];
+// Verified 2026-09-30: API efforts differ from ChatGPT/Codex presets.
+// https://developers.openai.com/api/docs/models/gpt-6.1-sol
+// https://learn.chatgpt.com/docs/models
+const API_GPT_6_LEVELS = ["none", "low", "medium", "high", "xhigh", "max"];
+const CODEX_GPT_5_6_LEVELS = ["low", "medium", "high", "xhigh", "max"];
+const CODEX_GPT_6_ASTRA_LEVELS = [...CODEX_GPT_5_6_LEVELS, "ultra"];
 
 const PATTERN_THINKING = [
+  { provider: "codex", pattern: "*gpt-6.1-sol*", levels: CODEX_GPT_6_ASTRA_LEVELS },
   { provider: "codex", pattern: "*gpt-6-astra*", levels: CODEX_GPT_6_ASTRA_LEVELS },
   { provider: "codex", pattern: "*gpt-6-sol*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
   { provider: "codex", pattern: "*gpt-6-luna*", levels: CODEX_GPT_5_6_LEVELS },
   { provider: "codex", pattern: "*gpt-5.6-sol*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
   { provider: "codex", pattern: "*gpt-5.6-terra*", levels: [...CODEX_GPT_5_6_LEVELS, "ultra"] },
   { provider: "codex", pattern: "*gpt-5.6-luna*", levels: CODEX_GPT_5_6_LEVELS },
+  { pattern: "*gpt-6.1-sol*", levels: API_GPT_6_LEVELS.filter((level) => level !== "none") },
+  { pattern: "*gpt-6-astra*", levels: API_GPT_6_LEVELS.filter((level) => level !== "none") },
+  { pattern: "*gpt-6*", levels: API_GPT_6_LEVELS },
+  { provider: "kiro", pattern: "*gpt-5.6*", levels: API_GPT_6_LEVELS },
+  { pattern: "*gpt-5.6*", levels: API_GPT_6_LEVELS },
+  { pattern: "*gpt-5.5-pro*", levels: ["medium", "high", "xhigh"] },
+  { pattern: "*gpt-5.4-pro*", levels: ["medium", "high", "xhigh"] },
+  { pattern: "*gpt-5.5*", levels: ["none", "low", "medium", "high", "xhigh"] },
+  { pattern: "*gpt-5.4*", levels: ["none", "low", "medium", "high", "xhigh"] },
   { pattern: "*codex*", levels: ["low", "medium", "high", "xhigh"] },
+  { pattern: "*gpt-5.2*", levels: ["none", "low", "medium", "high", "xhigh"] },
+  { pattern: "*gpt-5.1*", levels: L.base },
+  { pattern: "*gpt-5*", levels: ["minimal", "low", "medium", "high"] },
+  { pattern: "*o1*", levels: ["low", "medium", "high"] },
+  { pattern: "*o3*", levels: ["low", "medium", "high"] },
+  { pattern: "*o4*", levels: ["low", "medium", "high"] },
   { pattern: "*claude*haiku*", levels: null },
+  { pattern: "*claude*opus-4.5*", levels: L.base },
+  { pattern: "*claude*opus-4-5*", levels: L.base },
   { pattern: "*claude*opus-4.6*", levels: L.levelMax },
   { pattern: "*claude*opus-4-6*", levels: L.levelMax },
   { pattern: "*claude*sonnet-4.6*", levels: L.levelMax },
@@ -58,7 +80,12 @@ const PATTERN_THINKING = [
 ];
 
 // Returns valid thinking levels for a model, or null when the model has no reasoning.
-export function getThinkingLevels(provider, model) {
+export function getThinkingLevels(provider, model, metadata) {
+  const declared = metadata?.reasoningLevels || metadata?.supported_reasoning_levels || metadata?.supportedReasoningLevels;
+  if (Array.isArray(declared)) {
+    const valid = [...new Set(declared.map((level) => typeof level === "string" ? level : level?.effort).filter((level) => ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra", "thinking"].includes(level)))];
+    if (valid.length) return valid;
+  }
   if (provider === "kiro" && resolveKiroEffortPath(model) === null) return null;
   const caps = getCapabilitiesForModel(provider, model);
   if (!caps.reasoning) return null;
@@ -69,4 +96,17 @@ export function getThinkingLevels(provider, model) {
   let levels = hit?.levels || FORMAT_LEVELS[caps.thinkingFormat] || L.base;
   if (caps.thinkingCanDisable === false) levels = levels.filter((l) => l !== "none");
   return levels;
+}
+
+// Translate unsupported client levels to the closest supported effort. "auto"
+// means omit effort and let the upstream use its model-specific default.
+export function normalizeThinkingLevel(level, supportedLevels) {
+  if (!level || level === "auto") return null;
+  if (!supportedLevels?.length || supportedLevels.includes(level)) return level;
+  if (level === "minimal" && supportedLevels.includes("low")) return "low";
+  const order = ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"];
+  const index = order.indexOf(level);
+  if (index < 0) return null;
+  return [...supportedLevels].reverse().find((candidate) => order.indexOf(candidate) >= 0 && order.indexOf(candidate) <= index)
+    || supportedLevels[0];
 }

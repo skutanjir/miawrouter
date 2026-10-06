@@ -16,6 +16,7 @@ export default function RequestLogger() {
     let interval;
     if (autoRefresh) {
       interval = setInterval(() => {
+        if (document.hidden) return;
         fetchLogs(false);
       }, 3000);
     }

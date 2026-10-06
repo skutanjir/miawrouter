@@ -67,6 +67,13 @@ const { ensureSqliteRuntime, buildEnvWithRuntime } = require("./hooks/sqliteRunt
 const { ensureTrayRuntime } = require("./hooks/trayRuntime");
 const args = process.argv.slice(2);
 
+if (args[0] === "antigravity-fixer") {
+  require("./hooks/antigravityFixerRuntime").runAntigravityFixer(args.slice(1))
+    .then((code) => process.exit(code))
+    .catch((error) => { console.error(error.message); process.exit(1); });
+  return;
+}
+
 // Subcommands (`miawrouter xai video …`) run against an already-running gateway
 // and bypass the launcher flow (no runtime self-heal, no server spawn).
 if (args[0] === "xai" && args[1] === "video") {
@@ -95,6 +102,7 @@ Options:
   -v, --version       Show version
 
 Commands:
+  antigravity-fixer  Bundled recovery tool (see: miawrouter antigravity-fixer --help)
   xai video --prompt "..." --output video.mp4
                       Generate a Grok Imagine video via the running gateway
                       (see: ${pkg.name} xai video --help)
@@ -189,8 +197,20 @@ function compareVersions(a, b) {
   return 0;
 }
 
-// Get app data dir (matches app/src/lib/dataDir.js convention)
+// Get app data dir. Mirrors app/src/lib/dataDir.js: honor DATA_DIR when it is
+// usable, otherwise fall back to the platform default. Keeps CLI paths (MITM,
+// tunnel PID files) on the same directory the server actually writes to.
 function getAppDataDir() {
+  const configured = process.env.DATA_DIR;
+  // On Windows a Unix-style absolute path (from a Linux/Docker .env) is invalid.
+  if (configured && !(process.platform === "win32" && /^\//.test(configured))) {
+    try {
+      fs.mkdirSync(configured, { recursive: true });
+      return configured;
+    } catch {
+      // Not writable — fall through to the platform default.
+    }
+  }
   return process.platform === "win32"
     ? path.join(process.env.APPDATA || "", "miawrouter")
     : path.join(os.homedir(), ".miawrouter");
@@ -585,7 +605,7 @@ async function showInterfaceMenu(latestVersion) {
     serverUrl = `http://${displayHost}:${port}`;
   }
 
-  const subtitle = `🚀 Server: \x1b[32m${serverUrl}\x1b[0m`;
+  const subtitle = `Server  \x1b[96m${serverUrl}\x1b[0m`;
 
   const menuItems = [];
 
@@ -594,13 +614,13 @@ async function showInterfaceMenu(latestVersion) {
   }
 
   menuItems.push(
-    { label: "Web UI (Open in Browser)", icon: "🌐" },
-    { label: "Terminal UI (Interactive CLI)", icon: "💻" },
-    { label: "Hide to Tray (Background)", icon: "🔔" },
-    { label: "Exit", icon: "🚪" }
+    { label: "Open dashboard", description: "Manage MiawRouter in your browser." },
+    { label: "Enter terminal", description: "Manage providers, API keys and settings here." },
+    { label: "Keep in tray", description: "Keep the server running in the background." },
+    { label: "Exit MiawRouter", description: "Close MiawRouter and stop the local server." }
   );
 
-  const selected = await selectMenu(`Choose Interface (v${pkg.version})`, menuItems, 0, subtitle);
+  const selected = await selectMenu(`Welcome home / v${pkg.version}`, menuItems, 0, subtitle);
 
   const offset = latestVersion ? 1 : 0;
 

@@ -1,11 +1,28 @@
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
 import secretPolicy from "./secret-policy.cjs";
 
 // Refuse to evaluate config (and thus open any listener) when a known-weak
 // secret was supplied. Unset secrets pass — builds without runtime secrets
 // still work; generated secrets are created when their consumers first run.
 secretPolicy.assertNoWeakSecrets();
+
+// Trace/build against a throwaway home so the bundler never crawls the real
+// user profile (APPDATA/LOCALAPPDATA — Minecraft, Discord, browser data) and
+// the build never opens the live SQLite DB. The CLI build already swaps these
+// in cli/scripts/build-cli.js; `npm run build` would otherwise trace C:\Users\…
+// and emit hundreds of "Failed to copy traced files" warnings.
+if (process.env.NEXT_PHASE === "phase-production-build" || process.argv.slice(2).includes("build")) {
+  const buildHome = join(tmpdir(), "miawrouter-build-home");
+  mkdirSync(join(buildHome, "AppData", "Roaming"), { recursive: true });
+  mkdirSync(join(buildHome, "AppData", "Local"), { recursive: true });
+  process.env.HOME = buildHome;
+  process.env.USERPROFILE = buildHome;
+  process.env.APPDATA = join(buildHome, "AppData", "Roaming");
+  process.env.LOCALAPPDATA = join(buildHome, "AppData", "Local");
+}
 
 const projectRoot = dirname(fileURLToPath(import.meta.url));
 // CLI bundling needs workspace root so tracing includes hoisted node_modules (slim ~50MB).
@@ -46,7 +63,7 @@ const nextConfig = {
     // Cache fetch responses across HMR refreshes for faster dev reloads.
     serverComponentsHmrCache: true,
     // Tree-shake heavy barrel imports to cut compile + bundle size
-    optimizePackageImports: ["@dnd-kit/core", "@dnd-kit/sortable", "material-symbols", "marked"],
+    optimizePackageImports: ["@dnd-kit/core", "@dnd-kit/sortable", "material-symbols", "marked", "recharts"],
   },
   webpack: (config, { isServer }) => {
     // Ignore fs/path modules in browser bundle

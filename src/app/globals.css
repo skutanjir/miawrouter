@@ -3,6 +3,48 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Shared dashboard workspaces and live routing diagram. */
+.workspace-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:8px 0 20px; border-bottom:1px solid var(--color-border); }
+.workspace-heading h1 { font-size:28px; font-weight:650; letter-spacing:-.035em; line-height:1.2; }
+.workspace-heading p { margin-top:8px; font-size:14px; color:var(--color-text-muted); line-height:1.6; }
+.workspace-count,.workspace-link { font-size:12px; white-space:nowrap; color:var(--color-primary); }
+.tool-directory-toolbar { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.tool-directory-search { display:flex; align-items:center; gap:10px; padding:11px 14px; border:1px solid var(--color-border); border-radius:10px; background:var(--color-surface); width:min(100%,440px); color:var(--color-text-muted); }
+.tool-directory-search input { background:transparent; outline:none; width:100%; font-size:14px; color:var(--color-text-main); }
+.tool-directory-search:focus-within { border-color:var(--color-primary); }
+.tool-directory-filters { display:flex; padding:4px; gap:4px; border:1px solid var(--color-border); border-radius:10px; }
+.tool-directory-filters button { padding:8px 14px; border-radius:6px; font-size:12px; color:var(--color-text-muted); }
+.tool-directory-filters button[aria-pressed="true"] { background:var(--color-surface-2); color:var(--color-primary); }
+.cli-workspace h2 { text-transform:none; letter-spacing:0; font-size:16px; }
+.tool-directory-card { min-height:124px; }
+.subagent-role:focus-within { border-color:var(--color-primary); }
+.subagent-role button { min-height:40px; }
+.routing-canvas { position:relative; min-width:620px; background-image:radial-gradient(var(--color-border) 1px,transparent 1px); background-size:20px 20px; border-radius:12px; }
+.routing-lines { position:absolute; inset:0; width:100%; height:100%; }
+.routing-line { fill:none; stroke:var(--color-border); stroke-width:1.5; vector-effect:non-scaling-stroke; }
+.routing-line-active { stroke:var(--color-primary); stroke-width:2.5; stroke-dasharray:7 6; animation:route-flow 1s linear infinite; }
+.routing-line-error { stroke:#ef4444; }
+.routing-line-recent { stroke:#f59e0b; }
+.routing-node { position:absolute; top:50%; transform:translateY(-50%); display:flex; align-items:center; flex-direction:column; gap:6px; padding:18px 8px; border:1px solid var(--color-border); border-radius:14px; background:var(--color-surface); text-align:center; }
+.routing-node strong { font-size:14px; font-weight:600; }
+.routing-node>span:last-child { font-size:11px; color:var(--color-text-muted); }
+.routing-source { left:3%; width:20%; }
+.routing-hub { left:35%; width:14%; border-color:color-mix(in srgb,var(--color-primary) 50%,var(--color-border)); }
+.routing-hub-active { box-shadow:0 0 0 5px color-mix(in srgb,var(--color-primary) 9%,transparent); }
+.routing-destinations { position:absolute; left:62%; width:36%; top:24px; display:flex; flex-direction:column; gap:10px; }
+.routing-destinations .channel-bay-module { height:68px; background:var(--color-surface); padding:12px; border-radius:10px; }
+.routing-legend { display:flex; flex-wrap:wrap; gap:16px; margin-top:20px; padding-top:16px; border-top:1px solid var(--color-border); font-size:11px; color:var(--color-text-muted); }
+.routing-legend span { display:flex; align-items:center; gap:6px; }
+.routing-legend i { width:6px; height:6px; border-radius:50%; }
+.saver-section-nav { display:flex; flex-wrap:wrap; gap:8px; }
+.saver-section-nav a { padding:9px 16px; border:1px solid var(--color-border); border-radius:8px; font-size:13px; color:var(--color-text-muted); }
+.saver-section-nav a:hover { color:var(--color-primary); border-color:var(--color-primary); }
+.saver-workspace>[id] { scroll-margin-top:100px; border-radius:16px; }
+.usage-workspace .tsw-stage-row { padding-block:12px; }
+@keyframes route-flow { to { stroke-dashoffset:-26; } }
+@media(prefers-reduced-motion:reduce) { .routing-line-active { animation:none; } }
+@media(max-width:640px) { .workspace-heading { align-items:flex-start; flex-direction:column; gap:10px; } .workspace-heading h1 { font-size:24px; } .tool-directory-toolbar { flex-direction:column; align-items:stretch; } .tool-directory-search { width:100%; } .tool-directory-filters button { flex:1; } .routing-canvas { min-width:560px; } }
+
 /* Hide icon ligature text until font is ready */
 .material-symbols-outlined { visibility: hidden; }
 .fonts-loaded .material-symbols-outlined { visibility: visible; }

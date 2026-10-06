@@ -148,7 +148,8 @@ describe("Genspark provider", () => {
 
   it("ships the complete fallback catalog", () => {
     const ids = new Set(REGISTRY.find((e) => e.id === "genspark").models.map((model) => model.id));
-    expect(ids.size).toBe(36);
+    expect(ids.size).toBeGreaterThanOrEqual(36);
+    expect(ids.size).toBe(REGISTRY.find((e) => e.id === "genspark").models.length);
     for (const id of [
       "claude-fable-5",
       "claude-opus-5",

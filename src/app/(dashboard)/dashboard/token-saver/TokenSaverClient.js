@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, Button, Input, Modal, Toggle, ConfirmModal } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { getCurrentLocale, onLocaleChange } from "@/i18n/runtime";
+import { waitForHeadroomInstall } from "@/shared/utils/headroomInstall";
 import {
   WENYAN_LOCALES,
   CAVEMAN_LEVELS,
@@ -32,6 +33,7 @@ export default function TokenSaverClient() {
     useState(false);
   const [headroomActionLoading, setHeadroomActionLoading] = useState(false);
   const [headroomActionError, setHeadroomActionError] = useState("");
+  const [headroomInstaller, setHeadroomInstaller] = useState("auto");
   const [headroomExtras, setHeadroomExtras] = useState({
     version: null,
     extras: { code: false, ml: false },
@@ -241,6 +243,7 @@ export default function TokenSaverClient() {
     setInstallLog("");
     if (logPollRef.current) clearInterval(logPollRef.current);
     const tick = async () => {
+      if (document.hidden) return;
       try {
         const r = await fetch("/api/headroom/extras?log=1", {
           headers: { "Cache-Control": "no-store" },
@@ -262,6 +265,23 @@ export default function TokenSaverClient() {
 
   useEffect(() => () => stopLogPolling(), [stopLogPolling]);
 
+  const handleHeadroomInstall = useCallback(async () => {
+    setHeadroomActionLoading(true);
+    setHeadroomActionError("");
+    startLogPolling();
+    try {
+      const response = await fetch("/api/headroom/extras", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ extras: [], installer: headroomInstaller }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Headroom setup failed");
+      await waitForHeadroomInstall(data.job, { onProgress: (progress) => setInstallLog(progress.log || "") });
+      await refreshHeadroomStatus();
+    } catch (error) { setHeadroomActionError(error.message); }
+    finally { stopLogPolling(); setHeadroomActionLoading(false); }
+  }, [headroomInstaller, refreshHeadroomStatus, startLogPolling, stopLogPolling]);
+
   const installExtrasConfirmed = useCallback(async () => {
     if (pendingExtras.length === 0) return;
     setExtrasActionLoading(true);
@@ -271,10 +291,11 @@ export default function TokenSaverClient() {
       const res = await fetch("/api/headroom/extras", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extras: pendingExtras }),
+        body: JSON.stringify({ extras: pendingExtras, installer: headroomInstaller }),
       });
-      const data = await res.json().catch(() => ({}));
+      let data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Install failed");
+      data = await waitForHeadroomInstall(data.job, { onProgress: (progress) => setInstallLog(progress.log || "") });
       setHeadroomExtras((s) => ({
         ...s,
         version: data.version ?? s.version,
@@ -287,7 +308,26 @@ export default function TokenSaverClient() {
       stopLogPolling();
       setExtrasActionLoading(false);
     }
-  }, [pendingExtras, startLogPolling, stopLogPolling]);
+  }, [pendingExtras, headroomInstaller, startLogPolling, stopLogPolling]);
+
+  useEffect(() => {
+    if (!showHeadroomInstallModal) return;
+    let mounted = true;
+    fetch("/api/headroom/extras?log=1", { cache: "no-store" }).then(async (response) => {
+      if (!response.ok) return;
+      const progress = await response.json();
+      if (!mounted) return;
+      setInstallLog(progress.log || "");
+      if (progress.job?.status !== "running") return;
+      setHeadroomActionLoading(true);
+      try {
+        await waitForHeadroomInstall(progress.job, { onProgress: (next) => { if (mounted) setInstallLog(next.log || ""); } });
+        if (mounted) await refreshHeadroomStatus();
+      } catch (error) { if (mounted) setHeadroomActionError(error.message); }
+      finally { if (mounted) setHeadroomActionLoading(false); }
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, [showHeadroomInstallModal, refreshHeadroomStatus]);
 
   const removeExtraConfirmed = useCallback(async (extra) => {
     setRemovingExtra(extra);
@@ -758,7 +798,9 @@ export default function TokenSaverClient() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="workspace-canvas saver-workspace space-y-6">
+      <div className="workspace-heading"><div><h1>Make every token count</h1><p>Choose a profile, tune compression, and follow the savings.</p></div><a href="/dashboard/usage" className="workspace-link">View live activity <span aria-hidden="true">↗</span></a></div>
+      <nav className="saver-section-nav" aria-label="Token saver sections"><a href="#quick-presets">Profiles</a><a href="#rtk">Compression</a><a href="#token-saver-catalog">Integrations</a><a href="#token-saver-general">Preferences</a></nav>
       <Card id="quick-presets">
         <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
           <div>
@@ -766,7 +808,7 @@ export default function TokenSaverClient() {
               <span className="material-symbols-outlined text-primary">
                 tune
               </span>
-              Quick Presets (Token Saver Profiles)
+              Savings profiles
             </h2>
             <p className="text-sm text-text-muted mt-0.5">
               Select a strategy profile for throughput and compression telemetry without manual re-configuration.
@@ -913,7 +955,7 @@ export default function TokenSaverClient() {
               <p className="font-medium">
                 Compress context{" "}
                 <a
-                  href="https://github.com/chopratejas/headroom"
+                  href="https://github.com/headroomlabs-ai/headroom"
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs font-normal text-primary underline hover:opacity-80"
@@ -1303,6 +1345,21 @@ export default function TokenSaverClient() {
         onClose={() => setShowHeadroomInstallModal(false)}
       >
         <div className="flex flex-col gap-4">
+          <p className="text-sm text-text-muted">RTK works inside MiawRouter without Python. Headroom is an optional compression proxy. Setup creates a private Python environment and leaves system packages unchanged.</p>
+          <p className="text-xs text-text-muted">Setup runs in the background and allows up to 45 minutes per step. Large downloads can take longer on a slow connection. You can close this panel and reopen it to check progress; keep MiawRouter running.</p>
+          <div className="space-y-2 rounded border border-border p-3 text-sm">
+            <p>Python 3.10+: {headroomStatus.loading ? "Checking…" : headroomStatus.python || "Not detected"}</p>
+            <p>uv: {headroomStatus.uv ? "Available" : "Not detected"} · pip: {headroomStatus.pip ? "Available" : "Not detected"}</p>
+            <label className="block space-y-1">
+              <span>Package installer</span>
+              <select aria-label="Headroom package installer" value={headroomInstaller} onChange={(event) => setHeadroomInstaller(event.target.value)} disabled={headroomActionLoading || extrasActionLoading} className="w-full rounded border border-border bg-surface-2 p-2">
+                <option value="auto">Auto (prefer uv, otherwise pip)</option>
+                <option value="uv">uv</option>
+                <option value="pip">pip</option>
+              </select>
+            </label>
+            <p className="text-xs text-text-muted">If Python is missing, uv can download Python 3.12 during setup. With pip, install Python 3.10+ with pip and venv first. PXPIPE uses Node.js/npm and does not need Python.</p>
+          </div>
           <div className="flex items-center justify-between text-sm">
             <span>Status</span>
             <span
@@ -1360,33 +1417,18 @@ export default function TokenSaverClient() {
             <p className="text-sm text-warning">
               Start Headroom separately at the configured URL, then recheck.
             </p>
-          ) : !headroomStatus.python ? (
-            <p className="text-sm text-warning">
-              Python ≥ 3.10 required for local managed mode. Install Python
-              first, or use an external proxy URL.
-            </p>
           ) : (
             <div className="flex flex-col gap-1">
-              <p className="text-sm font-medium">Install then click Start:</p>
-              <div className="flex items-center gap-2">
-                <pre className="flex-1 rounded bg-black/5 dark:bg-white/5 p-2 text-xs font-mono overflow-x-auto">
-                  {`pip install "headroom-ai[proxy]"`}
-                </pre>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() =>
-                    copy(`pip install "headroom-ai[proxy]"`)
-                  }
-                >
-                  {copied ? "Copied" : "Copy"}
-                </Button>
-              </div>
+              <Button fullWidth onClick={handleHeadroomInstall} disabled={headroomActionLoading || !headroomStatus.canInstall}>
+                {headroomActionLoading ? "Installing…" : "Install Headroom"}
+              </Button>
+              {!headroomStatus.loading && !headroomStatus.canInstall && <p className="text-xs text-text-muted">Install <a href="https://docs.astral.sh/uv/getting-started/installation/" target="_blank" rel="noreferrer" className="text-primary underline">uv</a> or <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer" className="text-primary underline">Python</a>, then click Recheck.</p>}
             </div>
           )}
           {headroomActionError && (
             <p className="text-sm text-warning">{headroomActionError}</p>
           )}
+          {installLog && <pre className="max-h-44 overflow-auto rounded bg-surface-2 p-3 text-xs whitespace-pre-wrap">{installLog}</pre>}
           <div className="flex gap-2">
             <Button
               onClick={() => refreshHeadroomStatus()}

@@ -16,6 +16,7 @@ export default {
     },
   },
   category: "freeTier",
+  modelsFetcher: { url: "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000", type: "openai", authHeader: "x-goog-api-key", authPrefix: "" },
   authType: "apikey",
   authModes: ["apikey"],
   mediaPriority: 1,

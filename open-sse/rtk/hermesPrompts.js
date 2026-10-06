@@ -19,6 +19,9 @@ const CLI_ADAPTATIONS = {
   cline: "Environment: Cline / Roo Code. Utilize tool calls accurately with explicit path references and step-by-step verification.",
   codex: "Environment: OpenAI Codex CLI / Desktop. Adhere to `CODEX.md` conventions and execute with concise, verified completions.",
   antigravity: "Environment: Antigravity IDE / Cloud Code. Preserve project guidelines and verify cross-file dependencies cleanly.",
+  "gemini-cli": "Environment: Google Gemini CLI. Respect `GEMINI.md` and repository conventions; prefer explicit, verifiable tool calls.",
+  "github-copilot": "Environment: GitHub Copilot chat. Keep suggestions minimal and type-safe with explicit path references; verify before proposing.",
+  "deepseek-tui": "Environment: DeepSeek TUI. Honor `AGENTS.md` and apply precise, minimal diffs with step-by-step verification.",
 };
 
 export function getHermesSystemPrompt(clientTool = null, mode = "full") {

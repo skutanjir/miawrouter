@@ -48,6 +48,18 @@ export default {
     },
   },
   models: [{
+  id: "gpt-6.1-sol",
+  name: "GPT 6.1 Sol",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
+}, {
+  id: "gpt-6.1-sol-review",
+  name: "GPT 6.1 Sol Review",
+  upstreamModelId: "gpt-6.1-sol",
+  quotaFamily: "review",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
+}, {
   id: "gpt-6-astra",
   name: "GPT 6 Astra"
 }, {

@@ -1,13 +1,13 @@
 {
   "name": "miawrouter",
-  "version": "1.2.0",
+  "version": "1.2.2",
   "description": "MiawRouter web dashboard",
   "private": false,
   "bin": "./cli/cli.js",
   "scripts": {
     "dev": "next dev --port 21127",
     "dev:webpack": "next dev --webpack --port 21127",
-    "build": "next build --webpack",
+    "build": "node --max-old-space-size=8192 ./node_modules/next/dist/bin/next build --webpack",
     "postbuild": "node scripts/copy-standalone-assets.mjs",
     "postbuild:bun": "node scripts/copy-standalone-assets.mjs",
     "start": "next start --port 21128",

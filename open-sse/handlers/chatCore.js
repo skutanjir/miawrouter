@@ -387,7 +387,12 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   const rtkAutoTrigger = Number.isFinite(rtkAutoTriggerRaw) && rtkAutoTriggerRaw >= 0
     ? rtkAutoTriggerRaw
     : DEFAULT_AUTO_TRIGGER_TOKENS;
-  const rtkAutoOn = rtkAutoTrigger === 0 || estimateRequestTokens(translatedBody) >= rtkAutoTrigger;
+  // Only pay for the full-body token estimate when RTK is actually going to run;
+  // the estimate is O(body) and would otherwise be pure overhead per request.
+  const rtkOn = tokenSaverEnabled && rtkEnabled;
+  const rtkAutoOn = !rtkOn
+    || rtkAutoTrigger === 0
+    || estimateRequestTokens(translatedBody) >= rtkAutoTrigger;
 
   // L0 prompt-cache orchestration: tracks multi-turn session continuity, stable
   // prefix boundaries, and cache hit metrics across all providers. Also inserts

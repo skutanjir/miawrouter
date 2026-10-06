@@ -5,6 +5,8 @@ import PropTypes from "prop-types";
 import Modal from "./Modal";
 import ProviderIcon from "./ProviderIcon";
 import CapacityBadges from "./CapacityBadges";
+import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
+import { expandModelEffortOptions } from "@/shared/utils/modelEffortOptions";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, AI_PROVIDERS, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, getProviderAlias } from "@/shared/constants/providers";
@@ -47,6 +49,7 @@ export default function ModelSelectModal({
   }, [activeProviders, kindFilter]);
   const { getCaps } = useModelCaps();
   const [searchQuery, setSearchQuery] = useState("");
+  const [effortMode, setEffortMode] = useState("all");
   const [combos, setCombos] = useState([]);
   const [providerNodes, setProviderNodes] = useState([]);
   const [customModels, setCustomModels] = useState([]);
@@ -395,8 +398,28 @@ export default function ModelSelectModal({
       if (group.models.length === 0) delete groups[providerId];
     });
 
+    if (!kindFilter || kindFilter === "llm") {
+      Object.entries(groups).forEach(([providerId, group]) => {
+        const storageAlias = isOpenAICompatibleProvider(providerId) || isAnthropicCompatibleProvider(providerId) ? providerId : getProviderAlias(providerId);
+        group.models = expandModelEffortOptions(providerId, group.models, effortMode, customModels.filter((model) => model.providerAlias === storageAlias));
+      });
+    }
     return groups;
-  }, [filteredActiveProviders, modelAliases, allProviders, providerNodes, customModels, disabledModels, kindFilter, activeProviders, cursorModels]);
+  }, [filteredActiveProviders, modelAliases, allProviders, providerNodes, customModels, disabledModels, kindFilter, activeProviders, cursorModels, effortMode]);
+
+  const effortLevels = useMemo(() => {
+    const levels = new Set();
+    Object.entries(groupedModels).forEach(([providerId, group]) => {
+      const storageAlias = isOpenAICompatibleProvider(providerId) || isAnthropicCompatibleProvider(providerId) ? providerId : getProviderAlias(providerId);
+      group.models.forEach((model) => {
+        if (model.isPlaceholder || (model.kind && model.kind !== "llm")) return;
+        const id = model.id.replace(/\([^()]+\)$/, "");
+        const metadata = customModels.find((entry) => entry.providerAlias === storageAlias && entry.id === id);
+        getThinkingLevels(providerId, id, metadata || model)?.forEach((level) => levels.add(level));
+      });
+    });
+    return [...levels];
+  }, [groupedModels, customModels]);
 
   // Filter combos by search query (and hide combos when kindFilter is set — combos are LLM-only by design)
   const filteredCombos = useMemo(() => {
@@ -474,10 +497,23 @@ export default function ModelSelectModal({
       {/* Info bar */}
       <div className="flex items-center gap-2 mb-3 px-2.5 py-2 bg-primary/8 border border-primary/20 rounded-lg text-xs text-text-muted">
         <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: "14px" }}>info</span>
-        <span>Click to add, click again to remove. Changes are saved automatically.</span>
+        <span>{onDeselect ? "Click to add, click again to remove." : "Select a model to use its full ID, including the chosen effort."}</span>
       </div>
 
       {/* Search - compact */}
+      {(!kindFilter || kindFilter === "llm") && effortLevels.length > 0 && (
+        <div className="mb-3">
+          <label className="flex items-center gap-2 text-xs text-text-muted">
+            Effort
+            <select aria-label="Effort" value={effortMode} onChange={(event) => setEffortMode(event.target.value)} className="rounded border border-border bg-surface px-2 py-1 text-text-main">
+              <option value="auto">Auto (upstream default)</option>
+              <option value="all">All supported efforts</option>
+              {effortLevels.map((level) => <option key={level} value={level}>{level}</option>)}
+            </select>
+          </label>
+          <p className="mt-1 text-[10px] text-text-muted">Effort controls reasoning depth and is included in the selected model ID. Save or apply your configuration to keep it. Models without that effort keep their default.</p>
+        </div>
+      )}
       <div className="mb-3">
         <div className="relative">
           <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted text-[16px]">

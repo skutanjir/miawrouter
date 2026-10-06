@@ -18,6 +18,7 @@ export default {
     },
   },
   category: "apikey",
+  modelsFetcher: { url: "https://api.commandcode.ai/provider/v1/models", type: "openai" },
   hasFree: true,
   transport: {
     baseUrl: "https://api.commandcode.ai/alpha/generate",
@@ -118,6 +119,17 @@ export default {
     { id: "meta/muse-spark-1.3-contributor", name: "Muse Spark 1.3 Contributor", contextLength: 1048576 },
     { id: "xai/grok-4.7", name: "Grok 4.7", contextLength: 500000 },
     { id: "xai/grok-4.5", name: "Grok 4.5", contextLength: 500000 },
-    { id: "xai/grok-4.6", name: "Grok 4.6", contextLength: 500000 }
+    { id: "xai/grok-4.6", name: "Grok 4.6", contextLength: 500000 },
+    // Added from the live catalog on 2026-09-30.
+    {"id":"claude-sonnet-5-5","name":"Claude Sonnet 5.5","contextLength":1000000},
+    {"id":"gpt-6.1-sol","name":"GPT-6.1 Sol","contextLength":1050000},
+    {"id":"deepseek/deepseek-v4.1-flash-fast","name":"DeepSeek V4.1 Flash Fast","contextLength":1000000},
+    {"id":"z-ai/glm-5.3-flashx","name":"GLM-5.3 FlashX","contextLength":1000000},
+    {"id":"Qwen/Qwen3.8-Omni-Flash","name":"Qwen 3.8 Omni Flash","contextLength":1000000},
+    {"id":"meituan/LongCat-2.0","name":"LongCat 2.0","contextLength":1048576},
+    {"id":"stepfun/Step-5-Preview","name":"Step 5 Preview","contextLength":1000000},
+    {"id":"stealth/space-bunny-alpha","name":"Space Bunny Alpha","contextLength":1000000},
+    {"id":"stealth/pixel-canary","name":"Pixel Canary","contextLength":262144},
+    {"id":"inclusionai/ling-3.1-flash:free","name":"Ling 3.1 Flash","contextLength":262144}
   ],
 };

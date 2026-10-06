@@ -1,7 +1,7 @@
 // RTK port: compress tool_result content in LLM request bodies
 // Injected at the top of translateRequest (before any format translation)
 import { stripVTControlCharacters } from "node:util";
-import { RAW_CAP, DEFAULT_RTK_MODE, MODE_MIN_COMPRESS_SIZE, CHARS_PER_TOKEN } from "./constants.js";
+import { RAW_CAP, DEFAULT_RTK_MODE, MODE_MIN_COMPRESS_SIZE, CHARS_PER_TOKEN, RTK_SENTINEL } from "./constants.js";
 import { autoDetectFilter } from "./autodetect.js";
 import { safeApply } from "./applyFilter.js";
 
@@ -32,7 +32,8 @@ export function compressMessages(body, enabled, { start = 0, mode } = {}) {
   const items = Array.isArray(body.messages) ? body.messages
     : Array.isArray(body.input) ? body.input
     : null;
-  if (!items) return null;
+  // Gemini / Vertex / Antigravity: tool results live in contents[].parts[].functionResponse
+  if (!items) return compressGeminiFormat(body, minCompressSize);
 
   // Clamp: start must be a valid index into the array.
   const from = Number.isInteger(start) && start > 0 ? Math.min(start, items.length) : 0;
@@ -159,9 +160,51 @@ function compressKiroFormat(body, minCompressSize) {
   return stats;
 }
 
+// Compress Gemini / Vertex / Antigravity format: the tool output text sits at
+// contents[].parts[].functionResponse.response (string, or an object with a
+// string `result`/`output`). Antigravity wraps the body in request.contents.
+// Only string leaves are touched — structured tool results are left verbatim so
+// the provider payload shape is never rewritten.
+function compressGeminiFormat(body, minCompressSize) {
+  const root = body.request && Array.isArray(body.request.contents) ? body.request : body;
+  if (!Array.isArray(root?.contents)) return null;
+
+  const stats = { bytesBefore: 0, bytesAfter: 0, hits: [] };
+  try {
+    for (const content of root.contents) {
+      if (!Array.isArray(content?.parts)) continue;
+      for (const part of content.parts) {
+        const fr = part?.functionResponse;
+        if (!fr) continue;
+        const resp = fr.response;
+        if (typeof resp === "string") {
+          fr.response = compressText(resp, stats, "gemini-function-response", minCompressSize);
+        } else if (resp && typeof resp === "object") {
+          if (typeof resp.result === "string") {
+            resp.result = compressText(resp.result, stats, "gemini-function-response", minCompressSize);
+          } else if (typeof resp.output === "string") {
+            resp.output = compressText(resp.output, stats, "gemini-function-response", minCompressSize);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[RTK] compressGeminiFormat error:", e.message);
+    return null;
+  }
+  return stats;
+}
+
 function compressText(text, stats, shape, minCompressSize) {
   const bytesIn = text.length;
   stats.bytesBefore += bytesIn;
+
+  // Already compressed in a previous turn. Clients re-send the whole history on
+  // every request, so skip the re-scan and preserve the marker byte-for-byte.
+  if (text.startsWith(RTK_SENTINEL)) {
+    stats.bytesAfter += bytesIn;
+    return text;
+  }
 
   if (bytesIn < minCompressSize || bytesIn > RAW_CAP) {
     stats.bytesAfter += bytesIn;
@@ -172,26 +215,28 @@ function compressText(text, stats, shape, minCompressSize) {
   const fn = autoDetectFilter(cleanText);
   let out = fn ? safeApply(fn, cleanText) : cleanText;
 
-  if (!fn || out === cleanText) {
-    const compacted = cleanText
-      .replace(/[ \t]+$/gm, "")
-      .replace(/\n{3,}/g, "\n\n");
-    if (compacted.length < out.length) {
-      out = compacted;
-    }
+  // Cosmetic squeeze always runs: a matched filter can still leave trailing
+  // whitespace or runaway blank lines behind.
+  const compacted = out
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n");
+  if (compacted.length < out.length) {
+    out = compacted;
   }
 
-  // Safety: never return empty, never grow the input
-  if (!out || out.length === 0 || out.length >= bytesIn) {
+  // Safety: never return empty, never grow the input (marker length included)
+  if (!out || out.length === 0 || out.length + RTK_SENTINEL.length >= bytesIn) {
     stats.bytesAfter += bytesIn;
     return text;
   }
 
+  const saved = bytesIn - (out.length + RTK_SENTINEL.length);
+  out = RTK_SENTINEL + out;
   stats.bytesAfter += out.length;
   stats.hits.push({
     shape,
     filter: fn ? fn.filterName || fn.name : "terminal-noise",
-    saved: bytesIn - out.length,
+    saved,
   });
   return out;
 }
@@ -224,7 +269,9 @@ function countChars(value, depth = 0) {
   const t = typeof value;
   if (t === "string") return value.length;
   if (t === "number" || t === "boolean") return String(value).length;
-  if (t !== "object" || depth > 4) return 0;
+  // depth cap bounds cost on adversarial nesting, but must stay deep enough for
+  // Gemini/Antigravity tool results: contents.parts[].functionResponse.response.result
+  if (t !== "object" || depth > 8) return 0;
   let n = 0;
   if (Array.isArray(value)) {
     for (const item of value) n += countChars(item, depth + 1);

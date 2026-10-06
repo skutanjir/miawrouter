@@ -64,7 +64,7 @@ function ensureRuntimeDir() {
   if (!fs.existsSync(pkgPath)) {
     fs.writeFileSync(pkgPath, JSON.stringify({
       name: "miawrouter-runtime",
-      version: "1.2.0",
+      version: "1.2.2",
       private: true
     }, null, 2));
   }

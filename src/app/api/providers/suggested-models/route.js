@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { FILTERS, FILTER_URLS, findProviderFetcher, extractModels } from "./filters.js";
 import { getProviderConnections } from "@/models";
+import { MODEL_FETCH_TIMEOUT_MS } from "@/lib/catalog/providerModelSources.js";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,11 @@ async function fetchModelsPayload(url, providerId, fetcher) {
     fetch(url, {
       headers: {
         Accept: "application/json",
+        ...fetcher?.headers,
         ...(token ? { [authHeader]: `${authPrefix}${token}` } : {}),
       },
+      redirect: "error",
+      signal: AbortSignal.timeout(MODEL_FETCH_TIMEOUT_MS),
     });
 
   let res = await attempt();
@@ -71,7 +75,7 @@ export async function GET(request) {
     }
     const json = await res.json();
     const data = filter(extractModels(json));
-    return NextResponse.json({ data });
+    return NextResponse.json({ data, source: "live", fetchedAt: new Date().toISOString() });
   } catch {
     return NextResponse.json({ data: [] });
   }

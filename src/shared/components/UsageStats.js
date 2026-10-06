@@ -30,7 +30,7 @@ function TimeAgo({ timestamp }) {
   const [, setTick] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => setTick((t) => t + 1), 1000);
+    const timer = setInterval(() => { if (!document.hidden) setTick((t) => t + 1); }, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -521,8 +521,8 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
       {loading ? (
         spinner
       ) : (
-        <div className="panel-lift grid min-w-0 grid-cols-1 overflow-hidden rounded-[var(--radius-brand)] border border-border bg-surface lg:grid-cols-[minmax(0,1.35fr)_minmax(17rem,0.85fr)]">
-          <div className="min-w-0 border-b border-border lg:border-b-0 lg:border-r">
+        <div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.8fr)_minmax(17rem,0.8fr)]">
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-border bg-surface">
             <ProviderTopology
               providers={providers}
               activeRequests={stats?.activeRequests || []}
@@ -530,7 +530,7 @@ export default function UsageStats({ period: periodProp, setPeriod: setPeriodPro
               errorProvider={stats?.errorProvider || ""}
             />
           </div>
-          <RecentRequests requests={stats?.recentRequests || []} />
+          <div className="rounded-2xl border border-border bg-surface overflow-hidden"><RecentRequests requests={stats?.recentRequests || []} /></div>
         </div>
       )}
 

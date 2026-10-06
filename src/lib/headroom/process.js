@@ -1,10 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { spawn, execFileSync } from "child_process";
-import { DATA_DIR } from "@/lib/dataDir.js";
 import { findHeadroomBinary, findPython310Spec, HEADROOM_COMPRESSION_EXTRAS, EXTRA_MARKERS, getInstalledHeadroomExtras } from "./detect.js";
+import { HEADROOM_DIR, HEADROOM_VENV, HEADROOM_PYTHON, HEADROOM_SETUP_TIMEOUT_MS, findUv, hasPip, chooseInstaller } from "./environment.js";
 
-const HEADROOM_DIR = path.join(DATA_DIR, "headroom");
 const PID_FILE = path.join(HEADROOM_DIR, "proxy.pid");
 const LOG_FILE = path.join(HEADROOM_DIR, "proxy.log");
 const INSTALL_LOG_FILE = path.join(HEADROOM_DIR, "install.log");
@@ -171,58 +170,75 @@ export function getHeadroomLogTail(maxLines = 200) {
 // is rejected to keep the install surface predictable. Always installs the
 // `proxy` base + whatever extras the user picked, regardless of what is
 // already present.
-export async function installHeadroomExtras(extras = []) {
+let installInFlight = null;
+
+function runInstallCommand(command, args) {
+  ensureDir();
+  const outFd = fs.openSync(INSTALL_LOG_FILE, "a");
+  return new Promise((resolve, reject) => {
+    let finished = false;
+    let timer;
+    const finish = (error) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      fs.closeSync(outFd);
+      if (error) reject(error); else resolve();
+    };
+    let child;
+    try {
+      child = spawn(command, args, { stdio: ["ignore", outFd, outFd], windowsHide: true, env: { ...process.env, PYTHONUNBUFFERED: "1", PIP_DEFAULT_TIMEOUT: "120", PIP_RETRIES: "5", UV_HTTP_TIMEOUT: "120", UV_HTTP_RETRIES: "5" } });
+    } catch (error) { finish(error); return; }
+    timer = setTimeout(() => {
+      child.kill();
+      finish(Object.assign(new Error("Setup exceeded 45 minutes for this step. Cached downloads are kept; check the install log and retry."), { code: "INSTALL_FAILED" }));
+    }, HEADROOM_SETUP_TIMEOUT_MS);
+    child.once("error", finish);
+    child.once("close", (code) => finish(code === 0 ? null : Object.assign(new Error(`Setup exited with code ${code}. See the install log.`), { code: "INSTALL_FAILED" })));
+  });
+}
+
+export function installHeadroomExtras(extras = [], { installer = "auto" } = {}) {
+  if (installInFlight) return installInFlight;
+  installInFlight = installHeadroomEnvironment(extras, installer).finally(() => { installInFlight = null; });
+  return installInFlight;
+}
+
+async function installHeadroomEnvironment(extras, preference) {
   const requested = Array.isArray(extras) ? extras.filter((e) => HEADROOM_COMPRESSION_EXTRAS.includes(e)) : [];
   const py = findPython310Spec();
-  if (!py) {
-    const err = new Error("Python >= 3.10 not found");
-    err.code = "NO_PYTHON";
-    throw err;
-  }
-  if (!findHeadroomBinary()) {
-    const err = new Error("headroom-ai not installed (run `pip install headroom-ai[proxy]` first)");
-    err.code = "NOT_INSTALLED";
-    throw err;
-  }
+  const uv = findUv();
+  const installer = chooseInstaller(preference, { uv, pip: hasPip(py) });
   // pip install string is built from a closed set (HEADROOM_COMPRESSION_EXTRAS),
   // so it cannot be poisoned by caller input — the comma-list is a fixed
   // ['proxy', ...requested]. No shell interpolation.
-  const extrasList = ["proxy", ...requested].join(",");
+  const existing = fs.existsSync(HEADROOM_PYTHON) ? getInstalledHeadroomExtras(HEADROOM_PYTHON).extras : {};
+  const extrasList = ["proxy", ...HEADROOM_COMPRESSION_EXTRAS.filter((extra) => requested.includes(extra) || existing[extra])].join(",");
   const spec = `headroom-ai[${extrasList}]`;
-  const args = ["-m", "pip", "install", "--upgrade", spec];
-
   ensureDir();
-  // Truncate ("w") so the log reflects only the current install for live progress.
-  const outFd = fs.openSync(INSTALL_LOG_FILE, "w");
-  const child = spawn(py.command, [...py.args, ...args], {
-    stdio: ["ignore", outFd, outFd],
-    windowsHide: true,
-    env: { ...process.env },
-  });
-
-  return new Promise((resolve, reject) => {
-    child.once("error", (e) => { fs.closeSync(outFd); reject(e); });
-    child.once("exit", (code) => {
-      fs.closeSync(outFd);
-      if (code === 0) {
-        const status = getInstalledHeadroomExtras(py);
-        resolve({ success: true, code, spec, extras: requested, ...status });
-      } else {
-        const err = new Error(`pip install exited with code=${code} — see headroom/install.log`);
-        err.code = "INSTALL_FAILED";
-        reject(err);
-      }
-    });
-  });
+  fs.writeFileSync(INSTALL_LOG_FILE, `Setting up ${spec} with ${installer} in a private environment.\n`);
+  if (!fs.existsSync(HEADROOM_PYTHON)) {
+    if (installer === "uv") {
+      const interpreter = py ? execFileSync(py.command, [...py.args, "-c", "import sys; print(sys.executable)"], { encoding: "utf8", timeout: 5000, windowsHide: true }).trim() : "3.12";
+      await runInstallCommand(uv, ["venv", "--seed", "--python", interpreter, HEADROOM_VENV]);
+    } else {
+      await runInstallCommand(py.command, [...py.args, "-m", "venv", HEADROOM_VENV]);
+    }
+  }
+  if (installer === "uv") await runInstallCommand(uv, ["pip", "install", "--python", HEADROOM_PYTHON, "--upgrade", spec]);
+  else await runInstallCommand(HEADROOM_PYTHON, ["-m", "pip", "install", "--disable-pip-version-check", "--upgrade", spec]);
+  const status = getInstalledHeadroomExtras(HEADROOM_PYTHON);
+  if (!status.installed || !findHeadroomBinary()) throw Object.assign(new Error("Setup finished but Headroom is not available. Check the install log."), { code: "INSTALL_FAILED" });
+  return { success: true, spec, installer, python: HEADROOM_PYTHON, ...status };
 }
 
 // Uninstall the marker packages that back a single extra (e.g. `ml` → torch,
 // huggingface-hub). `headroom-ai` base and the `proxy` extra are never removed.
 export async function uninstallHeadroomExtras(extras = []) {
   const requested = Array.isArray(extras) ? extras.filter((e) => HEADROOM_COMPRESSION_EXTRAS.includes(e)) : [];
-  const py = findPython310Spec();
+  const py = fs.existsSync(HEADROOM_PYTHON) ? { command: HEADROOM_PYTHON, args: [] } : null;
   if (!py) {
-    const err = new Error("Python >= 3.10 not found");
+    const err = new Error("Set up the private Headroom environment before removing extras. Global Python packages will not be removed.");
     err.code = "NO_PYTHON";
     throw err;
   }

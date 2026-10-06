@@ -71,8 +71,8 @@ function declaredReasoningLevels(model) {
 function reasoningLevels(provider, id, model) {
   const declared = declaredReasoningLevels(model);
   if (declared.length) return declared;
-  if (provider !== "codex" || modelKind(model) !== "llm") return [];
-  return getThinkingLevels("codex", id) || [];
+  if (modelKind(model) !== "llm") return [];
+  return getThinkingLevels(provider, id) || [];
 }
 
 function levelName(level) {

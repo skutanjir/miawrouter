@@ -510,6 +510,60 @@ describe("compressMessages (enabled)", () => {
     expect(stats).not.toBeNull();
     expect(stats.hits.length).toBeGreaterThan(0);
   });
+
+  it("is idempotent across turns: a compressed blob is not re-scanned", () => {
+    const big = makeGrepOutput();
+    const body = { messages: [{ role: "tool", tool_call_id: "x", content: big }] };
+    const first = compressMessages(body, true);
+    expect(first.hits.length).toBeGreaterThan(0);
+    const once = body.messages[0].content;
+    expect(once.length).toBeLessThan(big.length);
+
+    // Second turn re-sends the same blob: detect via marker, skip re-compression.
+    const second = compressMessages(body, true);
+    expect(second.hits.length).toBe(0);
+    expect(body.messages[0].content).toBe(once);
+  });
+});
+
+describe("compressMessages (Gemini / Vertex / Antigravity)", () => {
+  it("compresses contents[].parts[].functionResponse.response.result string", () => {
+    const big = makeGrepOutput();
+    const body = { contents: [{ role: "user", parts: [{ functionResponse: { name: "run", response: { result: big } } }] }] };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.contents[0].parts[0].functionResponse.response.result.length).toBeLessThan(big.length);
+  });
+
+  it("compresses when functionResponse.response is a raw string", () => {
+    const big = makeGrepOutput();
+    const body = { contents: [{ role: "user", parts: [{ functionResponse: { name: "run", response: big } }] }] };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.contents[0].parts[0].functionResponse.response.length).toBeLessThan(big.length);
+  });
+
+  it("handles Antigravity request.contents wrapper", () => {
+    const big = makeGrepOutput();
+    const body = { request: { contents: [{ role: "user", parts: [{ functionResponse: { name: "run", response: { result: big } } }] }] } };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBeGreaterThan(0);
+    expect(body.request.contents[0].parts[0].functionResponse.response.result.length).toBeLessThan(big.length);
+  });
+
+  it("leaves structured (non-string) functionResponse untouched", () => {
+    const body = { contents: [{ role: "user", parts: [{ functionResponse: { name: "run", response: { result: { ok: true, items: [1, 2, 3] } } } }] }] };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.contents[0].parts[0].functionResponse.response.result).toEqual({ ok: true, items: [1, 2, 3] });
+  });
+
+  it("skips below MIN_COMPRESS_SIZE", () => {
+    const body = { contents: [{ role: "user", parts: [{ functionResponse: { name: "run", response: { result: "short" } } }] }] };
+    const stats = compressMessages(body, true);
+    expect(stats.hits.length).toBe(0);
+    expect(body.contents[0].parts[0].functionResponse.response.result).toBe("short");
+  });
 });
 
 describe("formatRtkLog", () => {

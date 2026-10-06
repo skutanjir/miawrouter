@@ -817,7 +817,10 @@ export default function BatchPageClient() {
       (b) => b.status === "queued" || b.status === "running"
     );
     if (!hasActive) return;
-    const interval = setInterval(load, 5000);
+    const interval = setInterval(() => {
+      if (document.hidden) return;
+      load();
+    }, 5000);
     return () => clearInterval(interval);
   }, [batches, load]);
 

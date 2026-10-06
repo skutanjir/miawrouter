@@ -178,15 +178,15 @@ export default function ToolSubagentsSection({
   const isSaving = propApplying || savingInternal;
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-surface/30">
+    <div className="subagent-workspace border border-border rounded-2xl overflow-hidden bg-background/40">
       {/* Header / Toggle */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-surface/50 transition-colors select-none"
+        className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer hover:bg-surface/50 transition-colors select-none"
       >
         <div className="flex items-center gap-2">
           <span className="material-symbols-outlined text-[16px] text-primary">smart_toy</span>
-          <span className="text-xs font-semibold text-text-main">Subagent Configurations</span>
+          <span className="text-base font-semibold text-text-main">Subagent team</span>
           {activeCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
               {activeCount} configured
@@ -220,23 +220,24 @@ export default function ToolSubagentsSection({
 
       {/* Body */}
       {isOpen && (
-        <div className="p-3 border-t border-border flex flex-col gap-3">
-          <p className="text-[11px] text-text-muted">
-            Configure specialized subagent models for {toolName}. Click Select Model to pick from active providers, or Auto-Detect to assign optimal roles automatically.
+        <div className="p-4 sm:p-5 border-t border-border flex flex-col gap-5">
+          <p className="text-sm leading-relaxed text-text-muted max-w-2xl">
+            Give each role a model and reasoning effort. Auto-Detect recommends a team from your connected providers; Save Subagents applies it to {toolName}.
           </p>
 
-          <div className="flex flex-col gap-2.5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {rolesConfig.map((role) => {
               const currentVal = subagents[role.id] || "";
               return (
-                <div key={role.id} className="flex flex-col gap-1 p-2 rounded border border-border/80 bg-surface/20">
+                <div key={role.id} className="subagent-role flex flex-col gap-3 p-4 rounded-xl border border-border bg-surface">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[14px] text-primary">{role.icon}</span>
-                      <span className="text-xs font-medium text-text-main">{role.label}</span>
+                      <span className="text-sm font-semibold text-text-main">{role.label}</span>
                     </div>
-                    <span className="text-[10px] text-text-muted hidden sm:inline">{role.desc}</span>
+                    <span className={`text-[11px] ${currentVal ? "text-primary" : "text-text-muted"}`}>{currentVal ? "Assigned" : "Unassigned"}</span>
                   </div>
+                  <p className="text-xs leading-relaxed text-text-muted min-h-8">{role.desc}</p>
 
                   <div className="flex items-center gap-1.5">
                     <div className="relative flex-1 min-w-0">
@@ -245,7 +246,8 @@ export default function ToolSubagentsSection({
                         value={currentVal}
                         onChange={(e) => handleRoleChange(role.id, e.target.value)}
                         placeholder={role.defaultPlaceholder}
-                        className="w-full min-w-0 pl-2 pr-6 py-1 text-xs bg-surface rounded border border-border focus:outline-none focus:ring-1 focus:ring-primary/50"
+                        aria-label={`${role.label} model`}
+                        className="w-full min-w-0 pl-3 pr-7 py-2.5 text-xs bg-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/50"
                       />
                       {currentVal && (
                         <button

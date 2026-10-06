@@ -36,7 +36,7 @@ export default function ToolSummaryCard({ toolId, tool, status }) {
     <Link href={`/dashboard/cli-tools/${toolId}`} className="group block min-w-0">
       <div
         className={cn(
-          "relative flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-2.5 transition-all duration-150 cursor-pointer overflow-hidden",
+          "tool-directory-card relative flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface px-4 py-4 transition-colors duration-150 cursor-pointer overflow-hidden",
           "hover:border-border hover:bg-surface-2/60"
         )}
       >
@@ -79,6 +79,7 @@ export default function ToolSummaryCard({ toolId, tool, status }) {
                 {s.label}
               </span>
             </div>
+            <p className="mt-2 text-xs leading-relaxed text-text-muted line-clamp-2">{tool.description}</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center pl-1 text-text-muted group-hover:text-primary transition-colors">

@@ -22,7 +22,8 @@ import AddApiKeyModal from "./AddApiKeyModal";
 import EditCompatibleNodeModal from "./EditCompatibleNodeModal";
 import AddCustomModelModal from "./AddCustomModelModal";
 import BulkImportCodexModal from "./BulkImportCodexModal";
-import UpstreamModelsSection from "./UpstreamModelsSection";
+import ProviderModelDiscovery from "./ProviderModelDiscovery";
+import AntigravityRecovery from "./AntigravityRecovery";
 
 const ONE_BY_ONE_DELAY_MS = 1000;
 
@@ -176,7 +177,8 @@ export default function ProviderDetailPage() {
   // Resolve suffix "(level)" for a model when a thinking level is picked and the model supports it.
   const resolveThinkingSuffix = (modelId) => {
     if (!thinkingMode || thinkingMode === "auto") return null;
-    const levels = getThinkingLevels(providerId, modelId);
+    const metadata = customModels.find((model) => model.providerAlias === providerStorageAlias && model.id === modelId);
+    const levels = getThinkingLevels(providerId, modelId, metadata);
     return levels && levels.includes(thinkingMode) ? thinkingMode : null;
   };
   const providerStorageAlias = isCompatible ? providerId : providerAlias;
@@ -188,7 +190,8 @@ export default function ProviderDetailPage() {
     const addLevels = (modelId) => {
       if (!modelId || seen.has(modelId)) return;
       seen.add(modelId);
-      const lv = getThinkingLevels(providerId, modelId);
+      const metadata = customModels.find((model) => model.providerAlias === providerStorageAlias && model.id === modelId);
+      const lv = getThinkingLevels(providerId, modelId, metadata);
       if (lv) lv.forEach((l) => { if (l !== "none") set.add(l); });
     };
     for (const m of models) addLevels(m.id);
@@ -1218,17 +1221,6 @@ export default function ProviderDetailPage() {
           </button>
         )}
 
-        {/* Upstream models from provider's public API */}
-        <UpstreamModelsSection
-          providerId={providerId}
-          providerStorageAlias={providerStorageAlias}
-          customModels={customModels}
-          modelAliases={modelAliases}
-          hardcodedModelIds={new Set(models.map((m) => m.id))}
-          onAddModel={(modelId) => handleAddCustomModel(modelId, "llm", providerStorageAlias)}
-          onRefreshCustomModels={fetchCustomModels}
-        />
-
         {/* Disabled models — restorable */}
         {disabledDisplayModels.length > 0 && (
           <div className="w-full mt-2">
@@ -1415,6 +1407,16 @@ export default function ProviderDetailPage() {
             </div>
           </div>
         </Card>
+      )}
+
+      {providerId === "antigravity" && (
+        <AntigravityRecovery
+          connections={connections}
+          onReconnect={triggerOAuthConnection}
+          onRefresh={fetchConnections}
+          onOnboard={handleOnboardConnection}
+          onboardingConnectionId={onboardingConnectionId}
+        />
       )}
 
       {/* Connections */}
@@ -1681,6 +1683,7 @@ export default function ProviderDetailPage() {
         {!!modelsTestError && (
           <p className="text-xs text-red-500 mb-3 break-words">{modelsTestError}</p>
         )}
+        <ProviderModelDiscovery key={providerId} providerId={providerId} connections={connections} customModels={customModels} providerStorageAlias={providerStorageAlias} onRefreshCustomModels={fetchCustomModels} />
         {renderModelsSection()}
       </Card>
 

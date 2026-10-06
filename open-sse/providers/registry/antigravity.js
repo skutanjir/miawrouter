@@ -105,6 +105,19 @@ export default {
   id: "gemini-3.1-pro-low",
   name: "Gemini 3.1 Pro (Low)"
 }, {
+  // https://antigravity.google/docs/models — paid non-trial Pro and Ultra.
+  // Upstream requires the thinking-effort tier suffix (fetchAvailableModels:
+  // claude-sonnet-5-5-{low|medium|high}); the bare id returns 404 NOT_FOUND.
+  id: "claude-sonnet-5-5",
+  name: "Claude Sonnet 5.5 (Thinking)",
+  upstreamModelId: "claude-sonnet-5-5-high",
+  aliases: ["claude-sonnet-5-5-thinking"]
+}, {
+  id: "claude-opus-5-5",
+  name: "Claude Opus 5.5 (Thinking)",
+  upstreamModelId: "claude-opus-5-5-high",
+  aliases: ["claude-opus-5-5-thinking"]
+}, {
   id: "claude-sonnet-4-6",
   name: "Claude Sonnet 4.6 (Thinking)"
 }, {
