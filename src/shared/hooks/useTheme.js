@@ -17,9 +17,9 @@ function getSystemThemeSnapshot() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
-// Server snapshot always returns false
+// Server snapshot defaults to true (dark carbon theme)
 function getServerSnapshot() {
-  return false;
+  return true;
 }
 
 export function useTheme() {
@@ -47,8 +47,8 @@ export function useTheme() {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme, initTheme]);
 
-  // Compute isDark from current state (no effect needed)
-  const isDark = theme === "dark" || (theme === "system" && systemPrefersDark);
+  // Compute isDark from current state (defaults to dark unless explicitly light)
+  const isDark = theme !== "light" && (theme === "dark" || systemPrefersDark || theme === "system");
 
   return {
     theme,

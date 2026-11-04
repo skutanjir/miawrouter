@@ -75,7 +75,7 @@ describe("loadOrCreateSecretFile", () => {
     const file = path.join(tempDir, FILE);
     fs.writeFileSync(file, "persisted-secret", { mode: 0o644 });
     await load();
-    expect(fs.statSync(file).mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(fs.statSync(file).mode & 0o777).toBe(0o600);
   });
 
   it("trims whitespace from file content", async () => {
@@ -93,7 +93,7 @@ describe("loadOrCreateSecretFile", () => {
     expect(result).toMatch(/^[0-9a-f]{64}$/);
     const stat = fs.statSync(path.join(tempDir, FILE));
     // mode 0o600 = 384 decimal; stat.mode includes file-type bits
-    expect(stat.mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(stat.mode & 0o777).toBe(0o600);
   });
 
   it("second call returns the same persisted value", async () => {

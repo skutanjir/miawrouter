@@ -17,7 +17,9 @@ import {
   WEB_COOKIE_PROVIDERS,
   OPENAI_COMPATIBLE_PREFIX,
   ANTHROPIC_COMPATIBLE_PREFIX,
+  getProvidersByKind,
 } from "@/shared/constants/providers";
+import { getModelsByProviderId } from "@/shared/constants/models";
 import Link from "next/link";
 import { getErrorCode, getRelativeTime } from "@/shared/utils";
 import { useNotificationStore } from "@/store/notificationStore";
@@ -25,6 +27,7 @@ import { useHeaderSearchStore } from "@/store/headerSearchStore";
 import ModelAvailabilityBadge from "./components/ModelAvailabilityBadge";
 import AddCompatibleModal from "./components/AddCompatibleModal";
 
+import { Icon } from "@/shared/components/Icon";
 function getStatusDisplay(connected, error, errorCode) {
   const parts = [];
   if (connected > 0) {
@@ -111,9 +114,7 @@ function SectionControlStrip({
             aria-label={collapsed ? `Expand ${title}` : `Collapse ${title}`}
             className="-ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">
-              {collapsed ? "chevron_right" : "expand_more"}
-            </span>
+            <Icon name={collapsed ? "chevron_right" : "expand_more"} className=" text-[18px]" />
           </button>
         )}
         <h2 className="text-xs sm:text-sm font-semibold tracking-tight text-text-main truncate">
@@ -152,6 +153,7 @@ const statsCache = new WeakMap();
 const APIKEY_INITIAL_VISIBLE = 20;
 
 export default function ProvidersPage() {
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [connections, setConnections] = useState([]);
   const [providerNodes, setProviderNodes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -195,14 +197,14 @@ export default function ProvidersPage() {
 
   const sortByPriority = (entries, authType) =>
     [...entries].sort(([ka, a], [kb, b]) => {
-      const pa = a.priority ?? 999;
-      const pb = b.priority ?? 999;
-      if (pa !== pb) return pa - pb;
       const sa = getProviderStats(ka, authType);
       const sb = getProviderStats(kb, authType);
       const ca = sa.connected > 0 ? 1 : 0;
       const cb = sb.connected > 0 ? 1 : 0;
       if (ca !== cb) return cb - ca;
+      const pa = a.priority ?? 999;
+      const pb = b.priority ?? 999;
+      if (pa !== pb) return pa - pb;
       return (a.name || "").localeCompare(b.name || "");
     });
 
@@ -369,10 +371,13 @@ export default function ProvidersPage() {
       id: node.id,
       name: node.name || "OpenAI Compatible",
       color: "#10A37F",
-      textIcon: "OC",
-      apiType: node.apiType,
     }))
-    .filter((p) => matchSearch(p.name));
+    .filter((p) => matchSearch(p.name))
+    .sort((a, b) => {
+      const ca = getProviderStats(a.id, "apikey").connected > 0 ? 0 : 1;
+      const cb = getProviderStats(b.id, "apikey").connected > 0 ? 0 : 1;
+      return ca - cb || a.name.localeCompare(b.name);
+    });
 
   const anthropicCompatibleProviders = providerNodes
     .filter((node) => node.type === "anthropic-compatible")
@@ -382,11 +387,12 @@ export default function ProvidersPage() {
       color: "#D97757",
       textIcon: "AC",
     }))
-    .filter((p) => matchSearch(p.name));
-
-  // Dual-auth providers (oauth + apikey) store API keys as authType "apikey"
-  // (and sometimes "api_key"). Card stats must count both so totals match detail.
-  // kiro has no authModes in registry but accepts both (headless uses "api_key").
+    .filter((p) => matchSearch(p.name))
+    .sort((a, b) => {
+      const ca = getProviderStats(a.id, "apikey").connected > 0 ? 0 : 1;
+      const cb = getProviderStats(b.id, "apikey").connected > 0 ? 0 : 1;
+      return ca - cb || a.name.localeCompare(b.name);
+    });
   const dualAuthTypes = (info, key) => {
     if (key === "kiro") return ["oauth", "apikey", "api_key"];
     const modes = info?.authModes;
@@ -408,7 +414,15 @@ export default function ProvidersPage() {
   );
   const freeEntries = Object.entries(FREE_PROVIDERS)
     .filter(([, info]) => !info.hidden && matchSearch(info.name))
-    .sort(([, a], [, b]) => (b.noAuth ? 1 : 0) - (a.noAuth ? 1 : 0));
+    .sort(([ka, a], [kb, b]) => {
+      const ca = getProviderStats(ka, dualAuthTypes(a, ka)).connected > 0 ? 0 : 1;
+      const cb = getProviderStats(kb, dualAuthTypes(b, kb)).connected > 0 ? 0 : 1;
+      if (ca !== cb) return ca - cb;
+      const noAuthDiff = (b.noAuth ? 1 : 0) - (a.noAuth ? 1 : 0);
+      if (noAuthDiff !== 0) return noAuthDiff;
+      return (a.name || "").localeCompare(b.name || "");
+    });
+
   // Free Tier cards may be oauth-only (e.g. kimchi) or dual-auth, so count via
   // dualAuthTypes per provider instead of a fixed "apikey" — otherwise oauth
   // connections are invisible here (mismatch with the detail page).
@@ -422,14 +436,14 @@ export default function ProvidersPage() {
         (info.serviceKinds ?? ["llm"]).includes("llm"),
     )
     .sort(([ka, a], [kb, b]) => {
+      const ca = getProviderStats(ka, dualAuthTypes(a, ka)).connected > 0 ? 0 : 1;
+      const cb = getProviderStats(kb, dualAuthTypes(b, kb)).connected > 0 ? 0 : 1;
+      if (ca !== cb) return ca - cb;
       const pa = a.priority ?? 999;
       const pb = b.priority ?? 999;
       if (pa !== pb) return pa - pb;
       const noAuthDiff = (b.noAuth ? 1 : 0) - (a.noAuth ? 1 : 0);
       if (noAuthDiff !== 0) return noAuthDiff;
-      const ca = getProviderStats(ka, dualAuthTypes(a, ka)).connected > 0 ? 0 : 1;
-      const cb = getProviderStats(kb, dualAuthTypes(b, kb)).connected > 0 ? 0 : 1;
-      if (ca !== cb) return ca - cb;
       return (a.name || "").localeCompare(b.name || "");
     });
   // API Key: connected providers first, then alphabetical by name
@@ -441,8 +455,8 @@ export default function ProvidersPage() {
         matchSearch(info.name),
     )
     .sort(([ka, a], [kb, b]) => {
-      const ca = getProviderStats(ka, "apikey").total > 0 ? 0 : 1;
-      const cb = getProviderStats(kb, "apikey").total > 0 ? 0 : 1;
+      const ca = getProviderStats(ka, "apikey").connected > 0 ? 0 : 1;
+      const cb = getProviderStats(kb, "apikey").connected > 0 ? 0 : 1;
       if (ca !== cb) return ca - cb;
       return (a.name || "").localeCompare(b.name || "");
     });
@@ -450,11 +464,29 @@ export default function ProvidersPage() {
     Object.entries(WEB_COOKIE_PROVIDERS).filter(
       ([, info]) => !info.hidden && matchSearch(info.name),
     ),
-    "cookie",
   );
   const webCookieAuthTypes = (providerId) =>
     providerId === "kimi-web" ? ["cookie", "apikey", "api_key"] : "cookie";
+  const mediaProviders = ["embedding", "image", "imageToText", "tts", "stt", "video", "music"]
+    .flatMap((kind) => getProvidersByKind(kind).map((provider) => ({ ...provider, kind })))
+    .filter((provider, index, list) => list.findIndex((entry) => entry.id === provider.id) === index)
+    .filter((provider) => matchSearch(provider.name))
+    .sort((a, b) => {
+      const ca = getProviderStats(a.id, ["apikey", "api_key", "oauth", "cookie"]).connected > 0 ? 0 : 1;
+      const cb = getProviderStats(b.id, ["apikey", "api_key", "oauth", "cookie"]).connected > 0 ? 0 : 1;
+      return ca - cb || a.name.localeCompare(b.name);
+    });
+  const webProviders = ["webSearch", "webFetch"]
+    .flatMap((kind) => getProvidersByKind(kind).map((provider) => ({ ...provider, kind })))
+    .filter((provider, index, list) => list.findIndex((entry) => entry.id === provider.id) === index)
+    .filter((provider) => matchSearch(provider.name))
+    .sort((a, b) => {
+      const ca = getProviderStats(a.id, ["apikey", "api_key", "oauth", "cookie"]).connected > 0 ? 0 : 1;
+      const cb = getProviderStats(b.id, ["apikey", "api_key", "oauth", "cookie"]).connected > 0 ? 0 : 1;
+      return ca - cb || a.name.localeCompare(b.name);
+    });
   const isSearching = !!searchQuery.trim();
+  const showCategory = (category) => categoryFilter === "all" || categoryFilter === category;
   const visibleApikeyEntries =
     isSearching || showAllApikey
       ? apikeyEntries
@@ -482,26 +514,49 @@ export default function ProvidersPage() {
   }
 
   const hasAnyResult =
-    oauthEntries.length > 0 ||
-    freeEntries.length > 0 ||
-    freeTierEntries.length > 0 ||
-    apikeyEntries.length > 0 ||
-    webCookieEntries.length > 0 ||
-    compatibleProviders.length > 0 ||
-    anthropicCompatibleProviders.length > 0;
+    (showCategory("oauth") && oauthEntries.length > 0) ||
+    (showCategory("free") && (freeEntries.length > 0 || freeTierEntries.length > 0)) ||
+    (showCategory("apikey") && (apikeyEntries.length > 0 || compatibleProviders.length > 0 || anthropicCompatibleProviders.length > 0)) ||
+    (showCategory("web") && (webCookieEntries.length > 0 || webProviders.length > 0)) ||
+    (showCategory("media") && mediaProviders.length > 0);
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
+    <div className="flex min-w-0 flex-col gap-5 px-1 sm:px-0">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-surface p-1.5 shadow-soft" role="group" aria-label="Filter providers by category">
+        {[
+          ["all", "All", "apps"],
+          ["oauth", "OAuth", "oauth"],
+          ["apikey", "API key", "key"],
+          ["free", "Free", "redeem"],
+          ["web", "Web", "globe"],
+          ["media", "Media", "perm_media"],
+        ].map(([value, label, iconName]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setCategoryFilter(value)}
+            aria-pressed={categoryFilter === value}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs sm:text-sm font-medium transition-all",
+              categoryFilter === value
+                ? "bg-primary text-bg shadow-2xs font-semibold"
+                : "text-text-muted hover:bg-surface-2 hover:text-text-main",
+            )}
+          >
+            <Icon name={iconName} weight="duotone" className="text-[15px]" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
       {!hasAnyResult && (
-        <div className="text-center py-8 border border-dashed border-border rounded-xl">
-          <span className="material-symbols-outlined text-[32px] text-text-muted mb-2">
-            search_off
-          </span>
-          <p className="text-text-muted text-sm">No providers match your search</p>
+        <div className="text-center py-10 border border-dashed border-border rounded-xl bg-surface-2/40">
+          <Icon name={"search_off"} className="text-[32px] text-text-muted mb-2 mx-auto" />
+          <p className="text-text-muted text-sm">{isSearching ? "No providers match your search" : "No providers in this category"}</p>
         </div>
       )}
 
       {/* Custom Providers (OpenAI/Anthropic Compatible) — dynamic */}
+      {showCategory("apikey") && (
       <div className="flex flex-col gap-3">
         <SectionControlStrip
           title="Custom Providers (OpenAI/Anthropic Compatible)"
@@ -512,7 +567,7 @@ export default function ProvidersPage() {
             onClick={() => setShowAddAnthropicCompatibleModal(true)}
             className="h-7 px-2.5 text-xs font-medium text-text-muted hover:text-text-main border border-border hover:border-primary/40 rounded-md bg-surface hover:bg-surface-2 transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
           >
-            <span className="material-symbols-outlined text-[14px]">add</span>
+            <Icon name={"add"} className=" text-[14px]" />
             Add Anthropic Compatible
           </button>
           <button
@@ -520,7 +575,7 @@ export default function ProvidersPage() {
             onClick={() => setShowAddCompatibleModal(true)}
             className="h-7 px-2.5 text-xs font-medium text-text-muted hover:text-text-main border border-border hover:border-primary/40 rounded-md bg-surface hover:bg-surface-2 transition-colors inline-flex items-center justify-center gap-1.5 cursor-pointer w-full sm:w-auto"
           >
-            <span className="material-symbols-outlined text-[14px]">add</span>
+            <Icon name={"add"} className=" text-[14px]" />
             Add OpenAI Compatible
           </button>
         </SectionControlStrip>
@@ -528,7 +583,7 @@ export default function ProvidersPage() {
         {compatibleProviders.length === 0 &&
         anthropicCompatibleProviders.length === 0 ? (
           <div className="flex items-center justify-center gap-2 py-4 border border-dashed border-border rounded-xl text-text-muted text-xs sm:text-sm">
-            <span className="material-symbols-outlined text-[18px]">extension</span>
+            <Icon name={"extension"} className=" text-[18px]" />
             <span>No custom providers — use buttons above to add OpenAI/Anthropic compatible endpoints</span>
           </div>
         ) : (
@@ -550,9 +605,10 @@ export default function ProvidersPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* OAuth Providers */}
-      {oauthEntries.length > 0 && (
+      {showCategory("oauth") && oauthEntries.length > 0 && (
       <div className="flex flex-col gap-3">
         <SectionControlStrip
           title="OAuth Providers"
@@ -572,11 +628,7 @@ export default function ProvidersPage() {
             title="Test all OAuth connections"
             aria-label="Test all OAuth connections"
           >
-            <span
-              className={cn("material-symbols-outlined text-[14px]", testingMode === "oauth" && "animate-spin")}
-            >
-              {testingMode === "oauth" ? "progress_activity" : "play_arrow"}
-            </span>
+            <Icon name={testingMode === "oauth" ? "progress_activity" : "play_arrow"} className={cn(" text-[14px]", testingMode === "oauth" && "animate-spin")} />
             {testingMode === "oauth" ? "Testing..." : "Test All"}
           </button>
         </SectionControlStrip>
@@ -600,7 +652,7 @@ export default function ProvidersPage() {
       )}
 
       {/* Free Tier Providers */}
-      {(freeEntries.length > 0 || freeTierEntries.length > 0) && (
+      {showCategory("free") && (freeEntries.length > 0 || freeTierEntries.length > 0) && (
       <div className="flex flex-col gap-3">
         <SectionControlStrip
           title="Free & Keyless"
@@ -622,11 +674,7 @@ export default function ProvidersPage() {
             title="Test all Free provider connections"
             aria-label="Test all Free provider connections"
           >
-            <span
-              className={cn("material-symbols-outlined text-[14px]", testingMode === "free" && "animate-spin")}
-            >
-              {testingMode === "free" ? "progress_activity" : "play_arrow"}
-            </span>
+            <Icon name={testingMode === "free" ? "progress_activity" : "play_arrow"} className={cn(" text-[14px]", testingMode === "free" && "animate-spin")} />
             {testingMode === "free" ? "Testing..." : "Test All"}
           </button>
         </SectionControlStrip>
@@ -675,7 +723,7 @@ export default function ProvidersPage() {
                 onClick={() => setShowAllFree(true)}
                 className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-2.5 text-xs sm:text-sm font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                <Icon name={"expand_more"} className=" text-[16px]" />
                 Show all {freeCombined.length} providers
               </button>
             )}
@@ -685,7 +733,7 @@ export default function ProvidersPage() {
       )}
 
       {/* API Key Providers — fixed list */}
-      {apikeyEntries.length > 0 && (
+      {showCategory("apikey") && apikeyEntries.length > 0 && (
       <div className="flex flex-col gap-3">
         <SectionControlStrip
           title="API Key Providers"
@@ -704,11 +752,7 @@ export default function ProvidersPage() {
             title="Test all API Key connections"
             aria-label="Test all API Key connections"
           >
-            <span
-              className={cn("material-symbols-outlined text-[14px]", testingMode === "apikey" && "animate-spin")}
-            >
-              {testingMode === "apikey" ? "progress_activity" : "play_arrow"}
-            </span>
+            <Icon name={testingMode === "apikey" ? "progress_activity" : "play_arrow"} className={cn(" text-[14px]", testingMode === "apikey" && "animate-spin")} />
             {testingMode === "apikey" ? "Testing..." : "Test All"}
           </button>
         </SectionControlStrip>
@@ -731,33 +775,52 @@ export default function ProvidersPage() {
             onClick={() => setShowAllApikey(true)}
             className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-2.5 text-xs sm:text-sm font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[16px]">expand_more</span>
+            <Icon name={"expand_more"} className=" text-[16px]" />
             Show all {apikeyEntries.length} providers
           </button>
         )}
       </div>
       )}
 
-      {/* Web Cookie Providers — hidden from UI; backend data preserved */}
-      {false && webCookieEntries.length > 0 && (
+      {showCategory("web") && (webCookieEntries.length > 0 || webProviders.length > 0) && (
       <div className="flex flex-col gap-3">
-        <SectionControlStrip
-          title="Web Cookie Providers"
-          count={webCookieEntries.length}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
-          {webCookieEntries.map(([key, info]) => (
-            <ApiKeyProviderCard
-              key={key}
-              providerId={key}
-              provider={info}
-              stats={getProviderStats(key, webCookieAuthTypes(key))}
-              authType="cookie"
-              onToggle={(active) => handleToggleProvider(key, webCookieAuthTypes(key), active)}
-            />
-          ))}
-        </div>
+        <SectionControlStrip title="Web providers" count={webCookieEntries.length + webProviders.length} />
+        {webProviders.length > 0 && (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {webProviders.map((provider) => (
+              <MediaDirectoryCard key={provider.id} provider={provider} connections={connections} />
+            ))}
+          </div>
+        )}
+        {webCookieEntries.length > 0 && (
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {webCookieEntries.map(([key, info]) => (
+              <ApiKeyProviderCard
+                key={key}
+                providerId={key}
+                provider={info}
+                stats={getProviderStats(key, webCookieAuthTypes(key))}
+                authType="cookie"
+                onToggle={(active) => handleToggleProvider(key, webCookieAuthTypes(key), active)}
+              />
+            ))}
+          </div>
+        )}
       </div>
+      )}
+      {showCategory("media") && mediaProviders.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="border-b border-border py-1.5 text-sm font-semibold text-text-main">Media providers <span className="ml-1 text-xs font-normal text-text-muted">{mediaProviders.length}</span></h2>
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+            {mediaProviders.map((provider) => (
+              <MediaDirectoryCard
+                key={provider.id}
+                provider={provider}
+                connections={connections}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       <AddCompatibleModal
@@ -798,7 +861,7 @@ export default function ProvidersPage() {
                 className="p-1 rounded-lg hover:bg-bg text-text-muted hover:text-text-main transition-colors cursor-pointer"
                 aria-label="Close test results"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <Icon name={"close"} className=" text-lg" />
               </button>
             </div>
             <div className="p-5">
@@ -830,20 +893,22 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
     <Link href={`/dashboard/providers/${providerId}`} className="group block min-w-0">
       <div
         className={cn(
-          "relative flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface p-3 transition-all duration-150 cursor-pointer shadow-xs",
-          "hover:border-border hover:bg-surface-2 hover:shadow-sm",
+          "provider-directory-card relative flex items-center justify-between gap-3.5 rounded-xl border bg-surface p-3.5 transition-all duration-150 cursor-pointer",
+          connected > 0
+            ? "border-primary/35 shadow-soft"
+            : "border-border hover:border-primary/35",
           allDisabled && "opacity-55"
         )}
       >
-        <div className="flex min-w-0 items-center gap-3 flex-1">
+        <div className="flex min-w-0 items-center gap-3.5 flex-1">
           <div
-            className="size-9 shrink-0 rounded-lg flex items-center justify-center border border-border-subtle bg-surface-2"
+            className="size-10 shrink-0 rounded-xl flex items-center justify-center border border-border-subtle bg-surface-2 shadow-2xs group-hover:scale-105 transition-transform"
           >
             <ProviderIcon
               src={`/providers/${provider.id}.png`}
               alt={provider.name}
-              size={22}
-              className="object-contain rounded max-w-[22px] max-h-[22px]"
+              size={24}
+              className="object-contain rounded max-w-[24px] max-h-[24px]"
               fallbackIcon={provider.icon}
               fallbackText={
                 provider.textIcon || provider.id.slice(0, 2).toUpperCase()
@@ -853,20 +918,21 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 min-w-0">
-              <h3 className="truncate text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
+              <h3 className="truncate text-sm font-bold text-text-main group-hover:text-primary transition-colors leading-tight">
                 {provider.name}
               </h3>
-              <span className="shrink-0 text-[11px] font-normal text-text-muted">
-                • {authLabel}
+              <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-text-muted border border-border-subtle">
+                {authLabel}
               </span>
             </div>
-            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-1">
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-text-muted font-mono text-[11px]">{stats.total} conn</span>
+              <span className="text-text-subtle">·</span>
+              <span className="text-text-muted font-mono text-[11px]">{getModelsByProviderId(providerId).length} models</span>
               {allDisabled ? (
                 <Badge variant="default" size="sm">
                   <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">
-                      pause_circle
-                    </span>
+                    <Icon name={"pause_circle"} className=" text-[12px]" />
                     Disabled
                   </span>
                 </Badge>
@@ -875,7 +941,7 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
               ) : needsApiKey ? (
                 <Badge variant="warning" size="sm">
                   <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">key</span>
+                    <Icon name={"key"} className=" text-[12px]" />
                     Needs API key
                   </span>
                 </Badge>
@@ -885,7 +951,7 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
                   {provider.billingTier === "subscription" && (
                     <Badge variant="default" size="sm">
                       <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
+                        <Icon name={"workspace_premium"} className=" text-[12px]" />
                         Subscription
                       </span>
                     </Badge>
@@ -916,9 +982,7 @@ function ProviderCard({ providerId, provider, stats, authType, onToggle }) {
               />
             </div>
           )}
-          <span className="material-symbols-outlined text-[18px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
-            chevron_right
-          </span>
+          <Icon name={"chevron_right"} className="text-[16px] text-text-muted/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
         </div>
       </div>
     </Link>
@@ -986,20 +1050,22 @@ function ApiKeyProviderCard({
     <Link href={`/dashboard/providers/${providerId}`} className="group block min-w-0">
       <div
         className={cn(
-          "relative flex items-center justify-between gap-3 rounded-xl border border-border/80 bg-surface p-3 transition-all duration-150 cursor-pointer shadow-xs",
-          "hover:border-border hover:bg-surface-2 hover:shadow-sm",
+          "provider-directory-card relative flex items-center justify-between gap-3.5 rounded-xl border bg-surface p-3.5 transition-all duration-150 cursor-pointer",
+          connected > 0
+            ? "border-primary/35 shadow-soft"
+            : "border-border hover:border-primary/35",
           allDisabled && "opacity-55"
         )}
       >
-        <div className="flex min-w-0 items-center gap-3 flex-1">
+        <div className="flex min-w-0 items-center gap-3.5 flex-1">
           <div
-            className="size-9 shrink-0 rounded-lg flex items-center justify-center border border-border-subtle bg-surface-2"
+            className="size-10 shrink-0 rounded-xl flex items-center justify-center border border-border-subtle bg-surface-2 shadow-2xs group-hover:scale-105 transition-transform"
           >
             <ProviderIcon
               src={getIconPath()}
               alt={provider.name}
-              size={22}
-              className="object-contain rounded max-w-[22px] max-h-[22px]"
+              size={24}
+              className="object-contain rounded max-w-[24px] max-h-[24px]"
               fallbackIcon={provider.icon}
               fallbackText={
                 provider.textIcon || provider.id.slice(0, 2).toUpperCase()
@@ -1009,20 +1075,21 @@ function ApiKeyProviderCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 min-w-0">
-              <h3 className="truncate text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
+              <h3 className="truncate text-sm font-bold text-text-main group-hover:text-primary transition-colors leading-tight">
                 {provider.name}
               </h3>
-              <span className="shrink-0 text-[11px] font-normal text-text-muted">
-                • {authLabel}
+              <span className="shrink-0 rounded-md bg-surface-2 px-1.5 py-0.5 text-[10.5px] font-medium text-text-muted border border-border-subtle">
+                {authLabel}
               </span>
             </div>
-            <div className="flex min-w-0 items-center gap-1.5 text-xs flex-wrap mt-1">
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-1.5 text-xs">
+              <span className="text-text-muted font-mono text-[11px]">{stats.total} conn</span>
+              <span className="text-text-subtle">·</span>
+              <span className="text-text-muted font-mono text-[11px]">{getModelsByProviderId(providerId).length} models</span>
               {allDisabled ? (
                 <Badge variant="default" size="sm">
                   <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">
-                      pause_circle
-                    </span>
+                    <Icon name={"pause_circle"} className=" text-[12px]" />
                     Disabled
                   </span>
                 </Badge>
@@ -1031,7 +1098,7 @@ function ApiKeyProviderCard({
               ) : needsApiKey ? (
                 <Badge variant="warning" size="sm">
                   <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px]">key</span>
+                    <Icon name={"key"} className=" text-[12px]" />
                     Needs API key
                   </span>
                 </Badge>
@@ -1041,7 +1108,7 @@ function ApiKeyProviderCard({
                   {provider.billingTier === "subscription" && (
                     <Badge variant="default" size="sm">
                       <span className="flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[12px]">workspace_premium</span>
+                        <Icon name={"workspace_premium"} className=" text-[12px]" />
                         Subscription
                       </span>
                     </Badge>
@@ -1082,9 +1149,7 @@ function ApiKeyProviderCard({
               />
             </div>
           )}
-          <span className="material-symbols-outlined text-[18px] text-text-muted/40 group-hover:text-text-main group-hover:translate-x-0.5 transition-all">
-            chevron_right
-          </span>
+          <Icon name={"chevron_right"} className="text-[16px] text-text-muted/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
         </div>
       </div>
     </Link>
@@ -1114,14 +1179,46 @@ ApiKeyProviderCard.propTypes = {
   onToggle: PropTypes.func,
 };
 
+function MediaDirectoryCard({ provider, connections }) {
+  const providerConnections = connections.filter((connection) => connection.provider === provider.id);
+  const connected = providerConnections.filter((connection) => (
+    connection.isActive !== false &&
+    (connection.testStatus === "active" || connection.testStatus === "success" || !connection.testStatus)
+  )).length;
+  const kind = provider.kind || (provider.serviceKinds || []).find((service) => service !== "llm") || "image";
+  const modelCount = getModelsByProviderId(provider.id).length;
+
+  return (
+    <Link href={`/dashboard/media-providers/${kind}/${provider.id}`} className="provider-directory-card group flex min-w-0 items-center gap-3.5 rounded-xl border border-border bg-surface p-3.5 transition-all hover:border-primary/35">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border-subtle bg-surface-2 shadow-2xs group-hover:scale-105 transition-transform">
+        <ProviderIcon providerId={provider.id} alt={provider.name} size={24} className="object-contain" fallbackIcon={provider.icon} fallbackText={provider.textIcon} fallbackColor={provider.color} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="truncate text-sm font-bold text-text-main group-hover:text-primary transition-colors">{provider.name}</h3>
+        <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-text-muted font-mono text-[11px]">
+          <span className="capitalize font-sans font-medium">{kind}</span>
+          <span>·</span>
+          <span>{providerConnections.length} conn</span>
+          <span>·</span>
+          <span>{modelCount} models</span>
+        </div>
+      </div>
+      <Badge variant={connected ? "success" : "default"} dot={connected > 0} size="sm">{connected ? `${connected} connected` : "Not connected"}</Badge>
+    </Link>
+  );
+}
+
+MediaDirectoryCard.propTypes = {
+  provider: PropTypes.object.isRequired,
+  connections: PropTypes.arrayOf(PropTypes.object).isRequired,
+};
+
 function ProviderTestResultsView({ results }) {
   if (results.error && !results.results) {
     return (
       <div className="text-center py-6">
-        <span className="material-symbols-outlined text-red-500 text-[32px] mb-2 block">
-          error
-        </span>
-        <p className="text-sm text-red-400">{results.error}</p>
+        <Icon name={"error"} className="mb-2 block text-danger text-[32px]" />
+        <p className="text-sm text-danger">{results.error}</p>
       </div>
     );
   }
@@ -1142,32 +1239,17 @@ function ProviderTestResultsView({ results }) {
       {summary && (
         <div className="flex flex-wrap items-center gap-2 text-xs mb-1 sm:gap-3">
           <span className="text-text-muted">{modeLabel} Test</span>
-          <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 font-medium">
-            {summary.passed} passed
-          </span>
-          {summary.failed > 0 && (
-            <span className="px-2 py-0.5 rounded bg-red-500/15 text-red-400 font-medium">
-              {summary.failed} failed
-            </span>
-          )}
-          <span className="text-text-muted sm:ml-auto">
-            {summary.total} tested
-          </span>
+          <Badge variant="success" size="sm">{summary.passed} passed</Badge>
+          {summary.failed > 0 && <Badge variant="error" size="sm">{summary.failed} failed</Badge>}
+          <span className="text-text-muted sm:ml-auto">{summary.total} tested</span>
         </div>
       )}
       {items.map((r, i) => (
         <div
           key={r.connectionId || i}
-          className="flex min-w-0 flex-wrap items-center gap-2 rounded-lg bg-black/[0.03] px-3 py-2 text-xs dark:bg-white/[0.03] sm:flex-nowrap"
+          className="flex min-w-0 flex-wrap items-center gap-2 rounded-md bg-surface-2 px-3 py-2 text-xs sm:flex-nowrap"
         >
-          <span
-            className={cn(
-              "material-symbols-outlined text-[16px]",
-              r.valid ? "text-emerald-500" : "text-red-500"
-            )}
-          >
-            {r.valid ? "check_circle" : "error"}
-          </span>
+          <Icon name={r.valid ? "check_circle" : "error"} className={cn("text-[16px]", r.valid ? "text-success" : "text-danger")} />
           <div className="min-w-0 flex-[1_1_160px]">
             <span className="block truncate font-medium sm:inline">
               {r.connectionName}
@@ -1183,10 +1265,8 @@ function ProviderTestResultsView({ results }) {
           )}
           <span
             className={cn(
-              "shrink-0 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded",
-              r.valid
-                ? "bg-emerald-500/15 text-emerald-400"
-                : "bg-red-500/15 text-red-400"
+              "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium",
+              r.valid ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
             )}
           >
             {r.valid ? "OK" : r.diagnosis?.type || "ERROR"}

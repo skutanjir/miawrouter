@@ -23,6 +23,7 @@ export default {
   hasFree: true,
   passthroughModels: true,
   models: [
+    { id: "glm-5.3-flash", name: "GLM 5.3 Flash", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true, supportsVision: true },
     { id: "glm-5.3", name: "GLM 5.3", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
     { id: "glm-5.3-turbo", name: "GLM 5.3 Turbo", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },
     { id: "glm-5.3-high", name: "GLM 5.3 High", contextLength: 1000000, maxOutputTokens: 131072, toolCalling: true, supportsReasoning: true },

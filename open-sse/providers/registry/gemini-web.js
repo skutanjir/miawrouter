@@ -19,8 +19,11 @@ export default {
     executor: "gemini-web",
   },
   models: [
-    { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", toolCalling: false },
+    { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", toolCalling: false },
+    { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash", toolCalling: false },
+    { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash", toolCalling: false },
     { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", toolCalling: false },
+    { id: "gemini-3.1-pro-preview", name: "Gemini 3.1 Pro", toolCalling: false },
     { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash-Lite", toolCalling: false },
   ],
 };

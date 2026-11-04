@@ -61,28 +61,40 @@ export default {
   maxOutputTokens: 128000
 }, {
   id: "gpt-6-astra",
-  name: "GPT 6 Astra"
+  name: "GPT 6 Astra",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
   id: "gpt-6-astra-review",
   name: "GPT 6 Astra Review",
   upstreamModelId: "gpt-6-astra",
-  quotaFamily: "review"
+  quotaFamily: "review",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
   id: "gpt-6-sol",
-  name: "GPT 6 Sol"
+  name: "GPT 6 Sol",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
   id: "gpt-6-sol-review",
   name: "GPT 6 Sol Review",
   upstreamModelId: "gpt-6-sol",
-  quotaFamily: "review"
+  quotaFamily: "review",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
   id: "gpt-6-luna",
-  name: "GPT 6 Luna"
+  name: "GPT 6 Luna",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
   id: "gpt-6-luna-review",
   name: "GPT 6 Luna Review",
   upstreamModelId: "gpt-6-luna",
-  quotaFamily: "review"
+  quotaFamily: "review",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
   id: "gpt-5.6-sol",
   name: "GPT 5.6 Sol"

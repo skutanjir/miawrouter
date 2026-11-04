@@ -7,6 +7,7 @@ import { Card, Button, Input, Select, Toggle } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { AI_PROVIDERS, AUTH_METHODS } from "@/shared/constants/config";
 
+import { Icon } from "@/shared/components/Icon";
 const providerOptions = Object.values(AI_PROVIDERS)
   .filter((p) => !p.hidden)
   .map((p) => ({
@@ -76,17 +77,17 @@ export default function NewProviderPage() {
   const selectedProvider = AI_PROVIDERS[formData.provider];
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto w-full max-w-2xl">
       {/* Header */}
       <div className="mb-8">
         <Link
           href="/dashboard/providers"
           className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors mb-4"
         >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
+          <Icon name={"arrow_back"} className=" text-lg" />
           Back to Providers
         </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">Add New Provider</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight text-text-main">Add New Provider</h1>
         <p className="text-text-muted mt-2">
           Configure a new AI provider to use with your applications.
         </p>
@@ -136,7 +137,7 @@ export default function NewProviderPage() {
           {/* Auth Method */}
           <div className="flex flex-col gap-3">
             <label className="text-sm font-medium">
-              Authentication Method <span className="text-red-500">*</span>
+              Authentication Method <span className="text-danger">*</span>
             </label>
             <div className="flex gap-3">
               {authMethodOptions.map((method) => (
@@ -144,15 +145,13 @@ export default function NewProviderPage() {
                   key={method.value}
                   type="button"
                   onClick={() => handleChange("authMethod", method.value)}
-                  className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-4 py-3 transition-colors ${
                     formData.authMethod === method.value
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border hover:border-primary/50"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-surface hover:border-primary/50 hover:bg-surface-2"
                   }`}
                 >
-                  <span className="material-symbols-outlined">
-                    {method.value === "api_key" ? "key" : "lock"}
-                  </span>
+                  <Icon name={method.value === "api_key" ? "key" : "lock"} className="" />
                   <span className="font-medium">{method.label}</span>
                 </button>
               ))}
@@ -204,7 +203,7 @@ export default function NewProviderPage() {
 
           {/* Error Message */}
           {errors.submit && (
-            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm">
+            <div className="rounded-md border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
               {errors.submit}
             </div>
           )}

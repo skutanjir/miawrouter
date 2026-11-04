@@ -66,7 +66,7 @@ export default function AntigravityRecovery({ connections, onReconnect, onRefres
                 <Button variant="secondary" loading={checking} onClick={checkConnection}>Check connection</Button>
               </div>
             ) : <p className="text-sm text-text-muted">No account is connected. Select the error below for guidance, then reconnect through OAuth.</p>}
-            {visibleResult?.valid ? <p role="status" className="text-sm text-green-600">Connection is valid. If a model still fails, check its availability and quota before changing your account.</p> : error ? (
+            {visibleResult?.valid ? <p role="status" className="text-sm text-success">Connection is valid. If a model still fails, check its availability and quota before changing your account.</p> : error ? (
               <div role="status" className="space-y-1 text-sm">
                 <p className="break-words text-text-muted">{error}</p>
               </div>

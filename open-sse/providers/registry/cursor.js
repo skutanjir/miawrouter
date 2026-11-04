@@ -29,6 +29,15 @@ export default {
   id: "default",
   name: "Auto (Server Picks)"
 }, {
+  id: "claude-opus-5-5",
+  name: "Claude Opus 5.5"
+}, {
+  id: "claude-sonnet-5-5",
+  name: "Claude Sonnet 5.5"
+}, {
+  id: "claude-haiku-5-5",
+  name: "Claude Haiku 5.5"
+}, {
   id: "claude-4.5-opus-high-thinking",
   name: "Claude 4.5 Opus High Thinking"
 }, {
@@ -58,6 +67,9 @@ export default {
 }, {
   id: "kimi-k2.5",
   name: "Kimi K2.5"
+}, {
+  id: "gemini-4-argon",
+  name: "Gemini 4 Argon"
 }, {
   id: "gemini-3-flash-preview",
   name: "Gemini 3 Flash Preview"

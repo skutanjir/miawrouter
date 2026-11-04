@@ -2,26 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Card,
   Badge,
   Button,
-  Input,
-  Select,
-  Modal,
+  Card,
   CardSkeleton,
   ConfirmModal,
+  Drawer,
+  Modal,
+  Select,
 } from "@/shared/components";
 import { cn } from "@/shared/utils/cn";
-
-/* ── Constants ─────────────────────────────────────────────────── */
+import { Icon } from "@/shared/components/Icon";
 
 const BATCH_API = "/api/batches";
 
 const STATUS_VARIANT = {
   queued: "warning",
-  running: "info",
+  running: "primary",
   completed: "success",
-  failed: "error",
+  failed: "danger",
   canceled: "default",
 };
 
@@ -38,8 +37,6 @@ const EXAMPLE_JSONL = [
   '{"custom_id":"req-2","method":"POST","url":"/v1/chat/completions","body":{"model":"gpt-4o-mini","messages":[{"role":"user","content":"World"}]}}',
 ].join("\n");
 
-/* ── Helpers ───────────────────────────────────────────────────── */
-
 function timeAgo(ts) {
   if (!ts) return "—";
   const sec = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
@@ -50,167 +47,12 @@ function timeAgo(ts) {
   return `${Math.floor(sec / 86400)}d ago`;
 }
 
-function formatDate(ts) {
-  if (!ts) return "—";
-  return new Date(ts).toLocaleString();
-}
-
 function formatBytes(bytes) {
   if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
-
-function progressPct(batch) {
-  if (!batch.totalRequests || batch.totalRequests === 0) return 0;
-  // For completed/failed, we know the ratio based on attempts and error presence
-  if (batch.status === "completed") return 100;
-  if (batch.status === "failed") return 100;
-  if (batch.status === "canceled") return 0;
-  return 0; // For queued/running we don't have granular progress
-}
-
-/* ── Page Header ───────────────────────────────────────────────── */
-
-function PageHeader({ loading, refresh, onNewBatch, hasProviders }) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold flex items-center gap-2.5">
-          <span className="material-symbols-outlined text-[28px] text-primary">
-            batch_prediction
-          </span>
-          Batch
-        </h1>
-        <p className="text-sm text-text-muted mt-1">
-          Submit and manage batch LLM requests. Send large workloads through the
-          MiawRouter gateway with progress tracking and result retrieval.
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={refresh}
-          disabled={loading}
-          icon="refresh"
-        >
-          {loading ? "Loading…" : "Refresh"}
-        </Button>
-        <Button variant="primary" size="sm" onClick={onNewBatch} icon="add" disabled={!hasProviders}>
-          New Batch Job
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-/* ── Summary Cards ─────────────────────────────────────────────── */
-
-function SummaryCards({ batches, loading }) {
-  const counts = { queued: 0, running: 0, completed: 0, failed: 0, canceled: 0 };
-  let totalRecords = 0;
-  for (const b of batches) {
-    counts[b.status] = (counts[b.status] || 0) + 1;
-    totalRecords += b.recordCount || 0;
-  }
-
-  const items = [
-    {
-      title: "Total Jobs",
-      value: loading ? "—" : batches.length,
-      icon: "batch_prediction",
-    },
-    {
-      title: "Active",
-      value: loading ? "—" : counts.queued + counts.running,
-      icon: "progress_activity",
-      accent: counts.queued + counts.running > 0 ? "text-blue-500" : "text-text-muted",
-    },
-    {
-      title: "Completed",
-      value: loading ? "—" : counts.completed,
-      icon: "check_circle",
-      accent: counts.completed > 0 ? "text-green-500" : "text-text-muted",
-    },
-    {
-      title: "Total Records",
-      value: loading ? "—" : totalRecords.toLocaleString(),
-      icon: "data_object",
-    },
-  ];
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((item) => (
-        <Card key={item.title} padding="sm">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-1.5 rounded-md bg-bg text-text-muted">
-              <span className="material-symbols-outlined text-[18px]">
-                {item.icon}
-              </span>
-            </div>
-            <span className="text-xs text-text-muted">{item.title}</span>
-          </div>
-          <p className={cn("text-2xl font-semibold", item.accent || "text-text-main")}>
-            {item.value}
-          </p>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-/* ── Status Badge ──────────────────────────────────────────────── */
-
-function StatusBadge({ status }) {
-  return (
-    <Badge variant={STATUS_VARIANT[status] || "default"} size="sm" dot>
-      {status}
-    </Badge>
-  );
-}
-
-/* ── Progress Indicator ────────────────────────────────────────── */
-
-function ProgressIndicator({ batch }) {
-  if (batch.status === "completed") {
-    return (
-      <div className="flex items-center gap-1.5">
-        <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden min-w-[50px]">
-          <div className="h-full rounded-full bg-green-500" style={{ width: "100%" }} />
-        </div>
-        <span className="text-[11px] text-green-600 tabular-nums shrink-0">100%</span>
-      </div>
-    );
-  }
-  if (batch.status === "failed") {
-    return (
-      <div className="flex items-center gap-1.5">
-        <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden min-w-[50px]">
-          <div className="h-full rounded-full bg-red-500" style={{ width: "100%" }} />
-        </div>
-        <span className="text-[11px] text-red-500 tabular-nums shrink-0">
-          {batch.error || "failed"}
-        </span>
-      </div>
-    );
-  }
-  if (batch.status === "running") {
-    return (
-      <div className="flex items-center gap-1.5">
-        <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden min-w-[50px]">
-          <div className="h-full rounded-full bg-blue-500 animate-pulse" style={{ width: "40%" }} />
-        </div>
-        <span className="text-[11px] text-blue-500 tabular-nums shrink-0">running…</span>
-      </div>
-    );
-  }
-  return null;
-}
-
-/* ── New Batch Modal ───────────────────────────────────────────── */
 
 function NewBatchModal({ isOpen, onClose, onSubmit, registeredProviders }) {
   const [provider, setProvider] = useState("");
@@ -219,17 +61,16 @@ function NewBatchModal({ isOpen, onClose, onSubmit, registeredProviders }) {
   const [error, setError] = useState("");
   const fileRef = useRef(null);
 
-  // Reset on open
   const prevOpen = useRef(false);
   useEffect(() => {
     if (isOpen && !prevOpen.current) {
-      setProvider("");
+      setProvider(registeredProviders[0] || "");
       setInputFile("");
       setError("");
       setSubmitting(false);
     }
     prevOpen.current = isOpen;
-  }, [isOpen]);
+  }, [isOpen, registeredProviders]);
 
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files?.[0];
@@ -240,7 +81,7 @@ function NewBatchModal({ isOpen, onClose, onSubmit, registeredProviders }) {
     }
     const reader = new FileReader();
     reader.onload = (ev) => {
-      setInputFile(ev.target.result);
+      setInputFile(ev.target?.result || "");
       setError("");
     };
     reader.readAsText(file);
@@ -296,26 +137,20 @@ function NewBatchModal({ isOpen, onClose, onSubmit, registeredProviders }) {
         </>
       }
     >
-      <div className="space-y-5">
-        {/* Provider support notice */}
-        <div className="flex items-start gap-2.5 p-3 rounded-[var(--radius-brand)] bg-amber-500/8 border border-amber-500/20">
-          <span className="material-symbols-outlined text-[18px] text-amber-600 mt-0.5 shrink-0">
-            info
-          </span>
-          <div className="text-xs text-text-muted space-y-1.5">
+      <div className="space-y-4 text-xs font-sans">
+        <div className="flex items-start gap-2.5 p-3 rounded-md bg-warning/10 border border-warning/20">
+          <Icon name="info" className="text-[16px] text-warning mt-0.5 shrink-0" />
+          <div className="text-text-muted space-y-1">
             <p>
-              <strong className="text-text-main">Provider support varies.</strong>{" "}
-              Batch processing requires a provider with a registered batch executor.
+              <strong className="text-text-main">JSON Lines execution:</strong> submit requests to process concurrently via your chosen provider backend.
             </p>
             {noProviders ? (
-              <p className="text-amber-700 dark:text-amber-400 font-medium">
-                No batch-capable providers are currently registered. Batch processing
-                will be available once a provider with batch support is configured.
+              <p className="text-warning font-medium">
+                No batch-capable providers are currently connected.
               </p>
             ) : (
               <p>
-                Selected provider:{" "}
-                <strong className="text-text-main">{provider}</strong>.
+                Target provider: <strong className="text-text-main font-mono">{provider || "Select below"}</strong>
               </p>
             )}
           </div>
@@ -326,26 +161,17 @@ function NewBatchModal({ isOpen, onClose, onSubmit, registeredProviders }) {
           options={registeredProviders.map((p) => ({ value: p, label: p }))}
           value={provider}
           onChange={(e) => setProvider(e.target.value)}
-          placeholder={
-            noProviders
-              ? "No batch providers available"
-              : "Select a provider"
-          }
+          placeholder={noProviders ? "No batch providers available" : "Select a provider"}
           disabled={noProviders}
           required
         />
 
-        {/* File upload / paste area */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-text-main">
-            Input Data (JSONL) <span className="text-red-500 ml-1">*</span>
+          <label className="text-xs font-semibold text-text-main">
+            Input Data (JSONL) <span className="text-danger ml-0.5">*</span>
           </label>
-          <p className="text-xs text-text-muted">
-            One JSON request per line. Each record should have a{" "}
-            <code className="text-[11px] bg-surface-2 px-1 py-0.5 rounded font-mono">
-              custom_id
-            </code>{" "}
-            field. Max 10,000 records, 5 MB.
+          <p className="text-[11px] text-text-muted">
+            One JSON request per line. Each record must have a <code className="bg-surface-2 px-1 py-0.5 rounded font-mono">custom_id</code> field.
           </p>
 
           <div className="flex gap-2 items-center">
@@ -373,7 +199,7 @@ function NewBatchModal({ isOpen, onClose, onSubmit, registeredProviders }) {
                 setError("");
               }}
             >
-              Load example
+              Load Example
             </Button>
             {lineCount > 0 && (
               <Badge variant="success" size="sm">
@@ -390,394 +216,20 @@ function NewBatchModal({ isOpen, onClose, onSubmit, registeredProviders }) {
             }}
             placeholder={EXAMPLE_JSONL}
             rows={6}
-            className={cn(
-              "w-full p-3 text-sm font-mono text-text-main bg-surface-2 rounded-[10px]",
-              "border border-transparent placeholder-text-muted/50",
-              "focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500/40",
-              "transition-all duration-150 resize-y min-h-[120px] custom-scrollbar",
-              "text-[14px]"
-            )}
+            className="w-full p-2.5 text-xs font-mono text-text-main bg-surface-2 rounded-md border border-border placeholder:text-text-muted outline-none focus:border-primary transition-colors resize-y min-h-[140px] custom-scrollbar"
           />
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 rounded-[var(--radius-brand)] bg-red-500/8 border border-red-500/20">
-            <span className="material-symbols-outlined text-[16px] text-red-500">
-              error
-            </span>
-            <p className="text-xs text-red-500">{error}</p>
+          <div className="flex items-center gap-2 p-2.5 rounded-md bg-danger/10 border border-danger/20 text-danger">
+            <Icon name="error" className="text-[16px] shrink-0" />
+            <p className="text-xs">{error}</p>
           </div>
         )}
       </div>
     </Modal>
   );
 }
-
-/* ── Batch Detail Modal ────────────────────────────────────────── */
-
-function BatchDetailModal({ isOpen, onClose, batch }) {
-  const [activeTab, setActiveTab] = useState("overview");
-  const [resultData, setResultData] = useState(null);
-  const [errorData, setErrorData] = useState(null);
-  const [loadingArtifacts, setLoadingArtifacts] = useState(false);
-
-  const prevDetailOpen = useRef(false);
-  useEffect(() => {
-    if (isOpen && !prevDetailOpen.current) {
-      setActiveTab("overview");
-      setResultData(null);
-      setErrorData(null);
-    }
-    prevDetailOpen.current = isOpen;
-  }, [isOpen]);
-
-  const loadArtifact = useCallback(async (type) => {
-    if (!batch) return;
-    setLoadingArtifacts(true);
-    try {
-      const res = await fetch(`${BATCH_API}/${batch.id}/${type}`);
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || `Failed to load ${type}`);
-      }
-      const text = await res.text();
-      if (type === "results") setResultData(text);
-      else setErrorData(text);
-    } catch (err) {
-      if (type === "results") setResultData(`Error: ${err.message}`);
-      else setErrorData(`Error: ${err.message}`);
-    } finally {
-      setLoadingArtifacts(false);
-    }
-  }, [batch]);
-
-  if (!batch) return null;
-
-  const tabs = [
-    { value: "overview", label: "Overview", icon: "info" },
-    { value: "results", label: "Results", icon: "check_circle" },
-    { value: "errors", label: "Errors", icon: "error" },
-  ];
-
-  const isTerminal = ["completed", "failed", "canceled"].includes(batch.status);
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Batch: ${batch.id.slice(0, 16)}…`} size="full">
-      <div className="space-y-5">
-        {/* Status banner */}
-        <div
-          className={cn(
-            "flex items-center gap-3 p-3 rounded-[var(--radius-brand)] border",
-            batch.status === "completed" && "bg-green-500/8 border-green-500/20",
-            batch.status === "failed" && "bg-red-500/8 border-red-500/20",
-            batch.status === "running" && "bg-blue-500/8 border-blue-500/20",
-            batch.status === "queued" && "bg-yellow-500/8 border-yellow-500/20",
-            batch.status === "canceled" && "bg-surface-2 border-border-subtle"
-          )}
-        >
-          <span className={cn(
-            "material-symbols-outlined text-[20px]",
-            batch.status === "running" && "animate-spin"
-          )}>
-            {STATUS_ICON[batch.status]}
-          </span>
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <StatusBadge status={batch.status} />
-              {batch.error && (
-                <span className="text-xs text-red-500 font-mono">{batch.error}</span>
-              )}
-            </div>
-            <p className="text-xs text-text-muted mt-1">
-              {batch.status === "running" && "Batch is being processed…"}
-              {batch.status === "queued" && "Queued — waiting for execution slot."}
-              {batch.status === "completed" && `Finished at ${formatDate(batch.completedAt)}`}
-              {batch.status === "failed" && (batch.error || "Batch failed during processing.")}
-              {batch.status === "canceled" && "Batch was canceled."}
-            </p>
-          </div>
-        </div>
-
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Records", value: batch.recordCount ?? batch.totalRequests ?? "—" },
-            { label: "Input Size", value: formatBytes(batch.inputBytes) },
-            { label: "Attempts", value: batch.attempts ?? 0 },
-            { label: "Provider", value: batch.provider || "—" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="p-3 rounded-[var(--radius-brand)] bg-bg border border-border-subtle"
-            >
-              <p className="text-[11px] text-text-muted uppercase tracking-wider">
-                {s.label}
-              </p>
-              <p className="text-lg font-semibold text-text-main mt-0.5">
-                {s.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-bg-subtle border border-border-subtle w-fit">
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => {
-                setActiveTab(tab.value);
-                if (tab.value === "results" && resultData === null && isTerminal) loadArtifact("results");
-                if (tab.value === "errors" && errorData === null && isTerminal) loadArtifact("errors");
-              }}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5",
-                activeTab === tab.value
-                  ? "bg-surface text-text-main shadow-sm"
-                  : "text-text-muted hover:text-text-main"
-              )}
-            >
-              <span className="material-symbols-outlined text-[14px]">
-                {tab.icon}
-              </span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        {activeTab === "overview" && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {[
-                { label: "Batch ID", value: batch.id },
-                { label: "Provider", value: batch.provider },
-                { label: "Created", value: formatDate(batch.createdAt) },
-                { label: "Started", value: formatDate(batch.startedAt) },
-                { label: "Completed", value: formatDate(batch.completedAt) },
-                { label: "Updated", value: formatDate(batch.updatedAt) },
-              ].map((field) => (
-                <div key={field.label} className="flex flex-col gap-0.5">
-                  <span className="text-[11px] text-text-muted uppercase tracking-wider">
-                    {field.label}
-                  </span>
-                  <span className="text-sm text-text-main font-mono break-all">
-                    {field.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === "results" && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-                Result File (JSONL)
-              </h4>
-              {isTerminal && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon="download"
-                  onClick={() => window.open(`${BATCH_API}/${batch.id}/results`, "_blank")}
-                >
-                  Download
-                </Button>
-              )}
-            </div>
-            {!isTerminal ? (
-              <p className="text-sm text-text-muted">Results available after batch completes.</p>
-            ) : loadingArtifacts ? (
-              <div className="p-4 text-sm text-text-muted">Loading…</div>
-            ) : resultData ? (
-              <pre className="p-4 bg-bg rounded-[var(--radius-brand)] border border-border-subtle text-xs font-mono text-text-main overflow-auto max-h-[400px] custom-scrollbar whitespace-pre-wrap break-all">
-                {resultData}
-              </pre>
-            ) : (
-              <p className="text-sm text-text-muted">No results generated.</p>
-            )}
-          </div>
-        )}
-
-        {activeTab === "errors" && (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-                Error File (JSONL)
-              </h4>
-              {isTerminal && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  icon="download"
-                  onClick={() => window.open(`${BATCH_API}/${batch.id}/errors`, "_blank")}
-                >
-                  Download
-                </Button>
-              )}
-            </div>
-            {!isTerminal ? (
-              <p className="text-sm text-text-muted">Error log available after batch completes.</p>
-            ) : loadingArtifacts ? (
-              <div className="p-4 text-sm text-text-muted">Loading…</div>
-            ) : errorData ? (
-              <pre className="p-4 bg-bg rounded-[var(--radius-brand)] border border-border-subtle text-xs font-mono text-text-main overflow-auto max-h-[400px] custom-scrollbar whitespace-pre-wrap break-all">
-                {errorData}
-              </pre>
-            ) : (
-              <p className="text-sm text-text-muted">No errors recorded.</p>
-            )}
-          </div>
-        )}
-      </div>
-    </Modal>
-  );
-}
-
-/* ── Batch Row ─────────────────────────────────────────────────── */
-
-function BatchRow({ batch, onView, onCancel, onRetry, onDelete }) {
-  const isTerminal = ["completed", "failed", "canceled"].includes(batch.status);
-  const canCancel = batch.status === "queued" || batch.status === "running";
-  const canRetry = batch.status === "failed";
-
-  return (
-    <div
-      className={cn(
-        "group flex items-center gap-4 p-4 -mx-1 px-1",
-        "border-b border-border-subtle last:border-b-0",
-        "hover:bg-surface-2/50 transition-colors"
-      )}
-    >
-      {/* Status icon */}
-      <div
-        className={cn(
-          "size-9 rounded-lg flex items-center justify-center shrink-0",
-          batch.status === "completed" && "bg-green-500/10 text-green-600",
-          batch.status === "running" && "bg-blue-500/10 text-blue-500",
-          batch.status === "queued" && "bg-yellow-500/10 text-yellow-600",
-          batch.status === "failed" && "bg-red-500/10 text-red-500",
-          batch.status === "canceled" && "bg-surface-3 text-text-muted"
-        )}
-      >
-        <span
-          className={cn(
-            "material-symbols-outlined text-[18px]",
-            batch.status === "running" && "animate-spin"
-          )}
-        >
-          {STATUS_ICON[batch.status]}
-        </span>
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <h3 className="font-semibold text-sm text-text-main font-mono truncate">
-            {batch.id.slice(0, 20)}…
-          </h3>
-          <StatusBadge status={batch.status} />
-          <span className="text-[11px] text-text-muted">
-            {batch.provider}
-          </span>
-        </div>
-        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-          <ProgressIndicator batch={batch} />
-          <span className="text-[11px] text-text-muted shrink-0">
-            {batch.recordCount ?? batch.totalRequests ?? 0} records
-            {batch.inputBytes ? ` · ${formatBytes(batch.inputBytes)}` : ""}
-            {batch.attempts > 0 ? ` · ${batch.attempts} attempt${batch.attempts !== 1 ? "s" : ""}` : ""}
-            {" · "}
-            {timeAgo(batch.createdAt)}
-          </span>
-          {batch.error && (
-            <span className="text-[11px] text-red-500 truncate max-w-[200px]" title={batch.error}>
-              {batch.error}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1 shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          icon="visibility"
-          onClick={() => onView(batch)}
-          aria-label="View details"
-        />
-        {canCancel && (
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="cancel"
-            onClick={() => onCancel(batch)}
-            aria-label="Cancel batch"
-            className="text-amber-600 hover:text-amber-700"
-          />
-        )}
-        {canRetry && (
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="replay"
-            onClick={() => onRetry(batch)}
-            aria-label="Retry batch"
-            className="text-blue-500 hover:text-blue-600"
-          />
-        )}
-        {isTerminal && (
-          <Button
-            variant="ghost"
-            size="sm"
-            icon="delete"
-            onClick={() => onDelete(batch)}
-            aria-label="Delete batch"
-            className="text-red-500 hover:text-red-600"
-          />
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ── Empty State ───────────────────────────────────────────────── */
-
-function EmptyState({ onNewBatch, hasProviders }) {
-  return (
-    <Card padding="lg">
-      <div className="flex flex-col items-center justify-center py-10 text-center">
-        <div className="size-16 rounded-full bg-surface-2 flex items-center justify-center mb-4">
-          <span className="material-symbols-outlined text-[32px] text-text-muted/50">
-            batch_prediction
-          </span>
-        </div>
-        <h3 className="text-base font-semibold text-text-main mb-1.5">
-          No batch jobs yet
-        </h3>
-        <p className="text-sm text-text-muted max-w-sm mb-5">
-          {hasProviders
-            ? "Submit batch requests to process multiple LLM prompts at once. Upload a JSONL file or paste your input data directly."
-            : "Batch processing requires a provider with a registered batch executor. Once available, you can submit batch jobs here."}
-        </p>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onNewBatch}
-          icon="add"
-          disabled={!hasProviders}
-        >
-          {hasProviders ? "Create Your First Batch Job" : "New Batch Job"}
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-/* ── Main Page Component ───────────────────────────────────────── */
 
 export default function BatchPageClient() {
   const [batches, setBatches] = useState([]);
@@ -787,6 +239,14 @@ export default function BatchPageClient() {
   const [detailBatch, setDetailBatch] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [registeredProviders, setRegisteredProviders] = useState([]);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
+  // Artifact states for Drawer
+  const [activeTab, setActiveTab] = useState("overview");
+  const [resultData, setResultData] = useState(null);
+  const [errorData, setErrorData] = useState(null);
+  const [loadingArtifacts, setLoadingArtifacts] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -811,11 +271,9 @@ export default function BatchPageClient() {
     load();
   }, [load]);
 
-  // Poll for updates when there are active jobs
+  // Poll for active jobs
   useEffect(() => {
-    const hasActive = batches.some(
-      (b) => b.status === "queued" || b.status === "running"
-    );
+    const hasActive = batches.some((b) => b.status === "queued" || b.status === "running");
     if (!hasActive) return;
     const interval = setInterval(() => {
       if (document.hidden) return;
@@ -823,6 +281,41 @@ export default function BatchPageClient() {
     }, 5000);
     return () => clearInterval(interval);
   }, [batches, load]);
+
+  const loadArtifact = useCallback(async (batch, type) => {
+    if (!batch) return;
+    setLoadingArtifacts(true);
+    try {
+      const res = await fetch(`${BATCH_API}/${batch.id}/${type}`);
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Failed to load ${type}`);
+      }
+      const text = await res.text();
+      if (type === "results") setResultData(text);
+      else setErrorData(text);
+    } catch (err) {
+      if (type === "results") setResultData(`Error: ${err.message}`);
+      else setErrorData(`Error: ${err.message}`);
+    } finally {
+      setLoadingArtifacts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (detailBatch && activeTab === "results" && !resultData) {
+      loadArtifact(detailBatch, "results");
+    } else if (detailBatch && activeTab === "errors" && !errorData) {
+      loadArtifact(detailBatch, "errors");
+    }
+  }, [detailBatch, activeTab, resultData, errorData, loadArtifact]);
+
+  const handleOpenDetail = (batch) => {
+    setDetailBatch(batch);
+    setActiveTab("overview");
+    setResultData(null);
+    setErrorData(null);
+  };
 
   const handleCreateBatch = async ({ provider, input }) => {
     const res = await fetch(BATCH_API, {
@@ -832,24 +325,6 @@ export default function BatchPageClient() {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      const code = body.code;
-      if (code === "UNSUPPORTED_PROVIDER") {
-        throw new Error(
-          `${body.error || "Provider not supported"}. This provider does not have a batch executor registered.`
-        );
-      }
-      if (code === "QUEUE_FULL") {
-        throw new Error("Batch queue is full. Wait for active jobs to complete.");
-      }
-      if (code === "INPUT_TOO_LARGE") {
-        throw new Error("Input exceeds the 5 MB limit.");
-      }
-      if (code === "TOO_MANY_RECORDS") {
-        throw new Error("Input exceeds the 10,000 record limit.");
-      }
-      if (code === "INVALID_JSONL") {
-        throw new Error(body.error || "Invalid JSONL format.");
-      }
       throw new Error(body.error || `Failed (${res.status})`);
     }
     setShowNewBatch(false);
@@ -891,163 +366,432 @@ export default function BatchPageClient() {
         throw new Error(body.error || `Failed (${res.status})`);
       }
       setConfirmAction(null);
+      if (detailBatch?.id === batch.id) setDetailBatch(null);
       await load();
     } catch (err) {
       setError(err.message || "Failed to delete batch");
     }
   };
 
-  const filterOptions = [
-    { value: "all", label: `All (${batches.length})` },
-    ...["queued", "running", "completed", "failed", "canceled"].map(
-      (s) => ({
-        value: s,
-        label: `${s.charAt(0).toUpperCase() + s.slice(1)} (${
-          batches.filter((b) => b.status === s).length
-        })`,
-      })
-    ),
-  ];
+  const counts = { queued: 0, running: 0, completed: 0, failed: 0, canceled: 0 };
+  let totalRecords = 0;
+  for (const b of batches) {
+    counts[b.status] = (counts[b.status] || 0) + 1;
+    totalRecords += b.recordCount || b.totalRequests || 0;
+  }
 
-  const [filter, setFilter] = useState("all");
-  const filtered =
-    filter === "all" ? batches : batches.filter((b) => b.status === filter);
+  const filtered = batches.filter((b) => {
+    const matchesFilter = filter === "all" || b.status === filter;
+    const matchesSearch =
+      !search.trim() ||
+      b.id.toLowerCase().includes(search.toLowerCase()) ||
+      (b.provider && b.provider.toLowerCase().includes(search.toLowerCase()));
+    return matchesFilter && matchesSearch;
+  });
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
-      <PageHeader
-        loading={loading}
-        refresh={load}
-        onNewBatch={() => setShowNewBatch(true)}
-        hasProviders={registeredProviders.length > 0}
-      />
+    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0 font-sans">
+      {/* ── Page Header ─────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between border-b border-border pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold flex items-center gap-2.5 leading-tight text-text-main">
+            <Icon name="batch_prediction" className="text-primary text-[24px]" />
+            Batch Jobs
+          </h1>
+          <p className="text-sm text-text-muted mt-0.5">
+            Submit and track bulk prompt workloads routed through configured model providers.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={load}
+            disabled={loading}
+            icon="refresh"
+          >
+            {loading ? "Loading…" : "Refresh"}
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowNewBatch(true)}
+            icon="add"
+            disabled={registeredProviders.length === 0}
+          >
+            New Batch Job
+          </Button>
+        </div>
+      </div>
 
       {error && (
-        <Card className="border-red-500/30 text-sm text-red-500" padding="sm">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">error</span>
-            <span className="flex-1">{error}</span>
-            <button
-              onClick={() => setError("")}
-              className="p-1 rounded hover:bg-surface-2 transition-colors cursor-pointer"
-              aria-label="Dismiss"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                close
-              </span>
-            </button>
-          </div>
+        <Card className="border-danger/30 text-xs text-danger" padding="sm">
+          {error}
         </Card>
       )}
 
-      <SummaryCards batches={batches} loading={loading} />
+      {/* ── Stats ────────────────────────────────────────────────── */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="batch_prediction" className="text-[16px]" />
+            <span>Total Jobs</span>
+          </div>
+          <p className="text-xl font-semibold font-mono tabular-nums text-text-main">
+            {loading ? "—" : batches.length}
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5">{totalRecords.toLocaleString()} records processed</p>
+        </div>
 
-      {/* Filter + list header */}
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="progress_activity" className="text-[16px]" />
+            <span>Active Jobs</span>
+          </div>
+          <p className="text-xl font-semibold font-mono tabular-nums text-text-main">
+            {loading ? "—" : counts.queued + counts.running}
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5">
+            {loading ? "" : `${counts.running} running · ${counts.queued} queued`}
+          </p>
+        </div>
+
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="check_circle" className="text-[16px]" />
+            <span>Completed</span>
+          </div>
+          <p className="text-xl font-semibold font-mono tabular-nums text-text-main text-success">
+            {loading ? "—" : counts.completed}
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5">ready for download</p>
+        </div>
+
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="error" className="text-[16px]" />
+            <span>Failed / Canceled</span>
+          </div>
+          <p className="text-xl font-semibold font-mono tabular-nums text-text-main text-danger">
+            {loading ? "—" : counts.failed + counts.canceled}
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5">
+            {loading ? "" : `${counts.failed} failed · ${counts.canceled} canceled`}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-sm font-semibold text-text-main flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-primary">
-            list
-          </span>
-          Batch Jobs
-        </h2>
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-bg-subtle border border-border-subtle overflow-x-auto">
-          {filterOptions.map((opt) => (
+        <div className="flex-1 min-w-[200px] max-w-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-surface text-xs">
+            <Icon name="search" className="text-text-muted text-[16px] shrink-0" />
+            <input
+              type="text"
+              placeholder="Search by job ID or provider…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent text-text-main outline-none placeholder:text-text-muted text-xs font-sans"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} className="text-text-muted hover:text-text-main cursor-pointer">
+                <Icon name="close" className="text-[14px]" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 p-0.5 rounded-md bg-surface-2 border border-border overflow-x-auto">
+          {["all", "running", "queued", "completed", "failed", "canceled"].map((s) => (
             <button
-              key={opt.value}
-              onClick={() => setFilter(opt.value)}
-              className={cn(
-                "px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer shrink-0",
-                filter === opt.value
-                  ? "bg-surface text-text-main shadow-sm"
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer capitalize whitespace-nowrap ${
+                filter === s
+                  ? "bg-surface text-text-main font-semibold shadow-xs"
                   : "text-text-muted hover:text-text-main"
-              )}
+              }`}
             >
-              {opt.label}
+              {s}
+              {s !== "all" && counts[s] !== undefined && (
+                <span className="ml-1 font-mono text-[10px]">({counts[s]})</span>
+              )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Batch list */}
+      {/* ── Dense Table ─────────────────────────────────────────── */}
       {loading ? (
-        <div className="space-y-3">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-        </div>
+        <CardSkeleton />
       ) : batches.length === 0 ? (
-        <EmptyState
-          onNewBatch={() => setShowNewBatch(true)}
-          hasProviders={registeredProviders.length > 0}
-        />
-      ) : filtered.length === 0 ? (
         <Card padding="lg">
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <span className="material-symbols-outlined text-[40px] text-text-muted/40 mb-3">
-              filter_list_off
-            </span>
-            <p className="text-sm text-text-muted">
-              No {filter} jobs found.
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Icon name="batch_prediction" className="text-[32px] text-text-muted mb-2" />
+            <p className="text-sm font-semibold text-text-main">No batch jobs yet</p>
+            <p className="text-xs text-text-muted mt-1 max-w-sm">
+              Submit JSONL prompts to process large request batches offline with automatic result artifacts.
             </p>
+            <Button
+              variant="primary"
+              size="sm"
+              icon="add"
+              className="mt-4"
+              onClick={() => setShowNewBatch(true)}
+              disabled={registeredProviders.length === 0}
+            >
+              New Batch Job
+            </Button>
+          </div>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card padding="md">
+          <div className="py-8 text-center text-xs text-text-muted">
+            No batch jobs found matching filter &quot;{filter}&quot;.
           </div>
         </Card>
       ) : (
-        <Card padding="sm">
-          {filtered.map((batch) => (
-            <BatchRow
-              key={batch.id}
-              batch={batch}
-              onView={setDetailBatch}
-              onCancel={(b) =>
-                setConfirmAction({ type: "cancel", batch: b })
-              }
-              onRetry={handleRetry}
-              onDelete={(b) =>
-                setConfirmAction({ type: "delete", batch: b })
-              }
-            />
-          ))}
-        </Card>
-      )}
+        <div className="rounded-[10px] border border-border bg-surface overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-surface-2/60 text-text-muted font-medium">
+                  <th className="py-2.5 px-4 font-semibold text-text-main">Batch ID</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main">Status</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main">Provider</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main hidden sm:table-cell">Records</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main hidden md:table-cell">Size</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main">Submitted</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {filtered.map((batch) => {
+                  const isTerminal = ["completed", "failed", "canceled"].includes(batch.status);
+                  const canCancel = batch.status === "queued" || batch.status === "running";
+                  const canRetry = batch.status === "failed";
 
-      {/* Info footer */}
-      <Card padding="sm" className="border-border-subtle/50">
-        <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-[16px] text-text-muted mt-0.5">
-            info
-          </span>
-          <div className="text-xs text-text-muted space-y-1">
-            <p>
-              <strong className="text-text-main">Input format:</strong>{" "}
-              JSONL (JSON Lines) — one request object per line. Each record needs
-              a <code className="font-mono bg-surface-2 px-1 py-0.5 rounded">custom_id</code>{" "}
-              field. Max 10,000 records, 5 MB per batch.
-            </p>
-            <p>
-              <strong className="text-text-main">Provider support:</strong>{" "}
-               Batch processing requires a provider with a registered batch executor.
-            </p>
-            <p>
-              <strong className="text-text-main">Polling:</strong> The page
-              auto-refreshes every 5 seconds while jobs are active. Results and
-              error logs can be downloaded from the detail view after completion.
-            </p>
+                  return (
+                    <tr
+                      key={batch.id}
+                      onClick={() => handleOpenDetail(batch)}
+                      className="hover:bg-surface-2/60 transition-colors cursor-pointer group"
+                    >
+                      <td className="py-2.5 px-4 font-mono font-semibold text-text-main max-w-[200px] truncate">
+                        {batch.id.slice(0, 18)}…
+                      </td>
+
+                      <td className="py-2.5 px-4 whitespace-nowrap">
+                        <Badge variant={STATUS_VARIANT[batch.status] || "default"} size="sm" dot>
+                          {batch.status}
+                        </Badge>
+                      </td>
+
+                      <td className="py-2.5 px-4 whitespace-nowrap font-mono text-[11px] text-text-muted">
+                        {batch.provider}
+                      </td>
+
+                      <td className="py-2.5 px-4 hidden sm:table-cell font-mono tabular-nums text-text-muted">
+                        {batch.recordCount ?? batch.totalRequests ?? 0}
+                      </td>
+
+                      <td className="py-2.5 px-4 hidden md:table-cell font-mono tabular-nums text-[11px] text-text-muted">
+                        {formatBytes(batch.inputBytes)}
+                      </td>
+
+                      <td className="py-2.5 px-4 font-mono text-[11px] text-text-muted whitespace-nowrap">
+                        {timeAgo(batch.createdAt)}
+                      </td>
+
+                      <td className="py-2.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon="visibility"
+                            onClick={() => handleOpenDetail(batch)}
+                            title="View details"
+                            aria-label={`View batch ${batch.id}`}
+                          />
+                          {canCancel && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="cancel"
+                              onClick={() => setConfirmAction({ type: "cancel", batch })}
+                              title="Cancel batch"
+                              aria-label="Cancel batch"
+                              className="text-warning hover:text-warning"
+                            />
+                          )}
+                          {canRetry && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="replay"
+                              onClick={() => handleRetry(batch)}
+                              title="Retry batch"
+                              aria-label="Retry batch"
+                              className="text-primary hover:text-primary"
+                            />
+                          )}
+                          {isTerminal && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              icon="delete"
+                              onClick={() => setConfirmAction({ type: "delete", batch })}
+                              title="Delete batch"
+                              aria-label="Delete batch"
+                              className="text-text-muted hover:text-danger hover:bg-danger/10"
+                            />
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
-      </Card>
+      )}
 
-      {/* Modals */}
+      {/* ── Detail Drawer ────────────────────────────────────────── */}
+      <Drawer
+        isOpen={!!detailBatch}
+        onClose={() => setDetailBatch(null)}
+        title={detailBatch ? `Batch ${detailBatch.id.slice(0, 16)}…` : "Batch Details"}
+        width="lg"
+      >
+        {detailBatch && (
+          <div className="space-y-5 text-xs text-text-main font-sans">
+            {/* Tabs */}
+            <div className="flex items-center gap-1 border-b border-border pb-2">
+              {["overview", "results", "errors"].map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium capitalize cursor-pointer transition-colors ${
+                    activeTab === tab
+                      ? "bg-surface-2 text-primary font-semibold"
+                      : "text-text-muted hover:text-text-main"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {activeTab === "overview" && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-md bg-surface-2 border border-border-subtle">
+                    <span className="text-[11px] text-text-muted block">Status</span>
+                    <div className="mt-1">
+                      <Badge variant={STATUS_VARIANT[detailBatch.status] || "default"} size="sm" dot>
+                        {detailBatch.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-md bg-surface-2 border border-border-subtle">
+                    <span className="text-[11px] text-text-muted block">Provider</span>
+                    <p className="mt-1 font-mono font-semibold text-text-main">{detailBatch.provider}</p>
+                  </div>
+                  <div className="p-3 rounded-md bg-surface-2 border border-border-subtle">
+                    <span className="text-[11px] text-text-muted block">Records</span>
+                    <p className="mt-1 font-mono tabular-nums font-semibold text-text-main">
+                      {detailBatch.recordCount ?? detailBatch.totalRequests ?? 0}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-md bg-surface-2 border border-border-subtle">
+                    <span className="text-[11px] text-text-muted block">Input Size</span>
+                    <p className="mt-1 font-mono tabular-nums font-semibold text-text-main">
+                      {formatBytes(detailBatch.inputBytes)}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Batch ID</span>
+                  <code className="block mt-1 p-2 rounded bg-surface-2 font-mono text-[11px] select-all">
+                    {detailBatch.id}
+                  </code>
+                </div>
+
+                {detailBatch.error && (
+                  <div className="p-3 rounded-md bg-danger/10 border border-danger/20 text-danger">
+                    <span className="font-semibold block mb-0.5">Error details</span>
+                    <p className="font-mono text-[11px] leading-relaxed">{detailBatch.error}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "results" && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                    Output JSONL
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon="download"
+                    onClick={() => window.open(`${BATCH_API}/${detailBatch.id}/results`, "_blank")}
+                  >
+                    Download
+                  </Button>
+                </div>
+                {loadingArtifacts ? (
+                  <div className="p-6 text-center text-text-muted">Loading results…</div>
+                ) : resultData ? (
+                  <pre className="p-3 bg-surface-2 rounded-md border border-border-subtle font-mono text-[11px] text-text-main overflow-x-auto max-h-[420px] custom-scrollbar whitespace-pre-wrap break-all">
+                    {resultData}
+                  </pre>
+                ) : (
+                  <p className="text-text-muted py-4">No results available yet.</p>
+                )}
+              </div>
+            )}
+
+            {activeTab === "errors" && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                    Error Log
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon="download"
+                    onClick={() => window.open(`${BATCH_API}/${detailBatch.id}/errors`, "_blank")}
+                  >
+                    Download
+                  </Button>
+                </div>
+                {loadingArtifacts ? (
+                  <div className="p-6 text-center text-text-muted">Loading error log…</div>
+                ) : errorData ? (
+                  <pre className="p-3 bg-surface-2 rounded-md border border-border-subtle font-mono text-[11px] text-danger overflow-x-auto max-h-[420px] custom-scrollbar whitespace-pre-wrap break-all">
+                    {errorData}
+                  </pre>
+                ) : (
+                  <p className="text-text-muted py-4">No errors recorded for this batch.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Drawer>
+
+      {/* ── Modals ───────────────────────────────────────────────── */}
       <NewBatchModal
         isOpen={showNewBatch}
         onClose={() => setShowNewBatch(false)}
         onSubmit={handleCreateBatch}
         registeredProviders={registeredProviders}
-      />
-
-      <BatchDetailModal
-        isOpen={!!detailBatch}
-        onClose={() => setDetailBatch(null)}
-        batch={detailBatch}
       />
 
       <ConfirmModal

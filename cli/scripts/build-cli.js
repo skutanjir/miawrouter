@@ -11,8 +11,19 @@ const appDir = path.resolve(cliDir, "..");
 const rootDir = path.resolve(appDir, "..");
 const cliAppDir = process.env.MIAW_CLI_APP_DIR || process.env.MIAWROUTER_CLI_APP_DIR || path.join(cliDir, "app");
 const buildHomeDir = path.join(os.tmpdir(), "miaw-cli-build-home");
-const buildDistDirName = ".next-cli-build";
+const buildDistDirName = process.env.MIAW_CLI_BUILD_DIST_DIR || ".next-cli-build";
 const buildDistDir = path.join(appDir, buildDistDirName);
+
+function assertSafeOutputForCleanup(target, root = cliDir) {
+  const absolute = path.resolve(target);
+  if (!fs.existsSync(absolute)) return;
+  const expected = path.resolve(root, "app");
+  const normalize = (value) => process.platform === "win32" ? value.toLowerCase() : value;
+  if (normalize(absolute) !== normalize(expected) || fs.lstatSync(absolute).isSymbolicLink() ||
+      normalize(fs.realpathSync(absolute)) !== normalize(expected)) {
+    throw new Error(`Refusing to delete existing CLI output: ${absolute}. Choose a new empty output path.`);
+  }
+}
 
 // Exclude patterns for files/folders we don't want to copy
 const EXCLUDE_PATTERNS = [
@@ -160,6 +171,14 @@ function assertRequiredApiArtifacts(cliAppDir) {
 function buildCliPackage() {
   console.log("📦 Building MiawRouter CLI package with Next.js...\n");
 
+  assertSafeOutputForCleanup(cliAppDir);
+  if (process.env.MIAW_CLI_BUILD_DIST_DIR) {
+    const relative = path.relative(appDir, buildDistDir);
+    if (!relative || relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative) || fs.existsSync(buildDistDir)) {
+      throw new Error(`CLI build directory must be a new path inside the project: ${buildDistDir}`);
+    }
+  }
+
   fs.mkdirSync(buildHomeDir, { recursive: true });
   fs.mkdirSync(path.join(buildHomeDir, "AppData", "Roaming"), { recursive: true });
   fs.mkdirSync(path.join(buildHomeDir, "AppData", "Local"), { recursive: true });
@@ -202,6 +221,7 @@ function buildCliPackage() {
   // Step 2: Clean old app/cli/app if exists
   console.log("2️⃣  Cleaning old app/cli/app...");
   if (fs.existsSync(cliAppDir)) {
+    assertSafeOutputForCleanup(cliAppDir);
     fs.rmSync(cliAppDir, { recursive: true, force: true });
   }
   console.log("✅ Cleaned\n");
@@ -358,6 +378,7 @@ function buildCliPackage() {
 }
 
 module.exports = {
+  assertSafeOutputForCleanup,
   assertRequiredApiArtifacts,
   copyStandaloneBuild,
   mergeServerArtifacts,

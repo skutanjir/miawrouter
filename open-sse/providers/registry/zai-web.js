@@ -25,6 +25,7 @@ export default {
   hasFree: true,
   passthroughModels: true,
   models: [
+    { id: "glm-5.3-flash", name: "GLM-5.3 Flash", isFreeTier: true },
     { id: "glm-5.3", name: "GLM-5.3", isFreeTier: true },
     { id: "glm-5.2", name: "GLM-5.2", isFreeTier: true },
     { id: "glm-5", name: "GLM-5", isFreeTier: true },

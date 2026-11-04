@@ -42,21 +42,70 @@ export default {
     },
   },
   models: [{
-  id: "gpt-5.2",
-  name: "GPT-5.2"
+  id: "gpt-6.1-sol",
+  name: "GPT-6.1 Sol",
+  targetFormat: "openai-responses",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
-  id: "gpt-5.2-codex",
-  name: "GPT-5.2 Codex"
+  id: "gpt-6-astra",
+  name: "GPT-6 Astra",
+  targetFormat: "openai-responses",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
-  id: "gpt-5.3-codex",
-  name: "GPT-5.3 Codex"
+  id: "gpt-6-sol",
+  name: "GPT-6 Sol",
+  targetFormat: "openai-responses",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
+}, {
+  id: "gpt-6-luna",
+  name: "GPT-6 Luna",
+  targetFormat: "openai-responses",
+  contextLength: 1050000,
+  maxOutputTokens: 128000
+}, {
+  id: "gpt-5.6-sol",
+  name: "GPT-5.6 Sol",
+  maxOutputTokens: 128000
+}, {
+  id: "gpt-5.6-terra",
+  name: "GPT-5.6 Terra",
+  maxOutputTokens: 128000
+}, {
+  id: "gpt-5.6-luna",
+  name: "GPT-5.6 Luna",
+  maxOutputTokens: 128000
+}, {
+  id: "gpt-5.5",
+  name: "GPT-5.5",
+  targetFormat: "openai-responses",
+  toolCalling: true,
+  supportsReasoning: true,
+  supportsVision: true,
+  supportsXHighEffort: true,
+  contextLength: 1050000,
+  maxOutputTokens: 128000
 }, {
   id: "gpt-5.4",
   name: "GPT-5.4"
 }, {
   id: "gpt-5.4-mini",
   name: "GPT-5.4 Mini"
-},
+}, {
+  id: "gpt-5.4-nano",
+  name: "GPT-5.4 Nano"
+}, {
+  id: "gpt-5-mini",
+  name: "GPT-5 mini",
+  targetFormat: "openai-responses",
+  contextLength: 264000,
+  maxOutputTokens: 64000
+}, {
+  id: "gpt-5.3-codex",
+  name: "GPT-5.3 Codex"
+}, {
 // Note: routing to Copilot's Anthropic-native /v1/messages shim (see
 // executors/github.js) is decided by model-NAME pattern at request time, not by
 // a static targetFormat field here — Copilot's live model catalog (see
@@ -65,7 +114,9 @@ export default {
 // targetFormat would silently miss those while also double-translating requests
 // for models that ARE listed here (chatCore.js would pre-translate to Claude
 // shape, then the executor would translate again). Keep these as plain entries.
-{
+  id: "claude-haiku-5.5",
+  name: "Claude Haiku 5.5"
+}, {
   id: "claude-haiku-4.5",
   name: "Claude Haiku 4.5"
 }, {
@@ -84,14 +135,11 @@ export default {
   id: "claude-opus-4.7",
   name: "Claude Opus 4.7"
 }, {
-  id: "gemini-2.5-pro",
-  name: "Gemini 2.5 Pro"
+  id: "gemini-4-argon",
+  name: "Gemini 4 Argon"
 }, {
-  id: "gemini-3-flash-preview",
-  name: "Gemini 3 Flash"
-}, {
-  id: "gemini-3.1-pro-preview",
-  name: "Gemini 3.1 Pro"
+  id: "gemini-3.8-flash",
+  name: "Gemini 3.8 Flash"
 }, {
   id: "grok-code-fast-1",
   name: "Grok Code Fast 1"
@@ -153,46 +201,6 @@ export default {
   "id": "gemini-3.5-flash",
   "name": "Gemini 3.5 Flash",
   "contextLength": 1000000,
-  "maxOutputTokens": 64000
-}, {
-  "id": "gpt-6-astra",
-  "name": "GPT-6 Astra",
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-6-sol",
-  "name": "GPT-6 Sol",
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-6-luna",
-  "name": "GPT-6 Luna",
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.6-sol",
-  "name": "GPT-5.6 Sol",
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.6-terra",
-  "name": "GPT-5.6 Terra",
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.6-luna",
-  "name": "GPT-5.6 Luna",
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5.5",
-  "name": "GPT-5.5",
-  "targetFormat": "openai-responses",
-  "toolCalling": true,
-  "supportsReasoning": true,
-  "supportsVision": true,
-  "supportsXHighEffort": true,
-  "contextLength": 1050000,
-  "maxOutputTokens": 128000
-}, {
-  "id": "gpt-5-mini",
-  "name": "GPT-5 mini",
-  "targetFormat": "openai-responses",
-  "contextLength": 264000,
   "maxOutputTokens": 64000
 }, {
   "id": "gpt-4o-2024-11-20",

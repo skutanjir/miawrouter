@@ -1,60 +1,57 @@
-"use client";
+
+import Image from "next/image";
+import { Icon } from "@/shared/components/Icon";
 
 export default function HowItWorks() {
   return (
-    <section className="py-24 border-y border-[#294563] bg-[#122239]/30" id="how-it-works">
+    <section className="border-y border-border-subtle bg-surface-2 py-20" id="how-it-works">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">How MiawRouter Works</h2>
-          <p className="text-gray-400 max-w-xl text-lg">
-            Data flows seamlessly from your application through our intelligent routing layer to the best provider for the job.
+          <h2 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">How MiawRouter Works</h2>
+          <p className="max-w-xl text-base leading-relaxed text-text-muted">
+            Data flows from your application through the routing layer to the provider selected for the request.
           </p>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
           {/* Connection line */}
-          <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-[2px] bg-linear-to-r from-gray-700 via-[#168BFF] to-gray-700 -z-10"></div>
-          
+
+
           {/* Step 1: CLI & SDKs */}
           <div className="flex flex-col gap-6 relative group">
-            <div className="w-24 h-24 rounded-2xl bg-[#0C1524] border border-[#294563] flex items-center justify-center shadow-xl group-hover:border-gray-500 transition-colors z-10 mx-auto md:mx-0">
-              <span className="material-symbols-outlined text-4xl text-gray-300">terminal</span>
+            <div className="z-10 mx-auto flex h-20 w-20 items-center justify-center rounded-[10px] border border-border bg-surface md:mx-0">
+              <Icon name="terminal" className="text-3xl text-text-muted" />
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-2">1. CLI &amp; SDKs</h3>
-              <p className="text-sm text-gray-400">
-                Your requests start from your favorite tools or our unified SDK. Just change the base URL.
+              <h3 className="mb-2 text-xl font-semibold">1. Applications &amp; CLI tools</h3>
+              <p className="text-sm text-text-muted">
+                Connect a compatible client or CLI tool to the local endpoint.
               </p>
             </div>
           </div>
 
           {/* Step 2: MiawRouter Hub */}
           <div className="flex flex-col gap-6 relative group md:items-center md:text-center">
-            <div className="w-24 h-24 rounded-2xl bg-[#0C1524] border-2 border-[#168BFF] flex items-center justify-center shadow-[0_0_30px_rgba(22,139,255,0.2)] z-10 mx-auto">
-              <img src="/miawrouter-mascot-router.png" alt="" aria-hidden="true" className="size-16 object-contain animate-pulse" />
+            <div className="z-10 mx-auto flex h-20 w-20 items-center justify-center rounded-[10px] border border-primary/40 bg-surface">
+              <Image src="/miawrouter-mascot-router.png" alt="" aria-hidden width={56} height={56} className="size-14 object-contain" />
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-2 text-[#168BFF]">2. MiawRouter Hub</h3>
-              <p className="text-sm text-gray-400">
-                Our engine analyzes the prompt, checks provider health, and routes for lowest latency or cost.
+              <h3 className="mb-2 text-xl font-semibold text-primary">2. MiawRouter Hub</h3>
+              <p className="text-sm text-text-muted">
+                The router selects and routes each request to a configured provider.
               </p>
             </div>
           </div>
 
           {/* Step 3: AI Providers */}
           <div className="flex flex-col gap-6 relative group md:items-end md:text-right">
-            <div className="w-24 h-24 rounded-2xl bg-[#0C1524] border border-[#294563] flex items-center justify-center shadow-xl group-hover:border-gray-500 transition-colors z-10 mx-auto md:mx-0">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="w-6 h-6 rounded bg-white/10"></div>
-                <div className="w-6 h-6 rounded bg-white/10"></div>
-                <div className="w-6 h-6 rounded bg-white/10"></div>
-                <div className="w-6 h-6 rounded bg-white/10"></div>
-              </div>
+            <div className="z-10 mx-auto flex h-20 w-20 items-center justify-center rounded-[10px] border border-border bg-surface md:mx-0">
+              <Icon name="cloud" className="text-4xl text-text-muted" />
             </div>
             <div>
-              <h3 className="text-xl font-bold mb-2">3. AI Providers</h3>
-              <p className="text-sm text-gray-400">
-                The request is fulfilled by OpenAI, Anthropic, Gemini, or others instantly.
+              <h3 className="mb-2 text-xl font-semibold">3. AI Providers</h3>
+              <p className="text-sm text-text-muted">
+                The request is routed to a configured provider such as OpenAI, Anthropic, or Gemini.
               </p>
             </div>
           </div>

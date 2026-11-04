@@ -4,7 +4,7 @@ import { MITM_TOOLS } from "../../src/shared/constants/cliTools.js";
 
 // config.js is the CJS MITM bundle module (dependency-isolated for the runtime copy).
 const require = createRequire(import.meta.url);
-const { MODEL_NO_MAP } = require("../../src/mitm/config.js");
+const { MODEL_NO_MAP, MODEL_SYNONYMS } = require("../../src/mitm/config.js");
 
 // All assertions below are grounded in a live MITM dump capture of Antigravity's
 // streamGenerateContent requests (see AI_JOURNAL): the agent loop sends
@@ -12,6 +12,15 @@ const { MODEL_NO_MAP } = require("../../src/mitm/config.js");
 // `tab_flash_lite_preview`.
 describe("Antigravity MITM model handling", () => {
   const ag = MITM_TOOLS.antigravity;
+
+  it("exposes separate Argon mapping slots and normalizes the plain model name", () => {
+    for (const tier of ["high", "medium", "low"]) {
+      const id = `gemini-4-argon-${tier}`;
+      expect(ag.modelAliases).toContain(id);
+      expect(ag.defaultModels.find((model) => model.id === id)?.alias).toBe(id);
+    }
+    expect(MODEL_SYNONYMS.antigravity["gemini-4-argon"]).toBe("gemini-4-argon-high");
+  });
 
   it("flags the out-of-box agent/Default model mandatory", () => {
     expect(ag.defaultModels.find((m) => m.id === "gemini-3.8-flash-medium")?.mandatory).toBe(true);

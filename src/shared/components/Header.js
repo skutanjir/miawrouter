@@ -14,6 +14,7 @@ import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS } from "@/shared/constants/providers
 import { getProviderIconSrc } from "@/shared/utils/providerIcon";
 import { translate } from "@/i18n/runtime";
 
+import { Icon } from "@/shared/components/Icon";
 const getPageInfo = (pathname) => {
   if (!pathname) return { title: "", description: "", breadcrumbs: [] };
 
@@ -170,12 +171,45 @@ const getPageInfo = (pathname) => {
     };
   if (pathname === "/dashboard")
     return {
-      title: "Endpoint",
-      description: "Manage endpoints, tunnel access, and API keys",
-      icon: "api",
+      title: "Overview",
+      description: "Your providers, tools, and live routing activity",
+      icon: "dashboard",
       breadcrumbs: [],
     };
-  return { title: "", description: "", breadcrumbs: [] };
+  const routeMeta = {
+    health: { title: "Health", description: "System diagnostics, uptime, and memory telemetry", icon: "ecg_heart" },
+    runtime: { title: "Runtime", description: "Local runtime engines and model runner status", icon: "memory" },
+    "provider-stats": { title: "Provider Stats", description: "Latency, throughput, and success metrics per provider", icon: "analytics" },
+    activity: { title: "Activity", description: "Chronological request timeline and routing events", icon: "history" },
+    logs: { title: "Logs", description: "Detailed gateway request and response audit logs", icon: "receipt_long" },
+    costs: { title: "Costs", description: "Budget rules, spend tracking, and cost breakdowns", icon: "payments" },
+    "free-tiers": { title: "Free Tiers", description: "Zero-cost AI models and community quota pools", icon: "redeem" },
+    privacy: { title: "Privacy", description: "Data redaction, telemetry controls, and local storage policy", icon: "privacy_tip" },
+    "feature-flags": { title: "Feature Flags", description: "Experimental router capabilities and runtime toggles", icon: "flag" },
+    pricing: { title: "Pricing", description: "Custom token rate tables across models and providers", icon: "price_change" },
+    cache: { title: "Cache", description: "Semantic and exact prompt cache hit performance", icon: "cached" },
+    guardrails: { title: "Guardrails", description: "Input/output safety policies and content filters", icon: "verified_user" },
+    pxpipe: { title: "PXPIPE", description: "Visual media pipeline and multimodal generation studio", icon: "image" },
+    playground: { title: "Playground", description: "Interactive prompt testing and side-by-side model evaluation", icon: "science" },
+    "basic-chat": { title: "Basic Chat", description: "Direct conversational interface through your active router", icon: "chat" },
+    memory: { title: "Memory", description: "Persistent context and long-term agent memory store", icon: "psychology" },
+    mcp: { title: "MCP", description: "Model Context Protocol servers and tool bindings", icon: "cable" },
+    a2a: { title: "A2A", description: "Agent-to-Agent task delegation and protocol bridge", icon: "swap_horiz" },
+    batch: { title: "Batch", description: "Asynchronous bulk inference jobs and queue processor", icon: "batch_prediction" },
+    webhooks: { title: "Webhooks", description: "Outbound event subscriptions and alert delivery", icon: "webhook" },
+    "api-endpoints": { title: "API Endpoints", description: "Custom upstream endpoints and compatible route mappings", icon: "api" },
+    "cloud-agents": { title: "Agent Registry", description: "Registered autonomous agents and capability manifests", icon: "cloud" },
+    "agent-skills": { title: "Agent Skills", description: "Reusable skill packages for autonomous coding agents", icon: "smart_toy" },
+    discovery: { title: "Discovery", description: "Explore compatible models, providers, and ecosystem tools", icon: "explore" },
+    "skill-discovery": { title: "Skill Discovery", description: "Browse and install community agent skills", icon: "rocket_launch" },
+    "free-provider-rankings": { title: "Free Provider Rankings", description: "Live reliability and latency leaderboard for free providers", icon: "emoji_events" },
+  };
+  const route = pathname.split("/").filter(Boolean).at(-1);
+  const matched = routeMeta[route];
+  if (matched) {
+    return { ...matched, breadcrumbs: [] };
+  }
+  return { title: "MiawRouter", description: "AI Routing Console", icon: "hub", breadcrumbs: [] };
 };
 
 export default function Header({ onMenuClick, showMenuButton = true }) {
@@ -225,53 +259,57 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
   };
 
   return (
-    <header className="relative shrink-0 flex items-center justify-between gap-3 px-4 lg:px-8 pt-3 pb-2 border-b border-border-subtle bg-surface z-20">
-      <div className="signal-rail absolute top-0 left-0 right-0" aria-hidden="true" />
+    <header className="dashboard-header sticky top-0 z-20 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-surface/90 px-4 lg:px-6">
       {/* Mobile menu button */}
       <div className="flex items-center gap-3 lg:hidden shrink-0">
         {showMenuButton && (
           <button
+            type="button"
+            aria-label="Open navigation"
             onClick={onMenuClick}
-            className="text-text-main hover:text-primary transition-colors"
+            className="flex size-9 items-center justify-center rounded-lg border border-border-subtle bg-surface-2 text-text-muted transition-colors hover:text-text-main"
           >
-            <span className="material-symbols-outlined">menu</span>
+            <Icon name="menu" className="text-[18px]" />
           </button>
         )}
       </div>
 
       {/* Page title with breadcrumbs */}
-      <div className="flex flex-col min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         {breadcrumbs.length > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            {icon && (
+              <div className="icon-box icon-box-sm text-primary">
+                <Icon name={icon} weight="duotone" className="shrink-0 text-[16px]" />
+              </div>
+            )}
             {breadcrumbs.map((crumb, index) => (
               <div
                 key={`${crumb.label}-${crumb.href || "current"}`}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 min-w-0"
               >
                 {index > 0 && (
-                  <span className="material-symbols-outlined text-text-muted text-base">
-                    chevron_right
-                  </span>
+                  <Icon name={"chevron_right"} className="text-text-subtle text-[13px] shrink-0" />
                 )}
                 {crumb.href ? (
                   <Link
                     href={crumb.href}
-                    className="text-text-muted hover:text-primary transition-colors"
+                    className="text-sm font-medium text-text-muted hover:text-primary transition-colors truncate"
                   >
                     {crumb.label}
                   </Link>
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     {crumb.image && (
                       <ProviderIcon
                         src={crumb.image}
                         alt={crumb.label}
-                        size={28}
-                        className="object-contain rounded max-w-[28px] max-h-[28px]"
+                        size={26}
+                        className="object-contain rounded-md max-w-[26px] max-h-[26px]"
                         fallbackText={crumb.label.slice(0, 2).toUpperCase()}
                       />
                     )}
-                    <h1 className="text-base lg:text-xl font-semibold text-text-main tracking-tight truncate">
+                    <h1 className="truncate text-lg font-bold tracking-tight text-text-main">
                       {translate(crumb.label)}
                     </h1>
                   </div>
@@ -280,33 +318,46 @@ export default function Header({ onMenuClick, showMenuButton = true }) {
             ))}
           </div>
         ) : title ? (
-          <div>
-            <div className="flex items-center gap-2">
-              {icon && (
-                <span className="material-symbols-outlined text-primary text-lg lg:text-xl">
-                  {icon}
-                </span>
-              )}
-              <h1 className="text-base lg:text-xl font-semibold tracking-tight truncate">
-                {translate(title)}
-              </h1>
-            </div>
-            {description && (
-              <p className="hidden lg:block text-sm text-text-muted truncate">
-                {translate(description)}
-              </p>
+          <div className="flex items-center gap-3 min-w-0">
+            {icon && (
+              <div className="icon-box text-primary hidden sm:inline-flex">
+                <Icon name={icon} weight="duotone" className="text-[19px]" />
+              </div>
             )}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                {icon && (
+                  <Icon name={icon} weight="duotone" className="text-primary text-[18px] sm:hidden shrink-0" />
+                )}
+                <h1 className="truncate text-[18px] font-bold tracking-tight text-text-main leading-tight">
+                  {translate(title)}
+                </h1>
+              </div>
+              {description && (
+                <p className="hidden md:block text-xs text-text-muted truncate mt-0.5">
+                  {translate(description)}
+                </p>
+              )}
+            </div>
           </div>
         ) : null}
       </div>
 
       {/* Right actions */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="dashboard-header-actions flex items-center gap-1.5 shrink-0">
+        <Link
+          href="/dashboard/health"
+          className="hidden xl:inline-flex items-center gap-2 rounded-full border border-border bg-surface-2 px-3 py-1 text-xs font-medium text-text-muted hover:border-primary/40 hover:text-text-main transition-colors mr-1"
+          title="View router health"
+        >
+          <span className="status-dot status-dot-live" />
+          <span>Router Online</span>
+        </Link>
         {displayName && loginMethod === "OIDC" && (
-          <div className="hidden sm:flex items-center max-w-[220px] px-3 py-1.5 rounded-full border border-border bg-surface/70 text-xs text-text-muted truncate">
-            <span className="material-symbols-outlined text-[14px] mr-1.5 text-primary">person</span>
+          <div className="hidden max-w-[220px] items-center truncate rounded-lg border border-border bg-surface-2 px-2.5 py-1 text-xs text-text-muted sm:flex">
+            <Icon name="person" className="mr-1.5 text-[14px] text-primary" />
             <span className="truncate">{displayName}</span>
-            <span className="ml-2 shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+            <span className="ml-2 shrink-0 rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
               OIDC
             </span>
           </div>
@@ -329,16 +380,14 @@ function HeaderSearch() {
   if (!visible) return null;
 
   return (
-    <div className="relative w-[160px] sm:w-[220px]">
-      <span className="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-text-muted text-[16px] pointer-events-none">
-        search
-      </span>
+    <div className="relative w-[120px] sm:w-[220px]">
+      <Icon name={"search"} className=" absolute left-2 top-1/2 -translate-y-1/2 text-text-muted text-[16px] pointer-events-none" />
       <input
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-8 pl-7 pr-7 rounded-lg border border-border bg-surface-2 text-sm focus:outline-none focus:border-primary/50 transition-colors"
+        className="h-8 w-full rounded-md border border-border bg-surface-2 pl-7 pr-7 text-sm focus:outline-none focus:ring-2 focus:ring-primary/35 transition-colors"
       />
       {query && (
         <button
@@ -347,7 +396,7 @@ function HeaderSearch() {
           className="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main p-0.5 rounded"
           aria-label="Clear search"
         >
-          <span className="material-symbols-outlined text-[16px]">close</span>
+          <Icon name={"close"} className=" text-[16px]" />
         </button>
       )}
     </div>

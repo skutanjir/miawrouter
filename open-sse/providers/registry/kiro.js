@@ -46,6 +46,10 @@ export default {
 { id: "claude-opus-5.5-thinking", name: "Claude Opus 5.5 (Thinking)", contextLength: 1000000 },
 { id: "claude-opus-5.5-agentic", name: "Claude Opus 5.5 (Agentic)", contextLength: 1000000 },
 { id: "claude-opus-5.5-thinking-agentic", name: "Claude Opus 5.5 (Thinking + Agentic)", contextLength: 1000000 },
+{ id: "claude-sonnet-5.5", name: "Claude Sonnet 5.5", contextLength: 1000000 },
+{ id: "claude-sonnet-5.5-thinking", name: "Claude Sonnet 5.5 (Thinking)", contextLength: 1000000 },
+{ id: "claude-sonnet-5.5-agentic", name: "Claude Sonnet 5.5 (Agentic)", contextLength: 1000000 },
+{ id: "claude-sonnet-5.5-thinking-agentic", name: "Claude Sonnet 5.5 (Thinking + Agentic)", contextLength: 1000000 },
 { id: "claude-fable-5.1", name: "Claude Fable 5.1 (Experimental)", contextLength: 1000000 },
 // Opus (added per kiro.dev/changelog/models and kiro.dev/docs/models)
 {

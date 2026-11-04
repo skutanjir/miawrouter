@@ -1,27 +1,23 @@
 /**
  * MemoryPageClient — main client component for the Memory dashboard page.
- *
- * Renders:
- *   - Page header with search and actions
- *   - Health status card (entries, indexed, driver, FTS status)
- *   - Memory list with loading/error/empty states
- *   - Add memory modal
- *   - Reindex action with result feedback
+ * Switchboard redesign: header + toolbar (search/filter/create) + dense table, detail in drawer.
  */
 
 "use client";
 
 import { useCallback, useState } from "react";
-import { Badge, Button, Card, CardSkeleton, Input } from "@/shared/components";
+import { Badge, Button, Card, CardSkeleton, Drawer, Input } from "@/shared/components";
 import { useNotificationStore } from "@/store/notificationStore";
 import { useMemoryApi } from "./useMemoryApi";
 import MemoryTable from "./MemoryTable";
 import AddMemoryModal from "./AddMemoryModal";
+import { Icon } from "@/shared/components/Icon";
 
 export default function MemoryPageClient() {
   const notify = useNotificationStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchInput, setSearchInput] = useState("");
+  const [selectedMemory, setSelectedMemory] = useState(null);
 
   const {
     memories,
@@ -75,17 +71,18 @@ export default function MemoryPageClient() {
       const result = await deleteMemory(id);
       if (result.ok) {
         notify.success("Memory deleted");
+        if (selectedMemory?.id === id) setSelectedMemory(null);
       } else {
         notify.error(result.error || "Failed to delete memory");
       }
     },
-    [deleteMemory, notify]
+    [deleteMemory, notify, selectedMemory]
   );
 
   const handleReindex = useCallback(async () => {
     const result = await reindex();
     if (result.ok) {
-      notify.success(`Reindex complete — ${result.data.indexed} entries indexed`);
+      notify.success(`Reindex complete — ${result.data?.indexed ?? 0} entries indexed`);
     } else {
       notify.error(result.error || "Reindex failed");
     }
@@ -99,16 +96,16 @@ export default function MemoryPageClient() {
   const isHealthy = health?.ok === true;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
+    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0 font-sans">
       {/* ── Page Header ─────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between border-b border-border pb-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-            <span className="material-symbols-outlined text-primary">psychology</span>
+          <h1 className="text-xl sm:text-2xl font-semibold flex items-center gap-2.5 leading-tight text-text-main">
+            <Icon name="psychology" className="text-primary text-[24px]" />
             Memory
           </h1>
           <p className="text-sm text-text-muted">
-            Store and search semantic memories powered by FTS5 full-text search.
+            Store and retrieve conversational memories powered by semantic vector and FTS5 search.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -141,57 +138,52 @@ export default function MemoryPageClient() {
         </div>
       </div>
 
-      {/* ── Health Status ───────────────────────────────────────── */}
+      {/* ── Status Bar / Stats ───────────────────────────────────── */}
       {healthLoading && !health ? (
         <CardSkeleton />
       ) : health ? (
-        <Card
-          title="Memory Health"
-          icon="health_and_safety"
-          padding="sm"
-          className={isHealthy ? "" : "border-error/30"}
-        >
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant={isHealthy ? "success" : "error"} dot size="sm">
-              {isHealthy ? "Healthy" : "Degraded"}
-            </Badge>
-            {health.driver && (
-              <span className="text-xs font-mono text-text-muted">
-                Driver: <span className="font-semibold text-text-main">{health.driver}</span>
-              </span>
-            )}
-            {typeof health.entries === "number" && (
-              <span className="text-xs font-mono text-text-muted">
-                Entries: <span className="font-semibold text-text-main">{health.entries}</span>
-              </span>
-            )}
-            {typeof health.indexed === "number" && (
-              <span className="text-xs font-mono text-text-muted">
-                Indexed: <span className="font-semibold text-text-main">{health.indexed}</span>
-              </span>
-            )}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="p-3 rounded-[10px] border border-border bg-surface">
+            <span className="text-[11px] text-text-muted">Status</span>
+            <div className="mt-1 flex items-center gap-1.5">
+              <Badge variant={isHealthy ? "success" : "error"} dot size="sm">
+                {isHealthy ? "Healthy" : "Degraded"}
+              </Badge>
+            </div>
           </div>
-        </Card>
+          <div className="p-3 rounded-[10px] border border-border bg-surface">
+            <span className="text-[11px] text-text-muted">Driver</span>
+            <p className="mt-1 font-mono text-sm font-semibold text-text-main">{health.driver || "sqlite-fts5"}</p>
+          </div>
+          <div className="p-3 rounded-[10px] border border-border bg-surface">
+            <span className="text-[11px] text-text-muted">Total Entries</span>
+            <p className="mt-1 font-mono tabular-nums text-sm font-semibold text-text-main">{health.entries ?? total}</p>
+          </div>
+          <div className="p-3 rounded-[10px] border border-border bg-surface">
+            <span className="text-[11px] text-text-muted">Indexed Entries</span>
+            <p className="mt-1 font-mono tabular-nums text-sm font-semibold text-text-main">{health.indexed ?? "—"}</p>
+          </div>
+        </div>
       ) : null}
 
       {/* ── Reindex Feedback ────────────────────────────────────── */}
       {reindexResult && !reindexing && (
-        <Card padding="sm" className="border-brand-500/20 bg-brand-500/5">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="material-symbols-outlined text-brand-500 text-[18px]">check_circle</span>
-            <span className="text-text-main">
-              Reindexed <strong>{reindexResult.indexed}</strong> entries into FTS5 index
+        <Card padding="sm" className="border-primary/20 bg-primary/5">
+          <div className="flex items-center gap-2 text-xs text-text-main">
+            <Icon name="check_circle" className="text-primary text-[16px]" />
+            <span>
+              Reindexed <strong>{reindexResult.indexed}</strong> entries into search index.
             </span>
           </div>
         </Card>
       )}
 
-      {/* ── Search Bar ──────────────────────────────────────────── */}
+      {/* ── Toolbar (Search / Filters) ───────────────────────────── */}
       <form onSubmit={handleSearch} className="flex items-center gap-2">
         <div className="flex-1">
           <Input
             icon="search"
-            placeholder="Search memories by content…"
+            placeholder="Search memories by content or tag…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -213,13 +205,14 @@ export default function MemoryPageClient() {
         )}
       </form>
 
-      {/* ── Memory List ─────────────────────────────────────────── */}
+      {/* ── Dense Memory Table ───────────────────────────────────── */}
       <MemoryTable
         memories={memories}
         loading={listLoading}
         error={listError}
         deleting={deleting}
         onDelete={handleDelete}
+        onSelectMemory={setSelectedMemory}
         total={total}
         page={page}
         pageSize={pageSize}
@@ -227,6 +220,77 @@ export default function MemoryPageClient() {
         onRefresh={fetchMemories}
         isSearch={!!query}
       />
+
+      {/* ── Detail Drawer ────────────────────────────────────────── */}
+      <Drawer
+        isOpen={!!selectedMemory}
+        onClose={() => setSelectedMemory(null)}
+        title="Memory Details"
+        width="md"
+      >
+        {selectedMemory && (
+          <div className="space-y-5 text-xs text-text-main">
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Content</span>
+              <div className="mt-1.5 p-3 rounded-md bg-surface-2 border border-border-subtle whitespace-pre-wrap break-words leading-relaxed select-text font-sans text-sm">
+                {selectedMemory.content}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">ID</span>
+                <code className="block mt-1 p-2 rounded bg-surface-2 font-mono text-[11px] text-text-muted truncate select-all">
+                  {selectedMemory.id}
+                </code>
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Created</span>
+                <p className="mt-1 p-2 font-mono text-[11px] text-text-main">
+                  {selectedMemory.createdAt ? new Date(selectedMemory.createdAt).toLocaleString() : "—"}
+                </p>
+              </div>
+            </div>
+
+            {selectedMemory.sessionId && (
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Session ID</span>
+                <code className="block mt-1 p-2 rounded bg-surface-2 font-mono text-[11px] text-primary truncate select-all">
+                  {selectedMemory.sessionId}
+                </code>
+              </div>
+            )}
+
+            {selectedMemory.score !== undefined && (
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Search Score</span>
+                <p className="mt-1 font-mono text-sm font-semibold text-text-main">
+                  {Math.abs(selectedMemory.score).toFixed(4)}
+                </p>
+              </div>
+            )}
+
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Metadata</span>
+              <pre className="mt-1 p-3 rounded-md bg-surface-2 border border-border-subtle font-mono text-[11px] overflow-x-auto max-h-48 custom-scrollbar">
+                {JSON.stringify(selectedMemory.metadata || {}, null, 2)}
+              </pre>
+            </div>
+
+            <div className="pt-4 border-t border-border flex justify-end gap-2">
+              <Button
+                variant="danger"
+                size="sm"
+                icon="delete"
+                onClick={() => handleDelete(selectedMemory.id)}
+                loading={deleting.has(selectedMemory.id)}
+              >
+                Delete Memory
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       {/* ── Add Memory Modal ────────────────────────────────────── */}
       <AddMemoryModal

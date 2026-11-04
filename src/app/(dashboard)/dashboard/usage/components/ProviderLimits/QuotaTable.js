@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatResetTime, getRemainingPercentage } from "./utils";
 
+import { Icon } from "@/shared/components/Icon";
 const PAGE_SIZE = 10;
 
 export const ANTIGRAVITY_TARGET_ROWS = [
@@ -228,18 +229,18 @@ function getColorClasses(remainingPercentage) {
 
   if (remainingPercentage >= 30) {
     return {
-      text: "text-warn",
-      bg: "bg-warn",
-      bgLight: "bg-warn/15",
-      dot: "bg-warn",
+      text: "text-warning",
+      bg: "bg-warning",
+      bgLight: "bg-warning/15",
+      dot: "bg-warning",
     };
   }
 
   return {
-    text: "text-fail",
-    bg: "bg-fail",
-    bgLight: "bg-fail/15",
-    dot: "bg-fail",
+    text: "text-danger",
+    bg: "bg-danger",
+    bgLight: "bg-danger/15",
+    dot: "bg-danger",
   };
 }
 
@@ -369,7 +370,7 @@ export default function QuotaTable({
                   />
                   <span
                     className={`${nameText} font-medium truncate ${
-                      isAvailable ? "text-text-primary" : "text-text-muted"
+                      isAvailable ? "text-text-main" : "text-text-muted"
                     }`}
                     title={row.name}
                   >
@@ -407,7 +408,7 @@ export default function QuotaTable({
                     </>
                   ) : (
                     <>
-                      <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden bg-surface-3/70`}>
+                      <div className={`${compact ? "h-1" : "h-1.5"} rounded-full overflow-hidden bg-surface-2`}>
                         <div className="h-full w-0" />
                       </div>
                       <div className={`flex items-center justify-between gap-1 min-w-0 ${compact ? "text-[10px]" : "text-xs"}`}>
@@ -428,7 +429,7 @@ export default function QuotaTable({
                     countdown !== "-" || resetDisplay ? (
                       compact ? (
                         <div
-                          className={`${resetPrimary} text-text-primary font-medium truncate`}
+                          className={`${resetPrimary} text-text-main font-medium truncate`}
                           title={resetDisplay || ""}
                         >
                           {countdownLabel}
@@ -436,7 +437,7 @@ export default function QuotaTable({
                       ) : (
                         <div className="min-w-0 space-y-0.5">
                           {countdown !== "-" && (
-                            <div className={`${resetPrimary} text-text-primary font-medium truncate`}>
+                            <div className={`${resetPrimary} text-text-main font-medium truncate`}>
                               {countdownLabel}
                             </div>
                           )}
@@ -461,13 +462,11 @@ export default function QuotaTable({
                     <button
                       type="button"
                       onClick={() => onHideQuota(row.rawQuota || { name: row.name, modelKey: row.key })}
-                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-primary"
+                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main"
                       title={`Hide ${row.name}`}
                       aria-label={`Hide quota ${row.name}`}
                     >
-                      <span className="material-symbols-outlined text-[15px]">
-                        visibility_off
-                      </span>
+                      <Icon name={"visibility_off"} className=" text-[15px]" />
                     </button>
                   ) : (
                     <span className="inline-flex h-6 w-6 shrink-0" aria-hidden="true" />
@@ -495,7 +494,7 @@ export default function QuotaTable({
                 {/* Name */}
                 <div className="flex w-32 sm:w-36 min-w-0 items-center gap-2 shrink-0">
                   <span className={`size-1.5 shrink-0 rounded-full ${colors.dot}`} aria-hidden="true" />
-                  <span className={`${nameText} font-medium text-text-primary truncate`}>
+                  <span className={`${nameText} font-medium text-text-main truncate`}>
                     {quota.name}
                   </span>
                 </div>
@@ -527,7 +526,7 @@ export default function QuotaTable({
                   {countdown !== "-" || resetDisplay ? (
                     compact ? (
                       <div
-                        className={`${resetPrimary} text-text-primary font-medium truncate`}
+                        className={`${resetPrimary} text-text-main font-medium truncate`}
                         title={resetDisplay || ""}
                       >
                         {countdownLabel}
@@ -535,7 +534,7 @@ export default function QuotaTable({
                     ) : (
                       <div className="min-w-0 space-y-0.5">
                         {countdown !== "-" && (
-                          <div className={`${resetPrimary} text-text-primary font-medium truncate`}>
+                          <div className={`${resetPrimary} text-text-main font-medium truncate`}>
                             {countdownLabel}
                           </div>
                         )}
@@ -556,13 +555,11 @@ export default function QuotaTable({
                   <button
                     type="button"
                     onClick={() => onHideQuota(quota)}
-                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-primary"
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main"
                     title="Hide this quota row"
                     aria-label={`Hide quota ${quota.name}`}
                   >
-                    <span className="material-symbols-outlined text-[15px]">
-                      visibility_off
-                    </span>
+                    <Icon name={"visibility_off"} className=" text-[15px]" />
                   </button>
                 )}
               </div>
@@ -586,7 +583,7 @@ export default function QuotaTable({
               type="button"
               onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
               disabled={page === 1}
-              className="flex h-6 items-center rounded-md border border-border-subtle px-2 text-[10px] text-text-primary transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-6 items-center rounded-md border border-border px-2 text-[10px] text-text-main transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Prev
             </button>
@@ -594,7 +591,7 @@ export default function QuotaTable({
               type="button"
               onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
               disabled={page === totalPages}
-              className="flex h-6 items-center rounded-md border border-border-subtle px-2 text-[10px] text-text-primary transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-6 items-center rounded-md border border-border px-2 text-[10px] text-text-main transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
             </button>

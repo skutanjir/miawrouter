@@ -5,16 +5,6 @@ import { PRAGMA_SQL } from "../schema.js";
 const CHECKPOINT_INTERVAL_MS = 60 * 1000;
 
 export async function createNodeSqliteAdapter(filePath) {
-  // Suppress "ExperimentalWarning: SQLite is an experimental feature" from node:sqlite.
-  // Stable enough for production use as of Node 22.x (RC quality).
-  const origEmit = process.emit;
-  process.emit = function (name, data, ...rest) {
-    if (name === "warning" && data?.name === "ExperimentalWarning" && /SQLite/i.test(data.message || "")) {
-      return false;
-    }
-    return origEmit.call(process, name, data, ...rest);
-  };
-
   // Dynamic import — fails on Node < 22.5 → driver.js falls back to sql.js
   const sqlite = await import("node:sqlite");
   const Database = sqlite.DatabaseSync;
@@ -43,10 +33,19 @@ export async function createNodeSqliteAdapter(filePath) {
     try { stmtCache.clear(); } catch {}
     try { db.close(); } catch {}
   }
-  const onShutdown = () => gracefulClose();
+  const onShutdown = () => close();
+  const onSignal = () => { close(); process.exit(0); };
   process.once("beforeExit", onShutdown);
-  process.once("SIGINT", () => { onShutdown(); process.exit(0); });
-  process.once("SIGTERM", () => { onShutdown(); process.exit(0); });
+  process.once("SIGINT", onSignal);
+  process.once("SIGTERM", onSignal);
+
+  function close() {
+    process.off("beforeExit", onShutdown);
+    process.off("SIGINT", onSignal);
+    process.off("SIGTERM", onSignal);
+    clearInterval(checkpointTimer);
+    gracefulClose();
+  }
 
   return {
     driver: "node:sqlite",
@@ -75,10 +74,7 @@ export async function createNodeSqliteAdapter(filePath) {
       }
     },
     checkpoint() { try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {} },
-    close() {
-      clearInterval(checkpointTimer);
-      gracefulClose();
-    },
+    close,
     raw: db,
   };
 }

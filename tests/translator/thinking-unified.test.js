@@ -195,9 +195,9 @@ describe("applyThinking per provider format", () => {
     const out = apply("openai-responses", "gpt-5.6-sol(ultra)", {}, "codex");
     expect(out.reasoning_effort).toBe("ultra");
   });
-  it("keeps Codex-only GPT-5.6 levels out of Kiro translation", () => {
+  it("keeps GPT-5.6 API effort levels available to Kiro translation", () => {
     const out = apply("openai", "gpt-5.6-sol", { reasoning_effort: "max" }, "kiro");
-    expect(out.reasoning_effort).toBe("xhigh");
+    expect(out.reasoning_effort).toBe("max");
   });
 });
 

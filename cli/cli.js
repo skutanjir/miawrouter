@@ -93,7 +93,7 @@ Usage: ${pkg.name} [options]
 
 Options:
   -p, --port <port>   Port to run the server (default: 21128)
-  -H, --host <host>   Host to bind (default: 0.0.0.0)
+  -H, --host <host>   Host to bind (default: 127.0.0.1)
   -n, --no-browser    Don't open browser automatically
   -l, --log           Show server logs (default: hidden)
   -t, --tray          Run in system tray mode (background)
@@ -128,7 +128,7 @@ const APP_NAME = pkg.name; // Use from package.json
 const INSTALL_CMD_LATEST = `npm i -g ${APP_NAME}@latest --prefer-online`;
 
 const DEFAULT_PORT = 21128;
-const DEFAULT_HOST = "0.0.0.0";
+const DEFAULT_HOST = "127.0.0.1";
 
 // First non-internal IPv4 — the address remote peers actually reach when bound to 0.0.0.0.
 function getLanIp() {
@@ -142,7 +142,7 @@ function getLanIp() {
 
 // Local URL stays "localhost"; warn separately when bound to all interfaces (network-exposed).
 function getDisplayHost() {
-  return host === DEFAULT_HOST ? "localhost" : host;
+  return host === "0.0.0.0" || host === "::" ? "localhost" : host;
 }
 const MAX_PORT_ATTEMPTS = 10;
 // Identifiers for killAllAppProcesses - only kill miawrouter specifically
@@ -434,7 +434,7 @@ function killProcessOnPort(port) {
           const lines = output.split('\n').filter(l => l.includes('LISTENING'));
           if (lines.length > 0) {
             pid = lines[0].trim().split(/\s+/).pop();
-            execSync(`taskkill /F /PID ${pid} 2>nul`, { stdio: 'ignore', shell: true, windowsHide: true, timeout: 3000 });
+            execSync(`taskkill /F /T /PID ${pid} 2>nul`, { stdio: 'ignore', shell: true, windowsHide: true, timeout: 3000 });
           }
         } catch (e) {
           // Port is free or error
@@ -582,9 +582,12 @@ if (!fs.existsSync(serverPath)) {
 
 // Start server immediately; run update check in parallel (not on the critical path).
 const updatePromise = checkForUpdate();
-killAllAppProcesses(port)
-  .then(() => killProcessOnPort(port))
-  .then(() => startServer(updatePromise));
+require("./hooks/portCheck").waitForPortAvailable(port, host, trayMode ? 3000 : 0)
+  .then(() => startServer(updatePromise))
+  .catch((error) => {
+    console.error(`Cannot listen on ${host}:${port}: ${error.message}. Stop the existing service or choose another port with --port.`);
+    process.exitCode = 1;
+  });
 
 // Show interface selection menu
 async function showInterfaceMenu(latestVersion) {
@@ -605,7 +608,7 @@ async function showInterfaceMenu(latestVersion) {
     serverUrl = `http://${displayHost}:${port}`;
   }
 
-  const subtitle = `Server  \x1b[96m${serverUrl}\x1b[0m`;
+  const subtitle = `Server  \x1b[38;2;52;211;153m●\x1b[0m \x1b[38;2;244;244;245m${serverUrl}\x1b[0m  \x1b[38;2;113;113;122m(local proxy ready)\x1b[0m`;
 
   const menuItems = [];
 
@@ -614,10 +617,10 @@ async function showInterfaceMenu(latestVersion) {
   }
 
   menuItems.push(
-    { label: "Open dashboard", description: "Manage MiawRouter in your browser." },
-    { label: "Enter terminal", description: "Manage providers, API keys and settings here." },
-    { label: "Keep in tray", description: "Keep the server running in the background." },
-    { label: "Exit MiawRouter", description: "Close MiawRouter and stop the local server." }
+    { label: "Open dashboard", description: "Manage routes, providers, logs, and analytics in your browser." },
+    { label: "Enter terminal", description: "Configure providers, test models, and manage API keys directly in TUI." },
+    { label: "Hide in tray", description: "Keep proxy running silently in background tray. Terminal can be closed safely." },
+    { label: "Exit MiawRouter", description: "Gracefully shut down local proxy and stop all active listeners." }
   );
 
   const selected = await selectMenu(`Welcome home / v${pkg.version}`, menuItems, 0, subtitle);
@@ -639,10 +642,10 @@ function startServer(updatePromise) {
   const latestVersionPromise = Promise.resolve(updatePromise);
   const displayHost = getDisplayHost();
   const url = `http://${displayHost}:${port}/dashboard`;
-  // Surface real network exposure when bound to all interfaces (default 0.0.0.0).
-  if (host === DEFAULT_HOST) {
+  // Surface real network exposure when bound to all interfaces.
+  if (host === "0.0.0.0" || host === "::") {
     const lanIp = getLanIp();
-    if (lanIp) console.log(`\x1b[33m⚠ Network-exposed: reachable at http://${lanIp}:${port} (bound 0.0.0.0). Use --host 127.0.0.1 for local-only.\x1b[0m`);
+    if (lanIp) console.log(`\x1b[33m⚠ Network-exposed: reachable at http://${lanIp}:${port} (bound ${host}). Use --host 127.0.0.1 for local-only.\x1b[0m`);
   }
 
   let restartCount = 0;
@@ -785,8 +788,6 @@ function startServer(updatePromise) {
           console.log(`Run this after exit:\n`);
           console.log(`   \x1b[33m${INSTALL_CMD_LATEST}\x1b[0m\n`);
           cleanup();
-          await killAllAppProcesses(port);
-          await killProcessOnPort(port);
           setTimeout(() => process.exit(0), 200);
           return;
         } else if (choice === "web") {
@@ -815,19 +816,23 @@ function startServer(updatePromise) {
             process.removeAllListeners("SIGHUP");
             process.on("SIGHUP", () => {});
 
-            console.log(`\n⏳ Switching to tray mode... (icon already visible in menu bar)`);
-            console.log(`🔔 MiawRouter is running in tray (PID: ${process.pid})`);
-            console.log(`   Server: http://${displayHost}:${port}`);
-            console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
+            console.log(`\n  \x1b[38;2;217;119;87m╭─ \x1b[1m\x1b[38;2;244;244;245mMiawRouter // System Tray Mode Active\x1b[0m \x1b[38;2;217;119;87m─────────────────────────\x1b[0m`);
+            console.log(`  \x1b[38;2;217;119;87m│\x1b[0m`);
+            console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  Status:   \x1b[38;2;52;211;153m● Running in menu bar\x1b[0m \x1b[38;2;113;113;122m(PID: ${process.pid})\x1b[0m`);
+            console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  Server:   \x1b[38;2;244;244;245mhttp://${displayHost}:${port}\x1b[0m`);
+            console.log(`  \x1b[38;2;217;119;87m│\x1b[0m`);
+            console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  \x1b[38;2;161;161;170m💡 You can safely close this terminal window.\x1b[0m`);
+            console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  \x1b[38;2;161;161;170m   Right-click the menu bar icon anytime to open or quit.\x1b[0m`);
+            console.log(`  \x1b[38;2;217;119;87m╰────────────────────────────────────────────────────────────\x1b[0m\n`);
 
             // Tray already init'd at startup — just keep event loop alive.
             return;
           }
 
           // Windows/Linux: spawn detached bgProcess (systray works fine in child)
-          console.log(`\n⏳ Starting background process... (tray icon will appear in ~3s)`);
+          console.log(`\n  \x1b[38;2;217;119;87m⏳ Starting background tray process...\x1b[0m`);
 
-          const bgProcess = spawn(process.execPath, ["--dns-result-order=ipv4first", __filename, "--tray", "--skip-update", "-p", port.toString()], {
+          const bgProcess = spawn(process.execPath, ["--dns-result-order=ipv4first", __filename, "--tray", "--skip-update", "-p", port.toString(), "-H", host], {
             detached: true,
             stdio: "ignore",
             windowsHide: true,
@@ -835,9 +840,14 @@ function startServer(updatePromise) {
           });
           bgProcess.unref();
 
-          console.log(`🔔 MiawRouter is now running in background (PID: ${bgProcess.pid})`);
-          console.log(`   Server: http://${displayHost}:${port}`);
-          console.log(`\n💡 You can close this terminal. Right-click tray icon to quit.\n`);
+          console.log(`\n  \x1b[38;2;217;119;87m╭─ \x1b[1m\x1b[38;2;244;244;245mMiawRouter // System Tray Mode Active\x1b[0m \x1b[38;2;217;119;87m─────────────────────────\x1b[0m`);
+          console.log(`  \x1b[38;2;217;119;87m│\x1b[0m`);
+          console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  Status:   \x1b[38;2;52;211;153m● Running in background tray\x1b[0m \x1b[38;2;113;113;122m(PID: ${bgProcess.pid})\x1b[0m`);
+          console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  Server:   \x1b[38;2;244;244;245mhttp://${displayHost}:${port}\x1b[0m`);
+          console.log(`  \x1b[38;2;217;119;87m│\x1b[0m`);
+          console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  \x1b[38;2;161;161;170m💡 You can safely close this terminal window.\x1b[0m`);
+          console.log(`  \x1b[38;2;217;119;87m│\x1b[0m  \x1b[38;2;161;161;170m   Right-click the tray icon near clock to open or quit.\x1b[0m`);
+          console.log(`  \x1b[38;2;217;119;87m╰────────────────────────────────────────────────────────────\x1b[0m\n`);
 
           // cleanup() kills server so bgProcess can claim the port fresh
           cleanup();

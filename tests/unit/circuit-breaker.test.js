@@ -53,7 +53,7 @@ describe("circuitBreaker (wired into BaseExecutor)", () => {
     expect(() => recordFailure("", "")).not.toThrow();
   });
 
-  it("repeated fallback-worthy 400 client/capability errors via markAccountUnavailable never open circuit breaker", async () => {
+  it("invalid 400 requests do not trigger fallback or open the circuit breaker", async () => {
     const { markAccountUnavailable } = await import("../../src/sse/services/auth.js");
     const p = fresh();
     const connId = "conn-client-err";
@@ -66,7 +66,7 @@ describe("circuitBreaker (wired into BaseExecutor)", () => {
         p,
         "test-model"
       );
-      expect(res.shouldFallback).toBe(true);
+      expect(res.shouldFallback).toBe(false);
     }
 
     expect(isCircuitBlocked(p, connId)).toBe(false);

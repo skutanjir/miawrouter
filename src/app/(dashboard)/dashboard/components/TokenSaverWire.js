@@ -170,28 +170,32 @@ function getStagePresentation(stageId, st, config) {
 function StageInstrumentRow({ stage, presentation, active, kind }) {
   const isOff = presentation.status === "off";
   const tone = presentation.badgeKind === "signal"
-    ? "text-signal"
+    ? "border-primary/30 bg-primary/10 text-primary"
     : presentation.badgeKind === "warn"
-      ? "text-warn"
-      : "text-muted";
+      ? "border-warning/30 bg-warning/10 text-warning"
+      : "border-border bg-surface text-text-muted";
 
   return (
     <div
-      className={`tsw-stage-row grid grid-cols-[1.25rem_minmax(0,1fr)_auto] items-baseline gap-2 border-b border-border-subtle py-1.5 last:border-b-0 ${isOff ? "opacity-55" : ""} ${active ? "tsw-stage-act" : ""}`}
+      className={`tsw-stage-row grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-border-subtle py-2 last:border-b-0 ${isOff ? "opacity-55" : ""} ${active ? "tsw-stage-act" : ""}`}
       data-kind={kind}
       title={`${stage.label} (${stage.sub}) · ${presentation.badge} · ${presentation.detail}`}
     >
-      <span className="font-mono text-[10px] text-muted">{stage.step}</span>
+      <span className="inline-flex size-6 items-center justify-center rounded-md border border-border bg-surface-2 font-mono text-[10px] font-bold text-text-muted">
+        {stage.step}
+      </span>
       <div className="min-w-0">
         <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="text-xs font-medium text-ink">{stage.label}</span>
-          <span className="truncate text-[11px] text-muted">{stage.sub}</span>
+          <span className="text-xs font-semibold text-text-main">{stage.label}</span>
+          <span className="truncate text-[11px] font-mono text-text-muted">· {stage.sub}</span>
         </div>
-        <p className="truncate font-mono text-[11px] text-muted" title={presentation.detail}>
+        <p className="truncate font-mono text-[11px] text-text-muted" title={presentation.detail}>
           {presentation.detail}
         </p>
       </div>
-      <span className={`font-mono text-[11px] tabular-nums ${tone}`}>{presentation.badge}</span>
+      <span className={`rounded-full border px-2 py-0.5 font-mono text-[10.5px] font-semibold tabular-nums ${tone}`}>
+        {presentation.badge}
+      </span>
     </div>
   );
 }
@@ -447,9 +451,9 @@ export default function TokenSaverWire() {
   }, []);
 
   const connMeta = {
-    connecting: { text: "Connecting…", cls: "text-warn", dot: "bg-warn" },
-    live: { text: "Live", cls: "text-ink", dot: "bg-signal" },
-    disconnected: { text: "Disconnected — reconnecting", cls: "text-fail", dot: "bg-fail" },
+    connecting: { text: "Connecting…", cls: "text-warning", dot: "bg-warning" },
+    live: { text: "Live", cls: "text-text-main", dot: "bg-success" },
+    disconnected: { text: "Disconnected — reconnecting", cls: "text-danger", dot: "bg-danger" },
   }[conn];
 
   const providerStat =
@@ -463,24 +467,28 @@ export default function TokenSaverWire() {
       subtitle="Caveman, Ponytail, RTK, Headroom, PXPIPE"
       padding="sm"
       elev
-      className="panel-lift flex h-full flex-col self-stretch"
+      className="panel-lift flex h-full flex-col self-stretch border border-border"
+      action={
+        <span className={`inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-0.5 font-mono text-[10.5px] font-semibold ${connMeta.cls}`}>
+          <span className={`size-1.5 rounded-full ${connMeta.dot}`} aria-hidden="true" />
+          <span className="sr-only">Token-saver stream: </span>
+          {connMeta.text}
+        </span>
+      }
     >
       <style>{`.tsw-stage-act{background:color-mix(in srgb,var(--color-signal) 8%,transparent)}
 @media (prefers-reduced-motion: reduce){.tsw-stage-row{transition:none!important}}`}</style>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <p className="min-w-0 truncate font-mono text-xs text-ink" title={providerStat}>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-subtle bg-surface-2/60 px-3 py-2">
+          <span className="font-mono text-xs font-semibold text-text-main">
             {fmt(state.req)} {state.req === 1 ? "dispatch" : "dispatches"}
-            <span className="text-muted"> · {providerStat}</span>
-          </p>
-          <span className={`inline-flex items-center gap-1.5 text-xs ${connMeta.cls}`}>
-            <span className={`size-1.5 rounded-full ${connMeta.dot}`} aria-hidden="true" />
-            <span className="sr-only">Token-saver stream: </span>
-            {connMeta.text}
+          </span>
+          <span className="min-w-0 truncate font-mono text-[11px] text-text-muted" title={providerStat}>
+            Route: <strong className="font-medium text-text-main">{providerStat}</strong>
           </span>
         </div>
 
-        <div role="group" aria-label="Token-saver stages">
+        <div role="group" aria-label="Token-saver stages" className="rounded-xl border border-border-subtle bg-surface-2/25 px-3 py-1">
           {STAGES.map((stage) => {
             const active = !!act && act.stage === stage.id;
             const presentation = getStagePresentation(stage.id, state, config);
@@ -496,15 +504,16 @@ export default function TokenSaverWire() {
           })}
         </div>
 
-        <p className="text-[11px] text-muted">
+        <p className="text-[11px] text-text-muted">
           RTK and Headroom show reported byte deltas. PXPIPE is an estimate.
         </p>
         <p
           role="status"
           aria-live="polite"
-          className="truncate border-t border-border-subtle pt-2 font-mono text-[11px] text-muted"
+          className="mt-auto truncate rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1.5 font-mono text-[11px] text-text-muted"
           title={state.latest || act?.note}
         >
+          <span className="text-primary mr-1.5">›</span>
           {act?.note || state.latest || "No saver events yet. Send a request to see which stage compressed it."}
         </p>
       </div>

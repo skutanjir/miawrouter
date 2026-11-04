@@ -4,6 +4,7 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { getProviderIconSrc, markProviderIconMissing } from "@/shared/utils/providerIcon";
 
+import { Icon } from "@/shared/components/Icon";
 function resolveSrc(src, providerId) {
   if (providerId) return getProviderIconSrc(providerId);
   if (!src) return null;
@@ -28,22 +29,17 @@ export default function ProviderIcon({
   if (!effectiveSrc || errored) {
     if (fallbackIcon) {
       return (
-        <span
-          className={`material-symbols-outlined inline-flex items-center justify-center rounded-lg ${className}`.trim()}
-          style={{
+        <Icon name={fallbackIcon} className={`inline-flex items-center justify-center rounded-md border border-border bg-surface-2 ${className}`.trim()} style={{
             width: size,
             height: size,
             color: fallbackColor,
             fontSize: Math.max(12, Math.floor(size * 0.56)),
-          }}
-        >
-          {fallbackIcon}
-        </span>
+          }} />
       );
     }
     return (
       <span
-        className={`inline-flex items-center justify-center font-bold rounded-lg ${className}`.trim()}
+        className={`inline-flex items-center justify-center font-medium rounded-md border border-border bg-surface-2 ${className}`.trim()}
         style={{
           width: size,
           height: size,
@@ -62,8 +58,8 @@ export default function ProviderIcon({
       alt={alt}
       width={size}
       height={size}
-      className={className}
       loading="lazy"
+      className={`rounded-md border border-border bg-surface object-contain ${className}`.trim()}
       decoding="async"
       onError={() => {
         const m = effectiveSrc.match(/^\/providers\/([^/]+)\.(?:png|svg|ico)$/i);
@@ -81,7 +77,7 @@ ProviderIcon.propTypes = {
   alt: PropTypes.string,
   size: PropTypes.number,
   className: PropTypes.string,
-  /** Material Symbols icon name rendered when image is unavailable. */
+  /** Legacy icon name rendered when the provider image is unavailable. */
   fallbackIcon: PropTypes.string,
   fallbackText: PropTypes.string,
   fallbackColor: PropTypes.string,

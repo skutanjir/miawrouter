@@ -2,7 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Modal from "./Modal";
+import Button from "./Button";
+import Badge from "./Badge";
+import SegmentedControl from "./SegmentedControl";
 
+import { Icon } from "@/shared/components/Icon";
 const REGISTRY_ENDPOINT = "/api/cli-tools/cowork-mcp-registry";
 const TOOLS_ENDPOINT = "/api/cli-tools/cowork-mcp-tools";
 
@@ -106,41 +110,74 @@ export default function McpMarketplaceModal({ isOpen, onClose, onAdd, addedNames
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Browse MCP Marketplace" size="lg">
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or description..."
-            className="flex-1 px-2 py-1.5 bg-surface rounded text-xs border border-border focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-          <select
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="tool-directory-search">
+            <Icon name="search" className="text-[16px] shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search servers by name or description"
+              aria-label="Search MCP servers"
+            />
+          </div>
+          <SegmentedControl
+            ariaLabel="Authentication filter"
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-2 py-1.5 bg-surface rounded text-xs border border-border focus:outline-none focus:ring-1 focus:ring-primary/50"
-          >
-            <option value="all">All</option>
-            <option value="authless">Authless</option>
-            <option value="oauth">OAuth</option>
-          </select>
+            onChange={setFilter}
+            className="shrink-0"
+            options={[
+              { value: "all", label: "All" },
+              { value: "authless", label: "Authless" },
+              { value: "oauth", label: "OAuth" },
+            ]}
+          />
         </div>
 
         {error && (
-          <div className="px-2 py-1.5 rounded text-xs bg-red-500/10 text-red-600">{error}</div>
+          <div className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger/10 p-3">
+            <Icon name="error" className="mt-0.5 text-[18px] text-danger shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-text-main">The MCP registry could not be loaded</p>
+              <p className="mt-1 text-text-muted">{error}</p>
+              <p className="mt-1 text-text-muted">
+                Check the connection to the registry endpoint, then close and reopen this dialog.
+              </p>
+            </div>
+          </div>
         )}
 
         {loading && (
-          <div className="flex items-center gap-2 text-text-muted text-xs py-4 justify-center">
-            <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-            <span>Loading registry...</span>
+          <div className="flex items-center gap-2.5 py-6 text-sm text-text-muted">
+            <Icon name="progress_activity" className="animate-spin text-[18px] text-primary" />
+            Loading the server list from the MCP registry…
           </div>
         )}
 
         {!loading && (
-          <div className="flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
+          <div className="flex max-h-[60vh] flex-col overflow-y-auto custom-scrollbar rounded-[10px] border border-border">
             {filtered.length === 0 && (
-              <div className="text-center text-xs text-text-muted py-6">No servers match filter</div>
+              <div className="flex flex-col items-start gap-1 p-4 text-sm">
+                {servers.length === 0 ? (
+                  <>
+                    <p className="font-medium text-text-main">The registry returned no servers</p>
+                    <p className="text-text-muted">
+                      Nothing is published to the registry endpoint right now. Close this dialog and try
+                      again later.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="font-medium text-text-main">No server matches this filter</p>
+                    <p className="text-text-muted">
+                      Clear the search box or switch the filter back to All to see the{" "}
+                      <span className="tabular-nums">{servers.length}</span> servers in the registry.
+                    </p>
+                  </>
+                )}
+              </div>
             )}
+
             {filtered.map((s) => {
               const added = addedSet.has(s.slug || s.name);
               const expanded = expandedUrl === s.url;
@@ -150,94 +187,128 @@ export default function McpMarketplaceModal({ isOpen, onClose, onAdd, addedNames
               const toolKeys = Object.keys(sel);
               const selectedCount = Object.values(sel).filter(Boolean).length;
               return (
-                <div key={s.url} className="rounded border border-transparent hover:border-border">
-                  <div className="flex items-start gap-2 px-2 py-2 hover:bg-black/5 dark:hover:bg-white/5">
+                <div key={s.url} className="border-b border-border-subtle last:border-b-0">
+                  <div className="flex items-start gap-3 px-3 py-2.5 transition-colors duration-150 hover:bg-surface-2">
                     {s.iconUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={s.iconUrl} alt="" className="size-7 rounded shrink-0 object-contain" onError={(e) => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+                      <img
+                        src={s.iconUrl}
+                        alt=""
+                        className="size-7 shrink-0 rounded-md object-contain"
+                        onError={(e) => { e.target.style.display = "none"; }}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
-                      <div className="size-7 rounded bg-surface shrink-0" />
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-surface-2">
+                        <Icon name="extension" className="text-[16px] text-text-muted" />
+                      </span>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-medium text-xs">{s.title}</span>
-                        {s.oauth ? (
-                          <span className="px-1 py-0.5 text-[9px] rounded bg-amber-500/10 text-amber-600">OAuth</span>
-                        ) : (
-                          <span className="px-1 py-0.5 text-[9px] rounded bg-green-500/10 text-green-600">Authless</span>
-                        )}
+
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-text-main">{s.title}</span>
+                        <Badge variant={s.oauth ? "warning" : "success"}>
+                          {s.oauth ? "OAuth" : "Authless"}
+                        </Badge>
                         {s.toolCount > 0 && (
-                          <span className="text-[10px] text-text-muted">{s.toolCount} tools</span>
+                          <span className="text-xs text-text-muted tabular-nums">{s.toolCount} tools</span>
                         )}
                       </div>
                       {s.description && (
-                        <p className="text-[10px] text-text-muted line-clamp-2 mt-0.5">{s.description}</p>
+                        <p className="line-clamp-2 text-[13px] leading-relaxed text-text-muted">{s.description}</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => added ? null : expandServer(s)}
-                      disabled={added}
-                      className={`shrink-0 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
-                        added
-                          ? "bg-green-500/10 text-green-600 cursor-default"
-                          : expanded
-                          ? "bg-surface border border-border text-text-muted hover:bg-black/5"
-                          : "bg-primary/10 border border-primary/40 text-primary hover:bg-primary/20"
-                      }`}
-                    >
-                      {added ? "Added" : expanded ? "Cancel" : "+ Add"}
-                    </button>
+
+                    <div className="shrink-0">
+                      {added ? (
+                        <Badge variant="primary" icon="check">
+                          Added
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant={expanded ? "ghost" : "secondary"}
+                          onClick={() => expandServer(s)}
+                        >
+                          {expanded ? "Cancel" : "Add"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
+
                   {expanded && (
-                    <div className="px-3 py-2 bg-surface/40 border-t border-border flex flex-col gap-2">
+                    <div className="flex flex-col gap-2.5 border-t border-border-subtle bg-surface-2 px-3 py-3">
                       {isLoadingTools && (
-                        <div className="flex items-center gap-2 text-text-muted text-[10px] py-1">
-                          <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>
-                          <span>Probing server for tools...</span>
+                        <div className="flex items-center gap-2 text-xs text-text-muted">
+                          <Icon name="progress_activity" className="animate-spin text-[14px]" />
+                          Asking the server which tools it exposes…
                         </div>
                       )}
+
                       {!isLoadingTools && cache?.requiresAuth && (
-                        <p className="text-[10px] text-amber-600 bg-amber-500/10 px-2 py-1 rounded">
-                          🔐 OAuth required. Add now and authenticate after Apply; tool list will be discovered after first connect.
+                        <div className="flex items-start gap-2 rounded-md border border-warning/20 bg-warning/10 p-2.5 text-xs text-text-muted">
+                          <Icon name="warning" weight="fill" className="mt-0.5 text-[14px] text-warning shrink-0" />
+                          <span>
+                            This server requires OAuth. Add it now and authenticate after Apply — the tool
+                            list is discovered on the first connect.
+                          </span>
+                        </div>
+                      )}
+
+                      {!isLoadingTools && cache?.error && !cache?.requiresAuth && (
+                        <div className="flex items-start gap-2 rounded-md border border-danger/20 bg-danger/10 p-2.5 text-xs text-text-muted">
+                          <Icon name="error" className="mt-0.5 text-[14px] text-danger shrink-0" />
+                          <span>
+                            The probe failed: {cache.error}. The server may be offline — add it anyway and
+                            its tools are discovered on the first connect.
+                          </span>
+                        </div>
+                      )}
+
+                      {!isLoadingTools && toolKeys.length === 0 && !cache?.requiresAuth && !cache?.error && (
+                        <p className="text-xs text-text-muted">
+                          The server answered but advertises no tools, so none can be enabled.
                         </p>
                       )}
-                      {!isLoadingTools && cache?.error && !cache?.requiresAuth && (
-                        <p className="text-[10px] text-red-600 bg-red-500/10 px-2 py-1 rounded">Probe failed: {cache.error}</p>
-                      )}
-                      {!isLoadingTools && toolKeys.length === 0 && !cache?.requiresAuth && !cache?.error && (
-                        <p className="text-[10px] text-text-muted">No tools advertised by server.</p>
-                      )}
+
                       {!isLoadingTools && toolKeys.length > 0 && (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-text-muted">{selectedCount}/{toolKeys.length} tools enabled</span>
-                            <div className="flex gap-1">
-                              <button onClick={() => setAllTools(s.url, true)} className="text-[10px] text-primary hover:underline">All</button>
-                              <span className="text-[10px] text-text-muted">·</span>
-                              <button onClick={() => setAllTools(s.url, false)} className="text-[10px] text-primary hover:underline">None</button>
+                            <span className="text-xs text-text-muted tabular-nums">
+                              {selectedCount} of {toolKeys.length} tools enabled
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button size="sm" variant="ghost" onClick={() => setAllTools(s.url, true)}>
+                                Enable all
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => setAllTools(s.url, false)}>
+                                Disable all
+                              </Button>
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-1 max-h-40 overflow-y-auto">
+                          <div className="grid max-h-40 grid-cols-2 gap-x-3 gap-y-0.5 overflow-y-auto custom-scrollbar">
                             {toolKeys.map((t) => (
-                              <label key={t} className="flex items-center gap-1.5 text-[10px] cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 px-1 rounded">
+                              <label
+                                key={t}
+                                className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs text-text-main transition-colors duration-150 hover:bg-surface"
+                              >
                                 <input
                                   type="checkbox"
                                   checked={!!sel[t]}
                                   onChange={() => toggleTool(s.url, t)}
-                                  className="size-3"
+                                  className="size-3.5 shrink-0"
                                 />
-                                <span className="truncate">{t}</span>
+                                <span className="truncate font-mono">{t}</span>
                               </label>
                             ))}
                           </div>
                         </>
                       )}
-                      <button
-                        onClick={() => confirmAdd(s)}
-                        className="self-end px-2 py-1 rounded text-[10px] font-medium bg-primary text-white hover:bg-primary/90"
-                      >
-                        ✓ Confirm Add
-                      </button>
+
+                      <Button size="sm" onClick={() => confirmAdd(s)} className="self-end">
+                        Add {toolKeys.length > 0 ? `${selectedCount} tools` : "server"}
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -246,7 +317,7 @@ export default function McpMarketplaceModal({ isOpen, onClose, onAdd, addedNames
           </div>
         )}
 
-        <div className="text-[10px] text-text-muted text-right">
+        <div className="text-xs text-text-muted tabular-nums">
           {filtered.length} of {servers.length} servers
         </div>
       </div>

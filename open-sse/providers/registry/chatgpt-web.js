@@ -22,6 +22,9 @@ export default {
     authType: "cookie",
   },
   models: [
+    { id: "gpt-6.1-sol", name: "GPT-6.1 Sol" },
+    { id: "gpt-6-sol", name: "GPT-6 Sol" },
+    { id: "gpt-6-luna", name: "GPT-6 Luna" },
     { id: "gpt-5.6-pro", name: "GPT-5.6 Pro" },
     { id: "gpt-5.6-thinking", name: "GPT-5.6 Thinking" },
     { id: "gpt-5.5-pro-extended", name: "GPT-5.5 Pro Extended", toolCalling: false },

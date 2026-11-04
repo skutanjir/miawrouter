@@ -22,7 +22,9 @@ export default {
     },
   },
   models: [
-    { id: "mistral-large-latest", name: "Mistral Large 3" },
+    { id: "mistral-large-4", name: "Mistral Large 4", contextLength: 1000000, supportsVision: true, supportsReasoning: true, toolCalling: true },
+    { id: "mistral-large-4-0", name: "Mistral Large 4 (26.10)", contextLength: 1000000, supportsVision: true, supportsReasoning: true, toolCalling: true },
+    { id: "mistral-large-latest", name: "Mistral Large (Latest)" },
     { id: "mistral-medium-latest", name: "Mistral Medium 3.5" },
     { id: "mistral-small-latest", name: "Mistral Small 4" },
     { id: "mistral-small-2603", name: "Mistral Small 2603" },

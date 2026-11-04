@@ -8,6 +8,8 @@ import BaseUrlSelect from "./BaseUrlSelect";
 import ApiKeySelect from "./ApiKeySelect";
 import { matchKnownEndpoint } from "./cliEndpointMatch";
 
+import { Icon } from "@/shared/components/Icon";
+import { StatusRow, ActionsBar } from "./ToolCardSections";
 const ENDPOINT = "/api/cli-tools/grok-build-settings";
 const MODEL_SLOT = "miawrouter";
 const SUBAGENT_TYPES = [
@@ -23,7 +25,7 @@ function ModelField({ label, value, placeholder, onChange, onSelect, disabled, h
         <span className="text-xs font-semibold text-text-main sm:text-sm">{label}</span>
         {help && <p className="mt-0.5 text-[10px] leading-tight text-text-muted">{help}</p>}
       </div>
-      <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
+      <Icon name={"arrow_forward"} className=" hidden text-text-muted text-[14px] sm:inline" />
       <div className="relative w-full min-w-0">
         <input
           type="text"
@@ -36,10 +38,10 @@ function ModelField({ label, value, placeholder, onChange, onSelect, disabled, h
           <button
             type="button"
             onClick={() => onChange("")}
-            className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-text-muted hover:text-red-500 rounded transition-colors"
+            className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-text-muted hover:text-danger rounded transition-colors"
             title="Clear (inherit main model for subagents)"
           >
-            <span className="material-symbols-outlined text-[14px]">close</span>
+            <Icon name={"close"} className=" text-[14px]" />
           </button>
         )}
       </div>
@@ -271,7 +273,7 @@ export default function GrokBuildToolCard({
 
   return (
     <Card padding="xs" className="overflow-hidden">
-      <div className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
+      <StatusRow className="flex items-start justify-between gap-3 hover:cursor-pointer sm:items-center" onClick={onToggle}>
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-8 flex items-center justify-center shrink-0">
             <Image
@@ -289,30 +291,30 @@ export default function GrokBuildToolCard({
           <div className="min-w-0">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h3 className="font-medium text-sm">{tool.name}</h3>
-              {configStatus === "configured" && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">Connected</span>}
-              {configStatus === "not_configured" && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 rounded-full">Not configured</span>}
-              {configStatus === "other" && <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full">Other</span>}
+              {configStatus === "configured" && <span className="rounded-md border border-success/20 bg-success/10 px-1.5 py-0.5 text-[11px] font-medium text-success">Connected</span>}
+              {configStatus === "not_configured" && <span className="rounded-md border border-warning/20 bg-warning/10 px-1.5 py-0.5 text-[11px] font-medium text-warning">Not configured</span>}
+              {configStatus === "other" && <span className="rounded-md border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">Other</span>}
             </div>
             <p className="text-xs text-text-muted truncate">{tool.description}</p>
           </div>
         </div>
-        <span className={`material-symbols-outlined text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`}>expand_more</span>
-      </div>
+        <Icon name={"expand_more"} className={` text-text-muted text-[20px] transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+</StatusRow>
 
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-border flex flex-col gap-4">
-          {checking && <div className="flex items-center gap-2 text-text-muted"><span className="material-symbols-outlined animate-spin">progress_activity</span><span>Checking Grok Build...</span></div>}
+          {checking && <div className="flex items-center gap-2 text-text-muted"><Icon name={"progress_activity"} className=" animate-spin" /><span>Checking Grok Build...</span></div>}
 
           {!checking && grokStatus && !grokStatus.installed && (
-            <div className="flex flex-col gap-3 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+            <div className="flex flex-col gap-3 rounded-md border border-warning/20 bg-warning/10 p-4">
               <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-yellow-500">warning</span>
+                <Icon name={"warning"} className="text-warning" />
                 <div className="flex-1">
-                  <p className="font-medium text-yellow-600 dark:text-yellow-400">Grok Build not detected locally</p>
-                  <code className="block mt-2 p-2 bg-black/20 rounded text-xs font-mono">curl -fsSL https://x.ai/cli/install.sh | bash</code>
+                  <p className="font-medium text-warning">Grok Build not detected locally</p>
+                  <code className="block mt-2 p-2 bg-surface-2 rounded text-xs font-mono">curl -fsSL https://x.ai/cli/install.sh | bash</code>
                 </div>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[18px] mr-1">content_copy</span>Manual Config</Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto"><Icon name={"content_copy"} className=" text-[18px] mr-1" />Manual Config</Button>
             </div>
           )}
 
@@ -322,8 +324,8 @@ export default function GrokBuildToolCard({
                 {tool.notes?.length > 0 && (
                   <div className="mb-2 flex flex-col gap-2">
                     {tool.notes.map((note, index) => (
-                      <div key={index} className={`flex items-start gap-2 rounded p-2 text-xs ${note.type === "warning" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" : "bg-blue-500/10 text-blue-600 dark:text-blue-400"}`}>
-                        <span className="material-symbols-outlined mt-0.5 text-[14px]">{note.type === "warning" ? "warning" : "info"}</span>
+                      <div key={index} className={`flex items-start gap-2 rounded-md p-2 text-xs ${note.type === "warning" ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary"}`}>
+                        <Icon name={note.type === "warning" ? "warning" : "info"} className=" mt-0.5 text-[14px]" />
                         <span>{note.text}</span>
                       </div>
                     ))}
@@ -331,21 +333,21 @@ export default function GrokBuildToolCard({
                 )}
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Select Endpoint</span>
-                  <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
+                  <Icon name={"arrow_forward"} className=" hidden text-text-muted text-[14px] sm:inline" />
                   <BaseUrlSelect value={customBaseUrl || getEffectiveBaseUrl()} onChange={setCustomBaseUrl} requiresExternalUrl={tool.requiresExternalUrl} tunnelEnabled={tunnelEnabled} tunnelPublicUrl={tunnelPublicUrl} tailscaleEnabled={tailscaleEnabled} tailscaleUrl={tailscaleUrl} />
                 </div>
 
                 {configuredModel?.base_url && (
                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                     <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">Current</span>
-                    <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
+                    <Icon name={"arrow_forward"} className=" hidden text-text-muted text-[14px] sm:inline" />
                     <span className="min-w-0 truncate rounded bg-surface/40 px-2 py-2 text-xs text-text-muted sm:py-1.5">{configuredModel.base_url} · {configuredModel.model}{configuredModel.context_window ? ` · ${(configuredModel.context_window / 1000).toLocaleString()}K ctx` : ""}</span>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                   <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
-                  <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
+                  <Icon name={"arrow_forward"} className=" hidden text-text-muted text-[14px] sm:inline" />
                   <ApiKeySelect value={selectedApiKey} onChange={setSelectedApiKey} apiKeys={apiKeys} cloudEnabled={cloudEnabled} />
                 </div>
 
@@ -354,7 +356,7 @@ export default function GrokBuildToolCard({
                 <div className="my-1 border-t border-border pt-3">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-start gap-2">
-                      <span className="material-symbols-outlined text-primary text-[16px]">account_tree</span>
+                      <Icon name={"account_tree"} className=" text-primary text-[16px]" />
                       <div>
                         <p className="text-xs font-semibold text-text-main">Subagent model overrides</p>
                         <p className="text-[10px] text-text-muted">Leave blank to inherit Main Model. Each override keeps its own context window.</p>
@@ -367,9 +369,7 @@ export default function GrokBuildToolCard({
                       className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-surface border border-border text-text-muted hover:text-text-main hover:border-primary transition-colors cursor-pointer"
                       title="Auto-select optimal models from active providers"
                     >
-                      <span className={`material-symbols-outlined text-[13px] ${autoDetecting ? "animate-spin" : ""}`}>
-                        {autoDetecting ? "progress_activity" : "tune"}
-                      </span>
+                      <Icon name={autoDetecting ? "progress_activity" : "tune"} className={` text-[13px] ${autoDetecting ? "animate-spin" : ""}`} />
                       <span>Auto-Detect</span>
                     </button>
                   </div>
@@ -389,13 +389,13 @@ export default function GrokBuildToolCard({
                 ))}
               </div>
 
-              {message && <div className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs ${message.type === "success" ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"}`}><span className="material-symbols-outlined text-[14px]">{message.type === "success" ? "check_circle" : "error"}</span><span>{message.text}</span></div>}
+              {message && <div className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${message.type === "success" ? "bg-success/10 text-success" : "bg-danger/10 text-danger"}`}><Icon name={message.type === "success" ? "check_circle" : "error"} className=" text-[14px]" /><span>{message.text}</span></div>}
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <Button variant="primary" size="sm" onClick={handleApply} disabled={!selectedModel} loading={applying} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[14px] mr-1">save</span>Apply Auto-Config</Button>
-                <Button variant="outline" size="sm" onClick={handleReset} disabled={!grokStatus?.hasMiawRouter} loading={restoring} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[14px] mr-1">restore</span>Reset Config</Button>
-                <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto"><span className="material-symbols-outlined text-[14px] mr-1">content_copy</span>Manual Config</Button>
-              </div>
+              <ActionsBar className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <Button variant="primary" size="sm" onClick={handleApply} disabled={!selectedModel} loading={applying} className="w-full sm:w-auto"><Icon name={"save"} className=" text-[14px] mr-1" />Apply Auto-Config</Button>
+                <Button variant="outline" size="sm" onClick={handleReset} disabled={!grokStatus?.hasMiawRouter} loading={restoring} className="w-full sm:w-auto"><Icon name={"restore"} className=" text-[14px] mr-1" />Reset Config</Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowManualConfigModal(true)} className="w-full sm:w-auto"><Icon name={"content_copy"} className=" text-[14px] mr-1" />Manual Config</Button>
+</ActionsBar>
             </>
           )}
         </div>

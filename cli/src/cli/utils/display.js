@@ -1,16 +1,18 @@
 const { formatNumber } = require("./format");
 
-// ANSI color codes
 const COLORS = {
   reset: "\x1b[0m",
-  success: "\x1b[32m",
-  error: "\x1b[31m",
-  warning: "\x1b[33m",
-  info: "\x1b[36m",
+  success: "\x1b[38;2;52;211;153m",
+  error: "\x1b[38;2;239;68;68m",
+  warning: "\x1b[38;2;245;158;11m",
+  info: "\x1b[38;2;217;119;87m",
   dim: "\x1b[2m",
   bold: "\x1b[1m",
   bright: "\x1b[1m",
-  cyan: "\x1b[36m"
+  cyan: "\x1b[38;2;217;119;87m",
+  terracotta: "\x1b[38;2;217;119;87m",
+  platinum: "\x1b[38;2;244;244;245m",
+  muted: "\x1b[38;2;161;161;170m"
 };
 
 // Box drawing characters

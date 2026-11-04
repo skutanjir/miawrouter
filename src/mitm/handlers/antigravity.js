@@ -1,5 +1,5 @@
 const { err, createResponseDumper } = require("../logger");
-const { IS_DEV } = require("../config");
+const { ENABLE_FILE_LOG } = require("../config");
 const { fetchRouter, pipeSSE } = require("./base");
 
 /**
@@ -8,25 +8,28 @@ const { fetchRouter, pipeSSE } = require("./base");
  * runs antigravity→openai→provider→openai→antigravity translators internally.
  */
 async function intercept(req, res, bodyBuffer, mappedModel) {
-  const dumper = IS_DEV ? createResponseDumper(req, "intercept-antigravity") : null;
-  const isStream = req.url.includes(":streamGenerateContent");
+  const dumper = ENABLE_FILE_LOG ? createResponseDumper(req, "intercept-antigravity") : null;
+  const controller = new AbortController();
+  const onClose = () => { if (!res.writableFinished) controller.abort(); };
+  res.on?.("close", onClose);
   try {
     const body = JSON.parse(bodyBuffer.toString());
     body.model = mappedModel || body.model;
 
-    const routerRes = await fetchRouter(body, "/v1/chat/completions", req.headers);
+    const routerRes = await fetchRouter(body, "/v1/chat/completions", req.headers, controller.signal);
     await pipeSSE(routerRes, res, dumper);
   } catch (error) {
+    if (controller.signal.aborted) return;
     err(`[antigravity] ${error.message}`);
     if (dumper) { dumper.writeChunk(`\n[ERROR] ${error.message}\n`); dumper.end(); }
-    // For stream endpoint, send SSE error chunk so SDK doesn't hang waiting
-    if (isStream) {
-      if (!res.headersSent) res.writeHead(200, { "Content-Type": "text/event-stream" });
-      res.end(`data: ${JSON.stringify({ error: { message: error.message } })}\r\n\r\n`);
+    if (res.headersSent) {
+      res.destroy(error);
     } else {
-      if (!res.headersSent) res.writeHead(500, { "Content-Type": "application/json" });
+      res.writeHead(502, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: { message: error.message, type: "mitm_error" } }));
     }
+  } finally {
+    res.off?.("close", onClose);
   }
 }
 

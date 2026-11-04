@@ -16,19 +16,19 @@ const getColorClasses = (remainingPercentage) => {
   
   if (remainingPercentage >= 30) {
     return {
-      text: "text-warn",
-      bg: "bg-warn",
-      bgLight: "bg-warn/15",
-      dot: "bg-warn",
+      text: "text-warning",
+      bg: "bg-warning",
+      bgLight: "bg-warning/15",
+      dot: "bg-warning",
     };
   }
   
   // 0-29% including 0% (out of quota) - show red
   return {
-    text: "text-fail",
-    bg: "bg-fail",
-    bgLight: "bg-fail/15",
-    dot: "bg-fail",
+    text: "text-danger",
+    bg: "bg-danger",
+    bgLight: "bg-danger/15",
+    dot: "bg-danger",
   };
 };
 
@@ -87,7 +87,7 @@ export default function QuotaProgressBar({
     <div className="space-y-2">
       {/* Label and percentage */}
       <div className="flex items-center justify-between text-sm">
-        <span className="font-semibold text-text-primary">
+        <span className="font-semibold text-text-main">
           {label}
         </span>
         <div className="flex items-center gap-1.5">

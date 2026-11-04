@@ -14,6 +14,7 @@ import { TtsExampleCard } from "./components/TtsExampleCard";
 import { GenericExampleCard } from "./components/GenericExampleCard";
 import { SttExampleCard } from "./components/SttExampleCard";
 
+import { Icon } from "@/shared/components/Icon";
 // MediaProviderDetailPage
 export default function MediaProviderDetailPage() {
   const { kind, id } = useParams();
@@ -69,14 +70,14 @@ export default function MediaProviderDetailPage() {
   if (!isCustom && !kinds.includes(kind)) return notFound();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       {/* Back */}
       <div>
         <Link
           href={`/dashboard/media-providers/${kind}`}
-          className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors mb-4"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-text-muted transition-colors hover:text-primary"
         >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
+          <Icon name={"arrow_back"} className=" text-lg" />
           {kindConfig.label}
         </Link>
 
@@ -94,7 +95,7 @@ export default function MediaProviderDetailPage() {
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h1 className="text-3xl font-semibold tracking-tight">{provider.name}</h1>
+              <h1 className="text-[22px] font-semibold tracking-tight text-text-main">{provider.name}</h1>
               {!isCustom && provider.notice?.apiKeyUrl && (
                 <a
                   href={provider.notice.apiKeyUrl}
@@ -102,7 +103,7 @@ export default function MediaProviderDetailPage() {
                   rel="noopener noreferrer"
                   className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  <span className="material-symbols-outlined text-sm">open_in_new</span>
+                  <Icon name={"open_in_new"} className=" text-sm" />
                   Get API Key
                 </a>
               )}
@@ -111,7 +112,7 @@ export default function MediaProviderDetailPage() {
               {isCustom && <Badge variant="default" size="sm">Custom · {customNode?.prefix}</Badge>}
               {kinds.map((k) => (
                 <Badge key={k} variant={k === kind ? "primary" : "default"} size="sm">
-                  {k.toUpperCase()}
+                  {MEDIA_PROVIDER_KINDS.find((entry) => entry.id === k)?.label || k}
                 </Badge>
               ))}
             </div>
@@ -131,25 +132,25 @@ export default function MediaProviderDetailPage() {
 
       {/* Kind-specific notice (e.g. codex/image requires Plus) */}
       {!isCustom && provider.kindNotice?.[kind] && (
-        <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400">
-          <span className="material-symbols-outlined text-[20px] mt-0.5">warning</span>
+        <div className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/10 px-4 py-3 text-warning">
+          <Icon name={"warning"} className="mt-0.5 text-[20px]" />
           <p className="text-sm">{provider.kindNotice[kind]}</p>
         </div>
       )}
 
       {/* Provider notice text (only when there's actual text content) */}
       {!isCustom && provider.notice?.text && !provider.deprecated && (
-        <div className="flex flex-col gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 sm:flex-row sm:items-center">
-          <span className="material-symbols-outlined text-[16px] text-blue-500 shrink-0">info</span>
-          <p className="min-w-0 flex-1 text-xs leading-relaxed text-blue-600 dark:text-blue-400">{provider.notice.text}</p>
+        <div className="flex flex-col gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-primary sm:flex-row sm:items-center">
+          <Icon name={"info"} className="shrink-0 text-[16px]" />
+          <p className="min-w-0 flex-1 text-xs leading-relaxed">{provider.notice.text}</p>
           {provider.notice.apiKeyUrl && (
             <a
               href={provider.notice.apiKeyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex justify-center rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-600 sm:py-0.5"
+              className="inline-flex justify-center rounded-md bg-primary px-2 py-1 text-xs font-semibold text-bg transition-colors hover:bg-primary-hover sm:py-0.5"
             >
-              Get API Key →
+              Get API key
             </a>
           )}
         </div>

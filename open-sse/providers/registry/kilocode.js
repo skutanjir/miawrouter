@@ -27,6 +27,22 @@ export default {
     },
   },
   models: [{
+  id: "anthropic/claude-fable-5.1",
+  name: "Claude Fable 5.1",
+  contextLength: 1000000,
+  maxOutputTokens: 128000,
+  supportsReasoning: true,
+  supportsVision: true,
+  toolCalling: true
+}, {
+  id: "anthropic/claude-opus-5.5",
+  name: "Claude Opus 5.5",
+  contextLength: 1000000,
+  maxOutputTokens: 128000,
+  supportsReasoning: true,
+  supportsVision: true,
+  toolCalling: true
+}, {
   id: "anthropic/claude-sonnet-4-20250514",
   name: "Claude Sonnet 4"
 }, {

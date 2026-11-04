@@ -64,7 +64,7 @@ describe("apiKey secret from loadOrCreateSecretFile", () => {
     const secretFile = path.join(tempDir, "api-key-secret");
     expect(fs.existsSync(secretFile)).toBe(true);
     const stat = fs.statSync(secretFile);
-    expect(stat.mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(stat.mode & 0o777).toBe(0o600);
 
     // Reload module — same persisted secret should still work
     const m2 = await loadApiKey();

@@ -1,43 +1,34 @@
-"use client";
+
+import { Icon } from "@/shared/components/Icon";
 
 export default function HeroSection() {
   return (
-    <section className="relative pt-32 pb-20 px-6 min-h-[90vh] flex flex-col items-center justify-center overflow-hidden">
-      {/* Glow effect */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-[#168BFF]/10 rounded-full blur-[120px] pointer-events-none"></div>
-      
-      <div className="relative z-10 max-w-4xl w-full text-center flex flex-col items-center gap-8">
-        {/* Version badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-[#294563] bg-[#122239]/50 px-3 py-1 text-xs font-medium text-[#168BFF]">
-          <span className="flex h-2 w-2 rounded-full bg-[#168BFF] animate-pulse"></span>
-          v1.0 is now live
-        </div>
-
-        {/* Main heading */}
-        <h1 className="text-5xl md:text-7xl font-black leading-[1.1] tracking-tight">
+    <section className="flex min-h-[70vh] flex-col items-center justify-center px-6 pt-24 pb-16">
+      <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-7 text-center">
+        <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-6xl">
           One Endpoint for <br/>
-          <span className="text-[#168BFF]">All AI Providers</span>
+          <span className="text-primary">All AI Providers</span>
         </h1>
 
         {/* Description */}
-        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto font-light">
-          AI endpoint proxy with web dashboard - A JavaScript port of CLIProxyAPI. Works seamlessly with Claude Code, OpenAI Codex, Cline, RooCode, and other CLI tools.
+        <p className="mx-auto max-w-2xl text-base leading-relaxed text-text-muted md:text-lg">
+          AI endpoint proxy with web dashboard. A JavaScript port of CLIProxyAPI that supports Claude Code, OpenAI Codex, Cline, Roo Code, and other CLI tools.
         </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-4 w-full">
-          <button className="h-12 px-8 rounded-lg bg-[#168BFF] hover:bg-[#0875E1] text-[#0C1524] text-base font-bold transition-all shadow-[0_0_15px_rgba(22,139,255,0.4)] flex items-center gap-2">
-            <span className="material-symbols-outlined">rocket_launch</span>
-            Get Started
-          </button>
+          <a href="/dashboard" className="flex h-11 items-center gap-2 rounded-md bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-600">
+            <Icon name="router" className="text-[16px]" />
+            Open dashboard
+          </a>
           <a 
             href="https://miawrouter.web.id" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="h-12 px-8 rounded-lg border border-[#294563] bg-[#122239] hover:bg-[#294563] text-white text-base font-bold transition-all flex items-center gap-2"
+            className="flex h-11 items-center gap-2 rounded-md border border-border bg-surface px-6 text-sm font-semibold text-text-main transition-colors hover:bg-surface-2"
           >
-            <span className="material-symbols-outlined">code</span>
-            View on GitHub
+            <Icon name="menu_book" className="text-[16px]" />
+            Read documentation
           </a>
         </div>
       </div>

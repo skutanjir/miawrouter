@@ -49,6 +49,25 @@ export default {
     clientSecret: "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",
   },
   models: [{
+   id: "gemini-4-argon-high",
+   name: "Gemini 4 Argon (High)",
+   upstreamModelId: "gemini-4-argon-high",
+   contextLength: 1048576,
+   maxOutputTokens: 65536,
+   aliases: ["gemini-4-argon"]
+ }, {
+   id: "gemini-4-argon-medium",
+   name: "Gemini 4 Argon (Medium)",
+   upstreamModelId: "gemini-4-argon-medium",
+   contextLength: 1048576,
+   maxOutputTokens: 65536
+ }, {
+   id: "gemini-4-argon-low",
+   name: "Gemini 4 Argon (Low)",
+   upstreamModelId: "gemini-4-argon-low",
+   contextLength: 1048576,
+   maxOutputTokens: 65536
+ }, {
    id: "gemini-3.8-flash-high",
    name: "Gemini 3.8 Flash (High)",
    upstreamModelId: "gemini-3.8-flash-tiered(high)",

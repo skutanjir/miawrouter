@@ -6,7 +6,9 @@ import { useEffect, useState } from "react";
 import { Card, Badge, Button, Toggle, AddCustomEmbeddingModal } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { MEDIA_PROVIDER_KINDS, AI_PROVIDERS, getProvidersByKind } from "@/shared/constants/providers";
+import { getModelsByProviderId } from "@/shared/constants/models";
 
+import { Icon } from "@/shared/components/Icon";
 // Kinds that support combos (currently disabled for image/tts — temporarily hidden).
 // webSearch/webFetch handled by /web page.
 const COMBO_KINDS = new Set([]);
@@ -52,7 +54,7 @@ function MediaProviderCard({ provider, kind, connections, isCustom, onToggle }) 
     <Link href={`/dashboard/media-providers/${kind}/${provider.id}`} className="group">
       <Card
         padding="xs"
-        className={`h-full hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors cursor-pointer ${allDisabled ? "opacity-50" : ""}`}
+        className={`h-full rounded-[10px] transition-colors cursor-pointer hover:bg-surface-2 ${allDisabled ? "opacity-60" : ""}`}
       >
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -74,6 +76,10 @@ function MediaProviderCard({ provider, kind, connections, isCustom, onToggle }) 
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 {isCustom && <Badge variant="default" size="sm">Custom</Badge>}
                 {renderStatus()}
+              </div>
+              <div className="mt-1 flex flex-wrap gap-x-2 text-xs text-text-muted">
+                <span>{total} connections</span>
+                <span>{getModelsByProviderId(provider.id).length} models</span>
               </div>
             </div>
           </div>
@@ -104,7 +110,7 @@ function ComboList({ combos }) {
         <Link key={combo.id} href={`/dashboard/media-providers/combo/${combo.id}`}>
           <Card padding="xs" className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors cursor-pointer">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="material-symbols-outlined text-primary text-[18px]">layers</span>
+              <Icon name={"layers"} className=" text-primary text-[18px]" />
               <code className="text-sm font-mono font-medium flex-1 truncate">{combo.name}</code>
               <div className="flex flex-wrap items-center gap-1 sm:shrink-0">
                 {combo.models.slice(0, 6).map((entry, i) => {
@@ -128,7 +134,7 @@ function ComboList({ combos }) {
                 )}
               </div>
               <span className="text-[11px] text-text-muted shrink-0">{combo.models.length}</span>
-              <span className="material-symbols-outlined text-text-muted text-[16px]">chevron_right</span>
+              <Icon name={"chevron_right"} className=" text-text-muted text-[16px]" />
             </div>
           </Card>
         </Link>
@@ -190,6 +196,15 @@ export default function MediaProviderKindPage() {
   }));
 
   const allProviders = [...providers, ...customProviders];
+  const customProviderIds = new Set(customProviders.map((provider) => provider.id));
+  const connectedCounts = new Map();
+  for (const connection of connections) {
+    if (connection.isActive === false || !["active", "success"].includes(getEffectiveStatus(connection))) continue;
+    connectedCounts.set(connection.provider, (connectedCounts.get(connection.provider) || 0) + 1);
+  }
+  const orderedProviders = [...allProviders].sort((a, b) => (
+    (connectedCounts.get(b.id) || 0) - (connectedCounts.get(a.id) || 0) || a.name.localeCompare(b.name)
+  ));
 
   const handleToggleProvider = async (providerId, newActive) => {
     const providerConns = connections.filter((c) => c.provider === providerId);
@@ -229,6 +244,21 @@ export default function MediaProviderKindPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <nav className="flex gap-1 overflow-x-auto border-b border-border pb-2" aria-label="Media provider kinds">
+        {MEDIA_PROVIDER_KINDS.map(({ id: tabId, label, icon }) => {
+          const href = tabId === "webSearch" || tabId === "webFetch"
+            ? "/dashboard/media-providers/web"
+            : `/dashboard/media-providers/${tabId}`;
+          const active = tabId === kind || ((kind === "webSearch" || kind === "webFetch") && (tabId === "webSearch" || tabId === "webFetch"));
+          if ((tabId === "webSearch" || tabId === "webFetch") && tabId === "webFetch") return null;
+          return (
+            <Link key={tabId} href={href} aria-current={active ? "page" : undefined} className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors ${active ? "bg-primary/10 text-primary font-medium" : "text-text-muted hover:bg-surface-2 hover:text-text-main"}`}>
+              <Icon name={icon} className="text-[16px]" />
+              {tabId === "webSearch" ? "Web" : label}
+            </Link>
+          );
+        })}
+      </nav>
       {(isEmbedding || supportsCombo) && (
         <div className="flex items-center justify-end gap-2">
           {supportsCombo && (
@@ -251,23 +281,14 @@ export default function MediaProviderKindPage() {
           No providers support <strong>{kindConfig.label}</strong> yet.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {providers.map((provider) => (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {orderedProviders.map((provider) => (
             <MediaProviderCard
               key={provider.id}
               provider={provider}
               kind={kind}
               connections={connections}
-              onToggle={handleToggleProvider}
-            />
-          ))}
-          {customProviders.map((provider) => (
-            <MediaProviderCard
-              key={provider.id}
-              provider={provider}
-              kind={kind}
-              connections={connections}
-              isCustom
+              isCustom={customProviderIds.has(provider.id)}
               onToggle={handleToggleProvider}
             />
           ))}

@@ -1,3 +1,34 @@
+# Unreleased 1.2.5
+
+## Reliability and security
+- Stop retrying when a client cancels, release retry slots, and avoid fallback for invalid or cancelled requests.
+- Redact credential-bearing request/response headers and URL parameters in optional request logs.
+- Avoid response-cache reuse for nonzero or unspecified temperature merely because a seed is present.
+- Pass the provider format to streaming completion accounting so usage reporting does not throw at end of stream.
+- Close SQLite shutdown listeners with their adapters and fix the Windows test launcher.
+- Update vulnerable production dependencies; existing request-body logs may still contain sensitive conversation content.
+- Align the stated Node.js minimum with the installed production dependencies (20.18.1).
+- Stop automatically starting OpenCode Free Bridge; existing configuration is retained.
+- Bind the CLI to loopback by default; use `--host 0.0.0.0` for explicit LAN access.
+- Refuse an occupied CLI port instead of killing unrelated processes.
+- Preserve MITM logs and capture files across restarts.
+- Require explicit opt-in for raw development MITM dumps and redact credential headers.
+- Use a private, uniquely named temporary directory for the Devin client-tools script.
+- Isolate offline benchmark data from the configured application database.
+
+# Unreleased (2026-10-16)
+
+## Features
+- **Models**: refresh catalogs from official docs — Gemini 4 Argon (Gemini API,
+  Vertex, Antigravity, Copilot, Zen), Claude Haiku 5.5, Nano Banana 2.1, Gemini 3.8
+  TTS, Mistral Large 4, Muse Wonder, GPT-6 family on Copilot/ChatGPT web, live
+  OpenCode Free/Go lists; drop shut-down Gemini 2.0 / 3 Pro preview / Imagen 4 ids
+- **Antigravity**: serve `gemini-4-argon-low|medium|high` with the hub client
+  identity (Cloud Code only exposes Argon to hub/CLI clients)
+- **Dashboard**: full "Switchboard" redesign — new shell (collapsible sidebar,
+  56px header), Figtree + IBM Plex Mono, light/dark tokens, denser tables, and
+  Phosphor icons replacing Material Symbols
+
 # v0.5.50 (2026-08-05)
 
 ## Features

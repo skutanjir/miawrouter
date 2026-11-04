@@ -7,6 +7,7 @@ import { resolveSessionId } from "../utils/sessionManager.js";
 import { proxyAwareFetch } from "../utils/proxyFetch.js";
 import { cleanJSONSchemaForAntigravity } from "../translator/formats/gemini.js";
 import { DEFAULT_THINKING_AG_SIGNATURE } from "../config/defaultThinkingSignature.js";
+import { ANTIGRAVITY_HUB_USER_AGENT } from "../providers/shared.js";
 
 // Sanitize function name: Gemini requires [a-zA-Z_][a-zA-Z0-9_.:\-]{0,63}
 function sanitizeFunctionName(name) {
@@ -123,13 +124,14 @@ export class AntigravityExecutor extends BaseExecutor {
     return `${baseUrl}/v1internal:${action}`;
   }
 
-  // sessionId comes from transformRequest output; base.execute runs transformRequest before
-  // buildHeaders, so we read it from instance state cached there (fallback: explicit arg).
-  buildHeaders(credentials, stream = true, sessionId = null) {
+  // Cloud Code exposes Argon only to Hub/CLI identities, not Antigravity IDE.
+  buildHeaders(credentials, stream = true, _url = null, model = null) {
     return {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${credentials.accessToken}`,
-      "User-Agent": this.config.headers?.["User-Agent"] || ANTIGRAVITY_HEADERS["User-Agent"],
+      "User-Agent": model?.startsWith("gemini-4-argon")
+        ? ANTIGRAVITY_HUB_USER_AGENT
+        : this.config.headers?.["User-Agent"] || ANTIGRAVITY_HEADERS["User-Agent"],
     };
   }
 
@@ -395,6 +397,11 @@ export class AntigravityExecutor extends BaseExecutor {
     }
 
     const errorMessage = this.extractErrorMessage(errorJson, bodyText);
+
+    // Capacity exhaustion is unlikely to clear within repeated short retries;
+    // let the router try another account or configured combo model sooner.
+    if (response.status === HTTP_STATUS.SERVICE_UNAVAILABLE && attempt > 1 &&
+        /model_capacity_exhausted|no capacity available for model/i.test(errorMessage)) return false;
 
     if (!retryMs) {
       retryMs = this.parseRetryFromErrorMessage(errorMessage);

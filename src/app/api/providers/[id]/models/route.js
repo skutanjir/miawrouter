@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProviderConnectionById } from "@/models";
 import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/shared/constants/providers";
 import { GEMINI_CONFIG } from "@/lib/oauth/constants/oauth";
-import { refreshGoogleToken, refreshCodexToken, updateProviderCredentials } from "@/sse/services/tokenRefresh";
+import { refreshGoogleToken, refreshCodexToken, refreshClaudeOAuthToken, updateProviderCredentials } from "@/sse/services/tokenRefresh";
 import { resolveOllamaLocalHost } from "open-sse/config/providers.js";
 import { getModelsByProviderId } from "open-sse/config/providerModels.js";
 import { resolveKiroModels } from "open-sse/services/kiroModels.js";
@@ -130,15 +130,64 @@ const buildOAuthResolver = ({ refreshFn, fetchFn, parseFn, errorLabel }) => asyn
 
 // Provider models endpoints configuration
 const PROVIDER_MODELS_CONFIG = {
+  // Claude Code (OAuth) and Anthropic (API key) share the /v1/models endpoint
+  // but not the auth scheme: an OAuth token sent as `x-api-key` is answered
+  // 401 "API key is invalid". OAuth must go as `Authorization: Bearer` with
+  // the oauth-2025-04-20 beta, and refresh once on 401/403.
   claude: {
-    url: "https://api.anthropic.com/v1/models",
-    method: "GET",
-    headers: {
-      "Anthropic-Version": "2023-06-01",
-      "Content-Type": "application/json"
+    customResolver: async (connection) => {
+      const isOAuth = connection.authType === "oauth" || (!connection.apiKey && !!connection.accessToken);
+      const url = "https://api.anthropic.com/v1/models?limit=1000";
+      const headersFor = (token) => isOAuth
+        ? {
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "anthropic-beta": "oauth-2025-04-20",
+            "Authorization": `Bearer ${token}`,
+          }
+        : {
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01",
+            "x-api-key": token,
+          };
+      const request = (token) => fetch(url, {
+        method: "GET",
+        headers: headersFor(token),
+        redirect: "error",
+        signal: AbortSignal.timeout(30000),
+      });
+
+      let token = isOAuth ? connection.accessToken : connection.apiKey;
+      if (!token) return { error: "No valid token found", status: 401 };
+
+      let response = await request(token);
+      if (!response.ok && isOAuth && (response.status === 401 || response.status === 403) && connection.refreshToken) {
+        try {
+          const refreshed = await refreshClaudeOAuthToken(connection.refreshToken);
+          if (refreshed?.accessToken) {
+            await updateProviderCredentials(connection.id, {
+              accessToken: refreshed.accessToken,
+              refreshToken: refreshed.refreshToken || connection.refreshToken,
+              expiresIn: refreshed.expiresIn,
+            });
+            token = refreshed.accessToken;
+            response = await request(token);
+          }
+        } catch (error) {
+          console.log("Failed to refresh Claude token for model discovery:", error.message);
+        }
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log("Failed to fetch Claude models:", response.status, errorText);
+        return { models: getStaticProviderModels("claude"), source: "static", warning: `Failed to fetch Claude models: ${response.status}` };
+      }
+      const data = await response.json();
+      const models = (data.data || []).map((m) => ({ id: m.id, name: m.display_name || m.name || m.id }));
+      if (models.length) return { models, source: "live", fetchedAt: new Date().toISOString() };
+      return { models: getStaticProviderModels("claude"), source: "static", warning: "Claude returned no models; showing the bundled catalog." };
     },
-    authHeader: "x-api-key",
-    parseResponse: (data) => data.data || []
   },
   gemini: {
     url: "https://generativelanguage.googleapis.com/v1beta/models",
@@ -488,7 +537,12 @@ export async function resolveProviderConnectionModels(connection) {
   }
   if (typeof config.customResolver === "function") return config.customResolver(connection);
 
-  const token = connection.providerSpecificData?.copilotToken || connection.accessToken || connection.apiKey;
+  // Prefer the credential that matches the config's scheme: key-header
+  // providers (x-api-key, x-goog-api-key) must never receive an OAuth token.
+  const usesKeyHeader = !!config.authHeader && config.authHeader.toLowerCase() !== "authorization";
+  const token = usesKeyHeader
+    ? (connection.apiKey || connection.accessToken)
+    : (connection.providerSpecificData?.copilotToken || connection.accessToken || connection.apiKey);
   if (!token) return { error: "No valid token found", status: 401 };
 
   let url = config.url;

@@ -4,34 +4,33 @@ import { useState } from "react";
 import PropTypes from "prop-types";
 import { Button, ProviderIcon } from "@/shared/components";
 import { getProviderCustomModelRows } from "@/shared/utils/providerCustomModels";
+import { Icon } from "@/shared/components/Icon";
 function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias, onTest, testStatus, isTesting, providerId }) {
   const borderColor = testStatus === "ok"
-    ? "border-green-500/40"
+    ? "border-success/40"
     : testStatus === "error"
-    ? "border-red-500/40"
-    : "border-border";
+    ? "border-danger/40"
+    : "border-border-subtle";
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-lg border ${borderColor} hover:bg-sidebar/50`}>
+    <div role="row" className={`flex min-w-0 items-center gap-3 border-b px-3 py-2 ${borderColor} hover:bg-surface-2/60`}>
       {testStatus === "ok" ? (
-        <span className="material-symbols-outlined text-base text-green-500 shrink-0">check_circle</span>
+        <Icon name={"check_circle"} className="shrink-0 text-base text-success" />
       ) : testStatus === "error" ? (
-        <span className="material-symbols-outlined text-base text-red-500 shrink-0">cancel</span>
+        <Icon name={"cancel"} className="shrink-0 text-base text-danger" />
       ) : (
         <ProviderIcon providerId={providerId} size={18} fallbackIcon="smart_toy" className="shrink-0" />
       )}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{modelId}</p>
         <div className="flex items-center gap-1 mt-1">
-          <code className="text-xs text-text-muted font-mono bg-sidebar px-1.5 py-0.5 rounded">{fullModel}</code>
+          <code className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-text-main">{fullModel}</code>
           <div className="relative group/btn">
             <button
               onClick={() => onCopy(fullModel, `model-${modelId}`)}
-              className="p-0.5 hover:bg-sidebar rounded text-text-muted hover:text-primary"
+              className="rounded-md p-1 text-text-muted hover:bg-surface-2 hover:text-primary"
             >
-              <span className="material-symbols-outlined text-sm">
-                {copied === `model-${modelId}` ? "check" : "content_copy"}
-              </span>
+              <Icon name={copied === `model-${modelId}` ? "check" : "content_copy"} className=" text-sm" />
             </button>
             <span className="pointer-events-none absolute top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-muted whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity">
               {copied === `model-${modelId}` ? "Copied!" : "Copy"}
@@ -42,11 +41,9 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
               <button
                 onClick={onTest}
                 disabled={isTesting}
-                className="p-0.5 hover:bg-sidebar rounded text-text-muted hover:text-primary transition-colors"
+                className="rounded-md p-1 text-text-muted hover:bg-surface-2 hover:text-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-sm" style={isTesting ? { animation: "spin 1s linear infinite" } : undefined}>
-                  {isTesting ? "progress_activity" : "science"}
-                </span>
+                <Icon name={isTesting ? "progress_activity" : "science"} className=" text-sm" style={isTesting ? { animation: "spin 1s linear infinite" } : undefined} />
               </button>
               <span className="pointer-events-none absolute top-5 left-1/2 -translate-x-1/2 text-[10px] text-text-muted whitespace-nowrap opacity-0 group-hover/btn:opacity-100 transition-opacity">
                 {isTesting ? "Testing..." : "Test"}
@@ -57,16 +54,16 @@ function CompatibleModelRow({ modelId, fullModel, copied, onCopy, onDeleteAlias,
       </div>
       <button
         onClick={onDeleteAlias}
-        className="p-1 hover:bg-red-50 rounded text-red-500"
+        className="rounded-md p-1 text-text-muted hover:bg-danger/10 hover:text-danger"
         title="Remove model"
       >
-        <span className="material-symbols-outlined text-sm">delete</span>
+        <Icon name={"delete"} className=" text-sm" />
       </button>
     </div>
   );
 }
 
-export default function CompatibleModelsSection({ providerId, providerStorageAlias, providerDisplayAlias, modelAliases, customModels, copied, onCopy, onDeleteAlias, onAddCustomModel, onDeleteCustomModel, connections, isAnthropic }) {
+export default function CompatibleModelsSection({ providerId, providerStorageAlias, providerDisplayAlias, modelAliases, customModels, copied, onCopy, onDeleteAlias, onAddCustomModel, onDeleteCustomModel, connections, isAnthropic, search = "" }) {
   const [newModel, setNewModel] = useState("");
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -97,7 +94,7 @@ export default function CompatibleModelsSection({ providerId, providerStorageAli
     providerAlias: providerStorageAlias,
     type: "llm",
   });
-
+  const visibleModels = allModels.filter(({ id }) => !search || id.toLowerCase().includes(search));
   const handleAdd = async () => {
     if (!newModel.trim() || adding) return;
     const modelId = newModel.trim();
@@ -188,9 +185,9 @@ export default function CompatibleModelsSection({ providerId, providerStorageAli
         </p>
       )}
 
-      {allModels.length > 0 && (
-        <div className="flex flex-col gap-3">
-          {allModels.map(({ id, alias, source }) => (
+      {visibleModels.length > 0 ? (
+        <div role="table" aria-label="Compatible models" className="flex flex-col overflow-hidden rounded-md border border-border-subtle">
+          {visibleModels.map(({ id, alias, source }) => (
             <CompatibleModelRow
               key={`${source}-${providerStorageAlias}/${id}`}
               modelId={id}
@@ -205,7 +202,9 @@ export default function CompatibleModelsSection({ providerId, providerStorageAli
             />
           ))}
         </div>
-      )}
+      ) : search ? (
+        <p className="rounded-md border border-dashed border-border px-3 py-5 text-center text-sm text-text-muted">No models match this filter.</p>
+      ) : null}
     </div>
   );
 }
@@ -226,4 +225,5 @@ CompatibleModelsSection.propTypes = {
     isActive: PropTypes.bool,
   })).isRequired,
   isAnthropic: PropTypes.bool,
+  search: PropTypes.string,
 };

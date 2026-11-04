@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, Button, Input } from "@/shared/components";
+import BrandAsset from "@/shared/components/BrandAsset";
+import { Icon } from "@/shared/components/Icon";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -148,14 +150,19 @@ export default function LoginPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-bg p-4 relative overflow-hidden">
-      {/* Faint grid background */}
-      <div className="landing-grid absolute inset-0 pointer-events-none" aria-hidden="true" />
-      <div className="relative z-10 w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">MiawRouter</h1>
-          <p className="text-text-muted">
+    return (
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-bg p-4">
+        <div className="relative z-10 w-full max-w-md">
+        <div className="text-center mb-7">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface p-2 shadow-soft">
+            <BrandAsset kind="icon" className="size-full object-contain" />
+          </div>
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-0.5 text-xs font-semibold text-primary mb-2">
+            <Icon name="shield_lock" weight="duotone" className="text-[14px]" />
+            <span>AI Routing Console</span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-text-main mb-1.5">MiawRouter</h1>
+          <p className="text-sm text-text-muted">
             {authMode === "oidc" && oidcConfigured
               ? "Sign in with your OIDC provider to access the dashboard"
               : setupRequired
@@ -164,10 +171,10 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <Card>
+        <Card padding="lg" elev>
           <div className="flex flex-col gap-4">
             {oidcAvailable && (
-              <Button type="button" variant="primary" className="w-full" onClick={handleOidcLogin}>
+              <Button type="button" variant="primary" icon="oauth" className="w-full" onClick={handleOidcLogin}>
                 {oidcLoginLabel}
               </Button>
             )}
@@ -205,12 +212,12 @@ export default function LoginPage() {
                         required
                       />
                       {error && (
-                        <p role="alert" className="text-xs text-red-500">
+                        <p role="alert" className="text-xs text-danger">
                           {error}
                         </p>
                       )}
                       {retryAfter > 0 && (
-                        <p role="status" className="text-xs text-amber-600 dark:text-amber-400">
+                        <p role="status" className="text-xs text-warning">
                           Locked. Retry in <span className="font-mono">{retryAfter}s</span>.
                         </p>
                       )}
@@ -234,12 +241,12 @@ export default function LoginPage() {
                     <p className="text-xs text-text-muted">
                       Password setup is only allowed from the machine running MiawRouter.
                     </p>
-                    <div className="rounded-lg border border-border/60 p-3 bg-sidebar/40 font-mono text-xs">
+                    <div className="rounded-md border border-border p-3 bg-surface-2 font-mono text-xs">
                       Open this dashboard through localhost in a browser on the host machine, create
                       the password there, then sign in here with it.
                     </div>
                     {error && (
-                      <p role="alert" className="text-xs text-red-500">
+                      <p role="alert" className="text-xs text-danger">
                         {error}
                       </p>
                     )}
@@ -248,7 +255,7 @@ export default function LoginPage() {
               ) : (
                 <form onSubmit={handleLogin} className="flex flex-col gap-4">
                   {((authMode === "oidc" && !oidcConfigured) || (authMode === "both" && !oidcConfigured)) && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 text-center">
+                    <p className="text-xs text-warning text-center">
                       OIDC login is enabled, but the issuer/client fields are not configured yet. Password login is still available for recovery.
                     </p>
                   )}
@@ -274,12 +281,12 @@ export default function LoginPage() {
                       autoFocus={!oidcAvailable}
                     />
                     {error && (
-                      <p role="alert" className="text-xs text-red-500">
+                      <p role="alert" className="text-xs text-danger">
                         {error}
                       </p>
                     )}
                     {retryAfter > 0 && (
-                      <p role="status" className="text-xs text-amber-600 dark:text-amber-400">
+                      <p role="status" className="text-xs text-warning">
                         Locked. Retry in <span className="font-mono">{retryAfter}s</span>.
                       </p>
                     )}
@@ -295,7 +302,7 @@ export default function LoginPage() {
                       </p>
                     )}
                     {hasPassword === false && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <p className="text-xs text-warning">
                         First login: sign in from the host machine (localhost) with the initial
                         password to save it. Remote login is not available until then.
                       </p>
@@ -315,7 +322,7 @@ export default function LoginPage() {
               )
             ) : (
               error && (
-                <p role="alert" className="text-xs text-red-500">
+                <p role="alert" className="text-xs text-danger">
                   {error}
                 </p>
               )

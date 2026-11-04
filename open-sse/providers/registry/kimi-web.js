@@ -21,7 +21,7 @@ export default {
     authType: "cookie",
   },
   models: [
-    { id: "k3", name: "Kimi K3" },
-    { id: "k2d6", name: "Kimi K2.6" },
+    { id: "k3", name: "Kimi K3", contextLength: 1000000, supportsVision: true, supportsReasoning: true, toolCalling: true },
+    { id: "k2d6", name: "Kimi K2.6", contextLength: 256000, supportsVision: true, supportsReasoning: true, toolCalling: true },
   ],
 };

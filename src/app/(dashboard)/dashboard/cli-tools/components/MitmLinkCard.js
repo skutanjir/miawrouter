@@ -3,64 +3,73 @@
 import Link from "next/link";
 import Image from "next/image";
 import PropTypes from "prop-types";
-import { cn } from "@/shared/utils/cn";
+import { Icon } from "@/shared/components/Icon";
 
-/**
- * Clickable card for MITM tools — navigates to /dashboard/mitm on click.
- */
 export default function MitmLinkCard({ tool }) {
   return (
     <Link href="/dashboard/mitm" className="group block min-w-0">
-      <div
-        className={cn(
-          "relative flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface px-3 py-2.5 transition-all duration-150 cursor-pointer overflow-hidden",
-          "hover:border-border hover:bg-surface-2/60"
-        )}
-      >
-        <span
-          className="absolute inset-y-0 left-0 w-[3px] bg-primary transition-colors"
-          aria-hidden="true"
-        />
-        <div className="flex min-w-0 items-center gap-2.5 pl-1.5 flex-1">
-          <div className="size-8 shrink-0 rounded-md flex items-center justify-center border border-border-subtle/50 bg-bg">
-            {tool.image ? (
-              <Image
-                src={tool.image}
-                alt={tool.name}
-                width={22}
-                height={22}
-                className="size-[22px] object-contain rounded-xs"
-                sizes="22px"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                }}
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <span
-                className="material-symbols-outlined text-[18px] text-primary"
-              >
-                security
-              </span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <h3 className="truncate text-xs sm:text-sm font-semibold text-text-main group-hover:text-primary transition-colors leading-tight">
-                {tool.name}
-              </h3>
-              <span className="shrink-0 text-[10px] font-mono font-medium uppercase tracking-wider text-primary px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20">
-                MITM
-              </span>
+      <div className="relative flex flex-col justify-between gap-3.5 rounded-xl border border-border bg-surface p-4 transition-all duration-200 hover:border-border-strong hover:bg-surface-2/60 hover:shadow-elevated min-h-[148px]">
+        {/* Top row: Avatar, Info, MITM Pill */}
+        <div className="flex items-start justify-between gap-3 min-w-0">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-border bg-surface-2 p-1.5 shadow-2xs transition-transform duration-200 group-hover:scale-105 group-hover:border-primary/30">
+              {tool.image ? (
+                <Image
+                  src={tool.image}
+                  alt={tool.name}
+                  width={28}
+                  height={28}
+                  className="size-[28px] rounded-xs object-contain"
+                  sizes="28px"
+                  onError={(e) => { e.target.style.display = "none"; }}
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <Icon name="security" weight="duotone" className="text-[22px] text-primary" />
+              )}
             </div>
-            <p className="text-[11px] text-text-muted truncate mt-0.5">
-              {tool.description || "Intercept and proxy tool requests"}
-            </p>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h3 className="truncate text-[14px] font-bold text-text-main group-hover:text-primary transition-colors">
+                  {tool.name}
+                </h3>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="font-mono text-[10.5px] font-medium text-text-muted">
+                  TLS MITM Interceptor
+                </span>
+                <span className="text-[10px] text-text-subtle">·</span>
+                <span className="text-[10.5px] text-text-muted">
+                  Zero Config
+                </span>
+              </div>
+            </div>
           </div>
+
+          {/* Status pill */}
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10.5px] font-mono text-primary font-semibold">
+            <span className="status-dot status-dot-live" />
+            <span>Active MITM</span>
+          </span>
         </div>
-        <div className="flex shrink-0 items-center pl-1 text-text-muted group-hover:text-primary transition-colors">
-          <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+
+        {/* Middle description */}
+        <p className="line-clamp-2 text-xs leading-relaxed text-text-muted min-h-[32px]">
+          {tool.description || `Intercept and proxy outbound ${tool.name} telemetry, tool calls, and model requests.`}
+        </p>
+
+        {/* Bottom footer: Domain pill + Action button */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border-subtle/70">
+          <code className="inline-flex items-center gap-1 font-mono text-[11px] text-text-muted/90 bg-surface-2/80 px-2 py-0.5 rounded border border-border-subtle" title={`Domain: ${tool.mitmDomain || "Transparent Proxy"}`}>
+            <Icon name="lock" className="text-[11px] text-primary shrink-0" />
+            <span className="truncate max-w-[140px]">{tool.mitmDomain || "Loopback Proxy"}</span>
+          </code>
+
+          <span className="inline-flex items-center gap-1 text-[11.5px] font-semibold transition-all px-2.5 py-1 rounded-lg border border-border bg-surface-2 text-text-main group-hover:border-primary/40 group-hover:bg-primary/10 group-hover:text-primary">
+            <span>Route MITM</span>
+            <Icon name="arrow_forward" className="text-[12px] transition-transform duration-150 group-hover:translate-x-0.5" />
+          </span>
         </div>
       </div>
     </Link>
@@ -69,8 +78,9 @@ export default function MitmLinkCard({ tool }) {
 
 MitmLinkCard.propTypes = {
   tool: PropTypes.shape({
-    name: PropTypes.string,
+    name: PropTypes.string.isRequired,
     image: PropTypes.string,
     description: PropTypes.string,
+    mitmDomain: PropTypes.string,
   }).isRequired,
 };

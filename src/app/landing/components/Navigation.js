@@ -3,12 +3,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BrandAsset from "@/shared/components/BrandAsset";
 
+import { Icon } from "@/shared/components/Icon";
 export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const router = useRouter();
 
   return (
-    <nav className="fixed top-0 z-50 w-full bg-[#0C1524]/80 backdrop-blur-md border-b border-[#294563]">
+    <nav className="fixed top-0 z-50 w-full border-b border-border-subtle bg-surface">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <button
@@ -17,19 +18,19 @@ export default function Navigation() {
           onClick={() => router.push("/")}
           aria-label="Navigate to home"
         >
-          <div className="size-8 overflow-hidden rounded shadow-[0_0_15px_rgba(22,139,255,0.35)]">
+          <div className="size-8 overflow-hidden rounded-md border border-border-subtle">
             <BrandAsset kind="icon" className="size-full object-cover" />
           </div>
-          <h2 className="text-white text-xl font-bold tracking-tight">MiawRouter</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-text-main">MiawRouter</h2>
         </button>
 
         {/* Desktop menu */}
         <div className="hidden md:flex items-center gap-8">
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#features">Features</a>
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#how-it-works">How it Works</a>
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="https://miawrouter.web.id" target="_blank" rel="noopener noreferrer">Docs</a>
-          <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors flex items-center gap-1" href="https://miawrouter.web.id" target="_blank" rel="noopener noreferrer">
-            GitHub <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+          <a className="text-text-muted hover:text-text-main text-sm font-medium transition-colors" href="#features">Features</a>
+          <a className="text-text-muted hover:text-text-main text-sm font-medium transition-colors" href="#how-it-works">How it Works</a>
+          <a className="text-text-muted hover:text-text-main text-sm font-medium transition-colors" href="https://miawrouter.web.id" target="_blank" rel="noopener noreferrer">Docs</a>
+          <a className="text-text-muted hover:text-text-main text-sm font-medium transition-colors flex items-center gap-1" href="https://miawrouter.web.id" target="_blank" rel="noopener noreferrer">
+            Website <Icon name="open_in_new" className="text-[14px]" />
           </a>
         </div>
 
@@ -37,30 +38,30 @@ export default function Navigation() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.push("/dashboard")}
-            className="hidden sm:flex h-9 items-center justify-center rounded-lg px-4 bg-[#168BFF] hover:bg-[#0875E1] transition-all text-[#0C1524] text-sm font-bold shadow-[0_0_15px_rgba(22,139,255,0.4)] hover:shadow-[0_0_20px_rgba(22,139,255,0.6)]"
+            className="hidden h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-600 sm:flex"
           >
             Get Started
           </button>
-          <button 
-            className="md:hidden text-white"
+          <button
+            className="rounded-md p-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"}
           >
-            <span className="material-symbols-outlined">{mobileMenuOpen ? "close" : "menu"}</span>
+            <Icon name={mobileMenuOpen ? "close" : "menu"} className="text-[18px]" />
           </button>
         </div>
       </div>
 
       {/* Mobile menu dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-[#294563] bg-[#0C1524]/95 backdrop-blur-md">
+        <div className="border-t border-border-subtle bg-surface md:hidden">
           <div className="flex flex-col gap-4 p-6">
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it Works</a>
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="https://miawrouter.web.id" target="_blank" rel="noopener noreferrer">Docs</a>
-            <a className="text-gray-300 hover:text-white text-sm font-medium transition-colors" href="https://miawrouter.web.id" target="_blank" rel="noopener noreferrer">GitHub</a>
-            <button 
+            <a className="text-sm font-medium text-text-muted transition-colors hover:text-text-main" href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+            <a className="text-sm font-medium text-text-muted transition-colors hover:text-text-main" href="#how-it-works" onClick={() => setMobileMenuOpen(false)}>How it Works</a>
+            <a className="text-sm font-medium text-text-muted transition-colors hover:text-text-main" href="https://miawrouter.web.id" target="_blank" rel="noopener noreferrer">Website</a>
+            <button
               onClick={() => router.push("/dashboard")}
-              className="h-9 rounded-lg bg-[#168BFF] hover:bg-[#0875E1] text-[#0C1524] text-sm font-bold"
+              className="h-9 rounded-md bg-primary text-sm font-semibold text-white transition-colors hover:bg-brand-600"
             >
               Get Started
             </button>

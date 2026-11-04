@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { Icon } from "@/shared/components/Icon";
 const STORAGE_KEY = "miawrouter.cliToolEndpointPresets";
 
 function maskApiKey(apiKey) {
@@ -91,7 +92,7 @@ export default function EndpointPresetControl({
   return (
     <div className="flex items-center gap-2">
       <span className="w-32 shrink-0 text-sm font-semibold text-text-main text-right">Preset</span>
-      <span className="material-symbols-outlined text-text-muted text-[14px]">arrow_forward</span>
+      <Icon name={"arrow_forward"} className=" text-text-muted text-[14px]" />
       <select
         value={selectedName}
         onChange={(event) => handleSelect(event.target.value)}
@@ -117,10 +118,10 @@ export default function EndpointPresetControl({
         <button
           type="button"
           onClick={handleDelete}
-          className="p-1 text-text-muted hover:text-red-500 rounded transition-colors"
+          className="p-1 rounded text-text-muted transition-colors hover:text-danger"
           title="Delete selected preset"
         >
-          <span className="material-symbols-outlined text-[14px]">delete</span>
+          <Icon name={"delete"} className=" text-[14px]" />
         </button>
       )}
     </div>

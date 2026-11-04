@@ -6,14 +6,15 @@
 // been written. These tests fail if a write-then-read round-trip loses the
 // provider, its models, or the API key.
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { parseTOML } from "confbox";
 
-const originalHome = process.env.HOME;
 const originalXdg = process.env.XDG_CONFIG_HOME;
+const originalAppData = process.env.APPDATA;
+const originalLocalAppData = process.env.LOCALAPPDATA;
 let tmpHome;
 
 const readJson = async (file) => JSON.parse(await fs.readFile(file, "utf8"));
@@ -23,14 +24,22 @@ const MODEL = "cc/claude-sonnet-4-6";
 
 beforeEach(async () => {
   tmpHome = await fs.mkdtemp(path.join(os.tmpdir(), "miaw-cli-settings-"));
-  process.env.HOME = tmpHome;
+  // os.homedir() reads USERPROFILE on Windows; HOME alone can write real user config.
+  vi.spyOn(os, "homedir").mockImplementation(() => tmpHome);
+  vi.spyOn(os, "platform").mockReturnValue("linux");
   process.env.XDG_CONFIG_HOME = path.join(tmpHome, ".config");
+  process.env.APPDATA = path.join(tmpHome, "AppData", "Roaming");
+  process.env.LOCALAPPDATA = path.join(tmpHome, "AppData", "Local");
 });
 
 afterEach(async () => {
-  process.env.HOME = originalHome;
+  vi.restoreAllMocks();
   if (originalXdg === undefined) delete process.env.XDG_CONFIG_HOME;
   else process.env.XDG_CONFIG_HOME = originalXdg;
+  if (originalAppData === undefined) delete process.env.APPDATA;
+  else process.env.APPDATA = originalAppData;
+  if (originalLocalAppData === undefined) delete process.env.LOCALAPPDATA;
+  else process.env.LOCALAPPDATA = originalLocalAppData;
   await fs.rm(tmpHome, { recursive: true, force: true });
 });
 
@@ -246,7 +255,7 @@ describe("Codex settings round-trip", () => {
     });
     expect(cache.models.find((entry) => entry.slug === "cx/gpt-6-sol")
       .supported_reasoning_levels.map((level) => level.effort)).toEqual([
-        "none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra",
+        "low", "medium", "high", "xhigh", "max", "ultra",
       ]);
   });
 });

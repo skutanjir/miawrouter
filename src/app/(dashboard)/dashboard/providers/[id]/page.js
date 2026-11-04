@@ -15,7 +15,6 @@ import { translate } from "@/i18n/runtime";
 
 import { getProviderCustomModelRows } from "@/shared/utils/providerCustomModels";
 import ModelRow from "./ModelRow";
-import PassthroughModelsSection from "./PassthroughModelsSection";
 import CompatibleModelsSection from "./CompatibleModelsSection";
 import ConnectionRow from "./ConnectionRow";
 import AddApiKeyModal from "./AddApiKeyModal";
@@ -25,6 +24,7 @@ import BulkImportCodexModal from "./BulkImportCodexModal";
 import ProviderModelDiscovery from "./ProviderModelDiscovery";
 import AntigravityRecovery from "./AntigravityRecovery";
 
+import { Icon } from "@/shared/components/Icon";
 const ONE_BY_ONE_DELAY_MS = 1000;
 
 const AUTO_PING_SETTINGS_KEYS = {
@@ -57,7 +57,7 @@ export default function ProviderDetailPage() {
   const [selectedConnection, setSelectedConnection] = useState(null);
   const [modelAliases, setModelAliases] = useState({});
   const [customModels, setCustomModels] = useState([]);
-  const [headerImgError, setHeaderImgError] = useState(false);
+  const [modelSearch, setModelSearch] = useState("");
   const [modelTestResults, setModelTestResults] = useState({});
   const [modelsTestError, setModelsTestError] = useState("");
   const [testingModelIds, setTestingModelIds] = useState(() => new Set());
@@ -972,7 +972,7 @@ export default function ProviderDetailPage() {
   const isSelected = (connectionId) => selectedConnectionIds.includes(connectionId);
 
   const connectionsList = (
-    <div className="flex min-w-0 flex-col divide-y divide-black/[0.03] dark:divide-white/[0.03]">
+    <div className="flex min-w-0 flex-col divide-y divide-border-subtle">
       {connections
         .map((conn, index) => (
           <div key={conn.id} className="flex min-w-0 items-stretch">
@@ -981,7 +981,7 @@ export default function ProviderDetailPage() {
                 type="checkbox"
                 checked={isSelected(conn.id)}
                 onChange={() => toggleSelectConnection(conn.id)}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-border bg-bg text-primary focus:ring-primary"
               />
             </div>
             <div className="flex-1 min-w-0">
@@ -1047,7 +1047,7 @@ export default function ProviderDetailPage() {
             disabled={bulkUpdatingProxy || activePools.length === 0}
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-text-muted text-[18px]">sync_alt</span>
+            <Icon name={"sync_alt"} className=" text-text-muted text-[18px]" />
             <span className="text-sm text-text-main">One-to-one (rotate)</span>
           </button>
           <button
@@ -1055,7 +1055,7 @@ export default function ProviderDetailPage() {
             disabled={bulkUpdatingProxy}
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-text-muted text-[18px]">link_off</span>
+            <Icon name={"link_off"} className=" text-text-muted text-[18px]" />
             <span className="text-sm text-text-main">None (unbind all)</span>
           </button>
           {proxyPools.map((pool) => (
@@ -1065,7 +1065,7 @@ export default function ProviderDetailPage() {
               disabled={bulkUpdatingProxy || pool.isActive !== true}
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-text-muted text-[18px]">lan</span>
+              <Icon name={"lan"} className=" text-text-muted text-[18px]" />
               <span className="truncate text-sm text-text-main">{pool.name}</span>
               {pool.isActive !== true && (
                 <span className="text-[10px] text-text-muted">(inactive)</span>
@@ -1112,6 +1112,7 @@ export default function ProviderDetailPage() {
           providerDisplayAlias={providerDisplayAlias}
           modelAliases={modelAliases}
           customModels={customModels}
+          search={modelSearch.trim().toLowerCase()}
           copied={copied}
           onCopy={copy}
           onSetAlias={handleSetAlias}
@@ -1139,11 +1140,14 @@ export default function ProviderDetailPage() {
       builtInModels: models,
       type: "llm",
     });
+    const modelMatches = (model) => !modelSearch.trim() || `${model.id} ${model.name || ""}`.toLowerCase().includes(modelSearch.trim().toLowerCase());
+    const visibleModels = displayModels.filter(modelMatches);
+    const visibleCustomRows = customModelRows.filter(modelMatches);
 
     return (
-      <div className="flex flex-wrap gap-3">
+      <div role="table" aria-label={`${providerInfo?.name || providerId} models`} className="flex flex-col divide-y divide-border-subtle overflow-hidden rounded-md border border-border-subtle">
         {/* Custom models first */}
-        {customModelRows.map((model) => (
+        {visibleCustomRows.map((model) => (
           <ModelRow
             key={`${model.source}-${model.fullModel}`}
             model={{ id: model.id, name: model.name }}
@@ -1170,7 +1174,7 @@ export default function ProviderDetailPage() {
           />
         ))}
 
-        {displayModels.map((model) => {
+        {visibleModels.map((model) => {
           const fullModel = `${providerStorageAlias}/${model.id}`;
           const oldFormatModel = `${providerId}/${model.id}`;
           const existingAlias = Object.entries(modelAliases).find(
@@ -1198,12 +1202,15 @@ export default function ProviderDetailPage() {
           );
         })}
 
+        {modelSearch && visibleModels.length === 0 && visibleCustomRows.length === 0 && (
+          <p className="border-b border-border-subtle px-3 py-5 text-center text-sm text-text-muted">No models match this filter.</p>
+        )}
         {/* Add model button — inline, same style as model chips */}
         <button
           onClick={() => setShowAddCustomModel(true)}
           className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-primary/40 px-3 py-2 text-xs text-primary transition-colors hover:border-primary hover:bg-primary/5 sm:w-auto"
         >
-          <span className="material-symbols-outlined text-sm">add</span>
+          <Icon name={"add"} className=" text-sm" />
           Add Model
         </button>
 
@@ -1212,11 +1219,9 @@ export default function ProviderDetailPage() {
           <button
             onClick={handleImportQoderModels}
             disabled={importingQoderModels}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-blue-500/40 px-3 py-2 text-xs text-blue-600 dark:text-blue-400 transition-colors hover:border-blue-500 hover:bg-blue-500/5 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-primary/40 px-3 py-2 text-xs text-primary transition-colors hover:border-primary hover:bg-primary/5 sm:w-auto disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <span className="material-symbols-outlined text-sm" style={importingQoderModels ? { animation: "spin 1s linear infinite" } : undefined}>
-              {importingQoderModels ? "progress_activity" : "download"}
-            </span>
+            <Icon name={importingQoderModels ? "progress_activity" : "download"} className=" text-sm" style={importingQoderModels ? { animation: "spin 1s linear infinite" } : undefined} />
             {importingQoderModels ? translate("Fetching...") : translate("Fetch Qoder Models")}
           </button>
         )}
@@ -1230,10 +1235,10 @@ export default function ProviderDetailPage() {
                 <button
                   key={m.id}
                   onClick={() => handleEnableModel(m.id)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-dashed border-black/10 dark:border-white/10 text-xs text-text-muted hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                  className="flex items-center gap-1 rounded-md border border-dashed border-border px-2.5 py-1.5 text-xs text-text-muted transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                   title="Restore model"
                 >
-                  <span className="material-symbols-outlined text-[13px]">add</span>
+                  <Icon name={"add"} className=" text-[13px]" />
                   {m.id}
                 </button>
               ))}
@@ -1274,19 +1279,21 @@ export default function ProviderDetailPage() {
     }
     return getProviderIconSrc(providerInfo.id);
   };
+  const connectedCount = connections.filter((connection) => connection.isActive !== false && ["active", "success"].includes(connection.testStatus)).length;
+  const errorCount = connections.filter((connection) => ["error", "expired", "unavailable"].includes(connection.testStatus)).length;
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:gap-8 sm:px-0">
+    <div className="flex min-w-0 flex-col gap-6 px-1 sm:gap-7 sm:px-0">
       {/* Header */}
       <div className="min-w-0">
         <Link
           href="/dashboard/providers"
-          className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary transition-colors mb-4"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-text-muted transition-colors hover:text-primary"
         >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
+          <Icon name={"arrow_back"} className=" text-lg" />
           Back to Providers
         </Link>
-        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
           <div
             className="flex size-12 shrink-0 items-center justify-center rounded-lg"
             style={{ backgroundColor: `${providerInfo.color}15` }}
@@ -1304,7 +1311,7 @@ export default function ProviderDetailPage() {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">{providerInfo.name}</h1>
+              <h1 className="truncate text-[22px] font-semibold tracking-tight text-text-main">{providerInfo.name}</h1>
               {(providerInfo.notice?.apiKeyUrl || providerInfo.notice?.signupUrl || providerInfo.website) && (
                 <a
                   href={providerInfo.notice?.apiKeyUrl || providerInfo.notice?.signupUrl || providerInfo.website}
@@ -1312,37 +1319,45 @@ export default function ProviderDetailPage() {
                   rel="noopener noreferrer"
                   className="text-xs text-primary hover:underline inline-flex items-center gap-1"
                 >
-                  <span className="material-symbols-outlined text-sm">open_in_new</span>
+                  <Icon name={"open_in_new"} className=" text-sm" />
                   {providerInfo.notice?.apiKeyUrl ? "Get API Key" : "Sign up / Learn more"}
                 </a>
               )}
             </div>
-            <p className="text-text-muted">
-              {connections.length} connection{connections.length === 1 ? "" : "s"}
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-text-muted">{connections.length} connection{connections.length === 1 ? "" : "s"}</span>
+              <Badge variant={connectedCount ? "success" : errorCount ? "error" : "default"} size="sm">
+                {connectedCount ? `${connectedCount} connected` : errorCount ? `${errorCount} need attention` : "Not connected"}
+              </Badge>
+            </div>
+            {!isFreeNoAuth && (
+              <Button size="sm" icon="add" onClick={triggerAddConnection}>
+                Add connection
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {providerInfo.deprecated && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-          <span className="material-symbols-outlined text-[16px] text-yellow-500 mt-0.5 shrink-0">warning</span>
-          <p className="text-xs text-red-600 dark:text-yellow-400 leading-relaxed">{providerInfo.deprecationNotice}</p>
+        <div className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-warning">
+          <Icon name={"warning"} className="mt-0.5 shrink-0 text-[16px]" />
+          <p className="text-xs leading-relaxed">{providerInfo.deprecationNotice}</p>
         </div>
       )}
 
       {providerInfo.notice?.text && !providerInfo.deprecated && (
-        <div className="flex flex-col gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 sm:flex-row sm:items-center">
-          <span className="material-symbols-outlined text-[16px] text-blue-500 shrink-0">info</span>
-          <p className="min-w-0 flex-1 text-xs leading-relaxed text-blue-600 dark:text-blue-400">{providerInfo.notice.text}</p>
+        <div className="flex flex-col gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-primary sm:flex-row sm:items-center">
+          <Icon name={"info"} className="shrink-0 text-[16px]" />
+          <p className="min-w-0 flex-1 text-xs leading-relaxed">{providerInfo.notice.text}</p>
           {providerInfo.notice.apiKeyUrl && (
             <a
               href={providerInfo.notice.apiKeyUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex justify-center rounded bg-blue-500 px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-600 sm:py-0.5"
+              className="inline-flex justify-center rounded-md bg-primary px-2 py-1 text-xs font-medium text-white transition-colors hover:bg-primary/90 sm:py-0.5"
             >
-              Get API Key →
+              Get API Key
             </a>
           )}
         </div>
@@ -1487,7 +1502,7 @@ export default function ProviderDetailPage() {
                       value={providerStickyLimit}
                       onChange={(e) => handleStickyLimitChange(e.target.value)}
                       placeholder="1"
-                      className="w-14 px-2 py-1 text-xs border border-border rounded-md bg-background focus:outline-none focus:border-primary"
+                      className="w-14 rounded-md border border-border bg-bg px-2 py-1 text-xs focus:border-primary focus:outline-none"
                     />
                   </div>
                 )}
@@ -1498,8 +1513,8 @@ export default function ProviderDetailPage() {
           {connections.length === 0 ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <div className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-primary/10 text-primary shrink-0">
-                  <span className="material-symbols-outlined text-[18px]">{isOAuth ? "lock" : "key"}</span>
+                <div className="inline-flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                  <Icon name={isOAuth ? "lock" : "key"} className=" text-[18px]" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm text-text-muted">No connections yet</p>
@@ -1546,14 +1561,14 @@ export default function ProviderDetailPage() {
           ) : (
             <>
               {oneByOneSummary && (
-                <div className="mb-4 rounded-lg border border-black/10 bg-black/[0.02] px-3 py-2 text-xs text-text-muted dark:border-white/10 dark:bg-white/[0.03]">
+                <div className="mb-4 rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-text-muted">
                   <div className="flex flex-wrap items-center gap-3">
                     <span>Total: {oneByOneSummary.total}</span>
                     <span>Completed: {oneByOneSummary.completed}</span>
                     <span>Passed: {oneByOneSummary.passed}</span>
                     <span>Failed: {oneByOneSummary.failed}</span>
                     {oneByOneSummary.stopped && (
-                      <span className="text-amber-600 dark:text-amber-400">Stopped</span>
+                      <span className="text-warning">Stopped</span>
                     )}
                     {oneByOneRunning && oneByOneCurrentConnectionId && (
                       <span>Running: {connections.find((conn) => conn.id === oneByOneCurrentConnectionId)?.name || oneByOneCurrentConnectionId}</span>
@@ -1562,13 +1577,13 @@ export default function ProviderDetailPage() {
                 </div>
               )}
               {connections.length > 0 && (
-                <div className="mb-3 flex items-center gap-2 border-b border-black/[0.03] pb-2 dark:border-white/[0.03]">
+                <div className="mb-3 flex items-center gap-2 border-b border-border-subtle pb-2">
                   <label className="flex cursor-pointer items-center gap-1.5 text-xs text-text-muted hover:text-primary">
                     <input
                       type="checkbox"
                       checked={allSelected}
                       onChange={toggleSelectAllConnections}
-                      className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="h-3.5 w-3.5 rounded border-border bg-bg text-primary focus:ring-primary"
                     />
                     Select All
                   </label>
@@ -1642,15 +1657,15 @@ export default function ProviderDetailPage() {
       <Card>
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold">
-              {"Available Models"}
+            <h2 className="text-[15px] font-semibold text-text-main">
+              Available Models <span className="ml-1 font-mono text-xs font-normal text-text-muted">{models.length}</span>
             </h2>
             {providerThinkingLevels && (
               <select
                 value={thinkingMode}
                 onChange={(e) => handleThinkingModeChange(e.target.value)}
                 title="Appends (level) suffix to copied model names"
-                className="rounded-md border border-border bg-background px-2 py-1 text-xs focus:border-primary focus:outline-none"
+                className="rounded-md border border-border bg-bg px-2 py-1 text-xs focus:border-primary focus:outline-none"
               >
                 {providerThinkingLevels.map((opt) => (
                   <option key={opt} value={opt}>{`Thinking: ${opt.charAt(0).toUpperCase() + opt.slice(1)}`}</option>
@@ -1680,9 +1695,15 @@ export default function ProviderDetailPage() {
             );
           })()}
         </div>
-        {!!modelsTestError && (
-          <p className="text-xs text-red-500 mb-3 break-words">{modelsTestError}</p>
-        )}
+        <input
+          type="search"
+          value={modelSearch}
+          onChange={(event) => setModelSearch(event.target.value)}
+          placeholder="Filter models by ID or name"
+          aria-label="Filter models by ID or name"
+          className="mb-3 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-text-main placeholder:text-text-subtle focus:border-primary focus:outline-none sm:max-w-sm"
+        />
+        {modelsTestError && <p className="mb-3 break-words text-xs text-danger">{modelsTestError}</p>}
         <ProviderModelDiscovery key={providerId} providerId={providerId} connections={connections} customModels={customModels} providerStorageAlias={providerStorageAlias} onRefreshCustomModels={fetchCustomModels} />
         {renderModelsSection()}
       </Card>

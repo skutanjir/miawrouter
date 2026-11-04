@@ -20,7 +20,11 @@ export default {
     quirks: { preserveCacheControl: true },
   },
   models: [
-    { id: "qwen3.8-max-preview", name: "Qwen 3.8 Max Preview" },
+    { id: "qwen3.8-omni-flash", name: "Qwen 3.8 Omni Flash", contextLength: 1000000, supportsReasoning: true, supportsVision: true, toolCalling: true },
+    { id: "qwen3.8-max", name: "Qwen 3.8 Max", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
+    { id: "qwen3.8-max-0902", name: "Qwen 3.8 Max (09-02)", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
+    { id: "qwen3.8-flash", name: "Qwen 3.8 Flash", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
+    { id: "qwen3.7-flash", name: "Qwen 3.7 Flash", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
     { id: "qwen3.7-max", name: "Qwen 3.7 Max" },
     { id: "qwen3.7-plus", name: "Qwen 3.7 Plus" },
     { id: "qwen3.6-plus", name: "Qwen 3.6 Plus" },

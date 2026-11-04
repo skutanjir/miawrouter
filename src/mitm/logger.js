@@ -15,6 +15,12 @@ const err = (msg) => console.error(`[${time()}] ❌ [MITM] ${msg}`);
 const DUMP_DIR = path.join(DATA_DIR, "logs", "mitm");
 if (!fs.existsSync(DUMP_DIR)) fs.mkdirSync(DUMP_DIR, { recursive: true });
 
+function maskHeaders(headers = {}) {
+  return Object.fromEntries(Object.entries(headers).map(([key, value]) => [
+    key, /authorization|cookie|api[-_]?key|token|secret/i.test(key) ? "[redacted]" : value,
+  ]));
+}
+
 // Clear all files inside DUMP_DIR (called on MITM server start to avoid unbounded growth)
 function clearDumpDir() {
   try {
@@ -53,15 +59,16 @@ function dumpRequest(req, bodyBuffer, tag = "raw") {
   if (isBlacklisted(req.url)) return null;
   try {
     const ts = new Date().toISOString().replace(/[:.]/g, "-");
-    const slug = slugify((req.headers.host || "") + req.url);
+    const safeUrl = String(req.url || "").split("?")[0];
+    const slug = slugify((req.headers.host || "") + safeUrl);
     const file = path.join(DUMP_DIR, `${ts}_${tag}_${slug}.req.json`);
     let parsed = null;
     try { parsed = JSON.parse(bodyBuffer.toString()); } catch { /* not JSON */ }
     fs.writeFileSync(file, JSON.stringify({
       method: req.method,
-      url: req.url,
+      url: safeUrl,
       host: req.headers.host,
-      headers: req.headers,
+      headers: maskHeaders(req.headers),
       body: parsed ?? bodyBuffer.toString("utf8")
     }, null, 2));
     return file;
@@ -73,7 +80,7 @@ function dumpRequest(req, bodyBuffer, tag = "raw") {
 function createResponseDumper(req, tag = "raw") {
   if (isBlacklisted(req.url)) return null;
   const ts = new Date().toISOString().replace(/[:.]/g, "-");
-  const slug = slugify((req.headers.host || "") + req.url);
+  const slug = slugify((req.headers.host || "") + String(req.url || "").split("?")[0]);
   const file = path.join(DUMP_DIR, `${ts}_${tag}_${slug}.res.txt`);
   let status = 0;
   let headers = {};
@@ -93,7 +100,7 @@ function createResponseDumper(req, tag = "raw") {
         // Skip empty / trivially-empty bodies
         if (EMPTY_BODY_RE.test(text)) return;
         // Strip content-encoding since body is now decoded
-        const cleanHeaders = { ...headers };
+        const cleanHeaders = maskHeaders(headers);
         delete cleanHeaders["content-encoding"];
         delete cleanHeaders["Content-Encoding"];
         const out = `STATUS: ${status}\nHEADERS: ${JSON.stringify(cleanHeaders, null, 2)}\n---BODY---\n${text}`;

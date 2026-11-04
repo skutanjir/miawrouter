@@ -3,12 +3,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // ── hoisted mocks ──────────────────────────────────────────────────
 const mocks = vi.hoisted(() => ({
   getSettings: vi.fn(),
+  getProviderConnections: vi.fn(),
   extractApiKey: vi.fn(),
   isValidApiKey: vi.fn(),
 }));
 
 vi.mock("@/lib/localDb", () => ({
   getSettings: mocks.getSettings,
+  getProviderConnections: mocks.getProviderConnections,
 }));
 
 vi.mock("@/sse/services/auth.js", () => ({
@@ -54,6 +56,7 @@ describe("requireApiKey on GET /v1/models routes", () => {
     vi.clearAllMocks();
     // Default: requireApiKey enabled
     mocks.getSettings.mockResolvedValue({ requireApiKey: true });
+    mocks.getProviderConnections.mockResolvedValue([]);
   });
 
   // ── missing key ───────────────────────────────────────────────
@@ -132,6 +135,16 @@ describe("requireApiKey on GET /v1/models routes", () => {
     const res = await getModels(req());
 
     expect(res.status).toBe(200);
+  });
+
+  it("returns an error when provider connections cannot be read", async () => {
+    mocks.getSettings.mockResolvedValue({ requireApiKey: false });
+    mocks.getProviderConnections.mockRejectedValue(new Error("Provider storage unavailable"));
+
+    for (const response of [await getModels(req()), await getModelsKind(kindReq(), PARAMS)]) {
+      expect(response.status).toBe(500);
+      expect((await response.json()).error.message).toBe("Provider storage unavailable");
+    }
   });
 
   it("GET /v1/models/[kind] → 200 when requireApiKey=false and no key", async () => {

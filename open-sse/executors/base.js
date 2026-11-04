@@ -7,6 +7,21 @@ import { resolveOpenAICompatibleApiType } from "../services/provider.js";
 import { isCircuitBlocked, admitProbe, recordFailure, recordSuccess, releaseProbe } from "../services/circuitBreaker.js";
 import { acquireSlot } from "../services/concurrencyLimiter.js";
 
+function waitForRetry(ms, signal) {
+  if (signal?.aborted) return Promise.reject(Object.assign(new Error("Request aborted"), { name: "AbortError" }));
+  return new Promise((resolve, reject) => {
+    const cleanup = () => signal?.removeEventListener("abort", onAbort);
+    const timer = setTimeout(() => { cleanup(); resolve(); }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      cleanup();
+      reject(Object.assign(new Error("Request aborted"), { name: "AbortError" }));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) onAbort();
+  });
+}
+
 function wrapStreamingResponse(response, release) {
   if (!response || !response.body) {
     release();
@@ -20,19 +35,27 @@ function wrapStreamingResponse(response, release) {
     }
   };
 
-  const transform = new TransformStream({
-    transform(chunk, controller) {
-      controller.enqueue(chunk);
+  const reader = response.body.getReader();
+  const wrappedStream = new ReadableStream({
+    async pull(controller) {
+      try {
+        const { value, done } = await reader.read();
+        if (done) {
+          safeRelease();
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
+      } catch (error) {
+        safeRelease();
+        controller.error(error);
+      }
     },
-    flush() {
+    async cancel(reason) {
       safeRelease();
+      await reader.cancel(reason);
     },
-    cancel() {
-      safeRelease();
-    }
   });
-
-  const wrappedStream = response.body.pipeThrough(transform);
   if (typeof Response !== "undefined" && response instanceof Response) {
     try {
       return new Response(wrappedStream, response);
@@ -170,7 +193,7 @@ export class BaseExecutor {
 
     // Schedule retry via retryConfig[statusKey]. Returns true when caller should `urlIndex--; continue`
     // response (optional) lets a subclass hook compute a dynamic delay (e.g. antigravity Retry-After).
-    const tryRetry = async (urlIndex, statusKey, reason, response = null) => {
+    const tryRetry = async (urlIndex, statusKey, reason, response = null, releaseBeforeWait = null) => {
       const { attempts, delayMs } = resolveRetryEntry(retryConfig[statusKey]);
       if (attempts <= 0 || retryAttemptsByUrl[urlIndex] >= attempts) return false;
       // Hook: subclass may derive delay from the response (headers/body). null → skip retry, use fallback.
@@ -182,7 +205,9 @@ export class BaseExecutor {
       }
       retryAttemptsByUrl[urlIndex]++;
       log?.debug?.("RETRY", `${reason} retry ${retryAttemptsByUrl[urlIndex]}/${attempts} after ${waitMs / 1000}s`);
-      await new Promise(resolve => setTimeout(resolve, waitMs));
+      response?.body?.cancel?.()?.catch?.(() => {});
+      releaseBeforeWait?.();
+      await waitForRetry(waitMs, signal);
       return true;
     };
 
@@ -230,13 +255,17 @@ export class BaseExecutor {
           const cl = response.headers?.get?.("content-length") || "?";
           dbg("FETCH", `${this.provider.toUpperCase()} ← ${response.status} | ttft=${Date.now() - fetchT0}ms | ct=${ct} | cl=${cl}`);
 
-          if (await tryRetry(urlIndex, response.status, `status ${response.status}`, response)) {
+          if (await tryRetry(urlIndex, response.status, `status ${response.status}`, response, () => {
+            releaseSlot?.();
+            releaseSlot = null;
+          })) {
             urlIndex--;
             continue;
           }
 
           if (this.shouldRetry(response.status, urlIndex)) {
             log?.debug?.("RETRY", `${response.status} on ${url}, trying fallback ${urlIndex + 1}`);
+            response.body?.cancel?.()?.catch?.(() => {});
             lastStatus = response.status;
             // 5xx = provider-side health problem → feed the circuit breaker.
             // 429 (quota) is account-scoped and already cooled down elsewhere.
@@ -271,7 +300,10 @@ export class BaseExecutor {
           recordFailure(this.provider, connectionId);
 
           // Map network/fetch exceptions to 502 retry config
-          if (await tryRetry(urlIndex, HTTP_STATUS.BAD_GATEWAY, `network "${error.message}"`)) { urlIndex--; continue; }
+          if (await tryRetry(urlIndex, HTTP_STATUS.BAD_GATEWAY, `network "${error.message}"`, null, () => {
+            releaseSlot?.();
+            releaseSlot = null;
+          })) { urlIndex--; continue; }
 
           if (urlIndex + 1 < fallbackCount) {
             log?.debug?.("RETRY", `Error on ${url}, trying fallback ${urlIndex + 1}`);

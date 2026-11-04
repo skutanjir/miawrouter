@@ -23,6 +23,25 @@ afterEach(() => {
 });
 
 describe("Driver fallback chain", () => {
+  it("removes process listeners when an adapter closes", async () => {
+    const { createBetterSqliteAdapter } = await import("@/lib/db/adapters/betterSqliteAdapter.js");
+    const signals = ["beforeExit", "SIGINT", "SIGTERM"];
+    const before = signals.map((signal) => process.listenerCount(signal));
+    const adapter = createBetterSqliteAdapter(":memory:");
+    expect(signals.map((signal) => process.listenerCount(signal))).toEqual(before.map((n) => n + 1));
+    adapter.close();
+    expect(signals.map((signal) => process.listenerCount(signal))).toEqual(before);
+  });
+
+  const [nodeMajor, nodeMinor] = process.versions.node.split(".").map(Number);
+  it.skipIf(nodeMajor < 22 || (nodeMajor === 22 && nodeMinor < 5))("does not replace process.emit when opening node:sqlite", async () => {
+    const { createNodeSqliteAdapter } = await import("@/lib/db/adapters/nodeSqliteAdapter.js");
+    const emit = process.emit;
+    const adapter = await createNodeSqliteAdapter(":memory:");
+    expect(process.emit).toBe(emit);
+    adapter.close();
+  });
+
   it("default → picks better-sqlite3 when available", async () => {
     const { getAdapter } = await import("@/lib/db/driver.js");
     const db = await getAdapter();

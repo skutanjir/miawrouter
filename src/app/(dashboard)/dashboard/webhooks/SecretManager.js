@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Modal, Button, Badge } from "@/shared/components";
 import { useNotificationStore } from "@/store/notificationStore";
 
+import { Icon } from "@/shared/components/Icon";
+
 export default function SecretManager({ webhook, onClose, onUpdate }) {
   const [loading, setLoading] = useState(false);
   const [confirmRotate, setConfirmRotate] = useState(false);
@@ -48,95 +50,80 @@ export default function SecretManager({ webhook, onClose, onUpdate }) {
   };
 
   return (
-    <Modal isOpen onClose={onClose} title="Signing Secret" size="md">
+    <Modal isOpen onClose={onClose} title="Signing secret" size="md">
       <div className="flex flex-col gap-4">
         {oneTimeSecret && (
-          <div className="rounded-lg border border-green-500/30 bg-green-500/5 p-4">
-            <p className="text-sm font-medium text-text-main mb-1">Copy this secret now</p>
-            <p className="text-xs text-text-muted mb-3">For security, the full signing secret will not be shown again after this dialog closes.</p>
-            <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 break-all rounded bg-bg px-3 py-2 text-xs text-text-main">{oneTimeSecret}</code>
-              <Button variant="secondary" size="sm" icon="content_copy" onClick={copySecret}>Copy Secret</Button>
+          <div className="rounded-md border border-success/30 bg-success/10 p-3.5">
+            <p className="text-sm font-medium text-text-main">Copy this secret now</p>
+            <p className="mt-0.5 text-[13px] text-text-muted">
+              The full signing secret is never shown again after this dialog closes.
+            </p>
+            <div className="mt-3 flex items-center gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs text-text-main">
+                {oneTimeSecret}
+              </code>
+              <Button variant="secondary" size="sm" icon="content_copy" onClick={copySecret}>
+                Copy
+              </Button>
             </div>
           </div>
         )}
 
         {/* Current state */}
-        <div className="rounded-lg bg-bg border border-border-subtle p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-[18px] text-text-muted">
-              key
-            </span>
-            <h3 className="text-sm font-medium text-text-main">
-              Current Status
-            </h3>
+        <div className="rounded-md border border-border-subtle bg-surface-2/40 p-3.5">
+          <h3 className="text-[13px] font-medium text-text-main">Current status</h3>
+          <div className="mt-2 flex items-center gap-2">
+            {hasSecret ? (
+              <>
+                <Badge variant="success" size="sm" dot>
+                  Active
+                </Badge>
+                {secretPreview && (
+                  <span className="font-mono text-xs text-text-muted">{secretPreview}</span>
+                )}
+              </>
+            ) : (
+              <>
+                <Badge variant="default" size="sm">
+                  No secret
+                </Badge>
+                <span className="text-xs text-text-muted">Payloads are not signed</span>
+              </>
+            )}
           </div>
-          {hasSecret ? (
-            <div className="flex items-center gap-2">
-              <Badge variant="success" size="sm" dot>
-                Active
-              </Badge>
-              {secretPreview && <span className="text-xs font-mono text-text-muted">{secretPreview}</span>}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Badge variant="default" size="sm">
-                No secret
-              </Badge>
-              <span className="text-xs text-text-muted">
-                Payloads are not signed
-              </span>
-            </div>
-          )}
         </div>
 
         {/* How verification works */}
-        <div className="text-xs text-text-muted space-y-2">
+        <div className="flex flex-col gap-2 text-[13px] text-text-muted">
           <p>
-            <strong className="text-text-main">How it works:</strong> Each
-            delivery includes an{" "}
-            <code className="bg-surface-2 px-1 rounded text-[11px]">
-              x-miaw-signature
-            </code>{" "}
-            header with the HMAC-SHA256 digest of{" "}
-            <code className="bg-surface-2 px-1 rounded text-[11px]">
-              timestamp.body
-            </code>, keyed with your secret.
+            <strong className="font-medium text-text-main">How it works:</strong> every delivery
+            includes an <code className="font-mono text-xs">x-miaw-signature</code> header holding the
+            HMAC-SHA256 digest of <code className="font-mono text-xs">timestamp.body</code>, keyed with
+            your secret.
           </p>
-          <div className="rounded-lg bg-bg border border-border-subtle p-3">
-            <p className="font-mono text-[11px]">
-              signature = HMAC-SHA256(secret, timestamp + &quot;.&quot; + body)
-            </p>
-            <p className="font-mono text-[11px] mt-1">
-              x-miaw-signature: sha256=&#123;hex_digest&#125;
-            </p>
-            <p className="font-mono text-[11px] mt-1">
-              x-miaw-timestamp: &#123;unix_seconds&#125;
-            </p>
-          </div>
+          <pre className="overflow-x-auto rounded-md border border-border-subtle bg-surface-2/40 p-3 font-mono text-[11px] leading-relaxed text-text-main">
+{`signature = HMAC-SHA256(secret, timestamp + "." + body)
+x-miaw-signature: sha256={hex_digest}
+x-miaw-timestamp: {unix_seconds}`}
+          </pre>
           <p>
-            Verify by computing the same HMAC and comparing with
-            timing-safe equality. Reject deliveries with timestamps older
-            than 5 minutes to prevent replay attacks.
+            Verify by computing the same HMAC and comparing with timing-safe equality. Reject
+            deliveries with timestamps older than 5 minutes to prevent replays.
           </p>
         </div>
 
         {/* Security note */}
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
-          <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-[16px] text-amber-600 mt-0.5">
-              warning
-            </span>
-            <p className="text-xs text-amber-700 dark:text-amber-400">
-              The full secret is returned only at creation and remains stored server-side. Only a
-              masked preview is returned later. Rotation immediately replaces the
-              current secret, so update your receiving endpoint as soon as you copy the new value.
-            </p>
-          </div>
+        <div className="flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 px-3 py-2">
+          <Icon name="warning" className="mt-0.5 text-[16px] text-warning" />
+          <p className="text-xs leading-relaxed text-text-muted">
+            The full secret is returned only at creation and stays stored server-side; later reads
+            return a masked preview. Rotation replaces the current secret immediately, so update the
+            receiving endpoint as soon as you copy the new value.
+          </p>
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-2 pt-2 border-t border-border-subtle">
+        <div className="border-t border-border-subtle pt-4">
           {!confirmRotate ? (
             <Button
               variant="primary"
@@ -146,14 +133,15 @@ export default function SecretManager({ webhook, onClose, onUpdate }) {
               onClick={() => setConfirmRotate(true)}
               fullWidth
             >
-              Rotate Secret
+              Rotate secret
             </Button>
           ) : (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-              <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">
-                This immediately replaces the current signing secret. The new secret will be shown once after rotation; copy it and update your receiving endpoint promptly.
+            <div className="rounded-md border border-warning/30 bg-warning/10 p-3.5">
+              <p className="text-[13px] leading-relaxed text-text-muted">
+                This immediately replaces the current signing secret. The new secret is shown once
+                after rotation — copy it and update the receiving endpoint promptly.
               </p>
-              <div className="flex gap-2">
+              <div className="mt-3 flex gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -162,13 +150,8 @@ export default function SecretManager({ webhook, onClose, onUpdate }) {
                 >
                   Cancel
                 </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  loading={loading}
-                  onClick={handleRotate}
-                >
-                  Confirm Rotate
+                <Button variant="primary" size="sm" loading={loading} onClick={handleRotate}>
+                  Confirm rotation
                 </Button>
               </div>
             </div>

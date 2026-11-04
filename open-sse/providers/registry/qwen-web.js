@@ -22,7 +22,10 @@ export default {
     format: "openai",
   },
   models: [
-    { id: "qwen3.8-max-preview", name: "Qwen3.8 Max Preview" },
+    { id: "qwen3.8-max-preview", name: "Qwen 3.8 Max Preview", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
+    { id: "qwen3.8-max", name: "Qwen 3.8 Max", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
+    { id: "qwen3.8-max-0902", name: "Qwen 3.8 Max (09-02)", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
+    { id: "qwen3.8-flash", name: "Qwen 3.8 Flash", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
     { id: "qwen3.7-max", name: "Qwen3.7 Max" },
     { id: "qwen3.7-plus", name: "Qwen3.7 Plus" },
     { id: "qwen3.6-plus", name: "Qwen3.6 Plus" },

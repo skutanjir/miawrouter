@@ -6,21 +6,23 @@ import { FREE_TIER_MODEL_RECORDS } from "../../open-sse/config/freeTierCatalog.j
 import { OpenCodeExecutor } from "../../open-sse/executors/opencode.js";
 import { AI_PROVIDERS } from "../../src/shared/constants/providers.js";
 
-// Snapshot of https://opencode.ai/zen/v1/models free ids, verified 2026-09-18.
+// Snapshot of https://opencode.ai/zen/v1/models free ids, verified 2026-10-16.
 // Both the keyless `opencode` provider and the API-key `opencode-zen` provider
 // read the same catalog, so their static fallback lists must agree with it.
 // Refresh procedure: GET https://opencode.ai/zen/v1/models and take every id
 // that ends in "-free" plus "big-pickle".
 const LIVE_FREE_IDS = [
   "big-pickle",
-  "deepseek-v4-flash-free",
+  "cat-jam-free",
+  "deepseek-v4.1-flash-free",
+  "jev-1.13-free",
+  "longcat-2.5-preview-free",
   "mimo-v2.6-flash-free",
-  "mimo-v2.5-free",
-  "ling-3.0-flash-fin-free",
   "muse-spark-1.2-contributor-free",
   "muse-spark-1.3-contributor-free",
-  "nemotron-3-ultra-free",
   "nemotron-3.5-lightning-free",
+  "nemotron-3.5-super-vl-free",
+  "space-bunny-free",
 ];
 
 // Free ids the registry used to advertise but upstream now answers with

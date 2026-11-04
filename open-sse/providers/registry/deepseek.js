@@ -41,10 +41,10 @@ export default {
     },
   ],
   models: [
-    { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
-    { id: "deepseek-flash", name: "DeepSeek V4.1 Flash", supportsReasoning: true, supportsVision: true, contextLength: 1000000, maxOutputTokens: 384000 },
-    { id: "deepseek-v4-flash", name: "DeepSeek V4.1 Flash (Legacy ID)", supportsReasoning: true, supportsVision: true, contextLength: 1000000, maxOutputTokens: 384000 },
-    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4.1 Flash (Legacy Vision ID)", supportsReasoning: true, supportsVision: true, contextLength: 1000000, maxOutputTokens: 384000 },
+    { id: "deepseek-flash", name: "DeepSeek V4.1 Flash", supportsReasoning: true, supportsVision: true, contextLength: 1000000, toolCalling: true },
+    { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", contextLength: 1000000, supportsReasoning: true, toolCalling: true },
+    { id: "deepseek-v4-flash", name: "DeepSeek V4.1 Flash (Compatibility ID)", supportsReasoning: true, supportsVision: true, contextLength: 1000000, maxOutputTokens: 384000, toolCalling: true },
+    { id: "deepseek-v4-flash-vision-exp", name: "DeepSeek V4.1 Flash (Compatibility ID)", supportsReasoning: true, supportsVision: true, contextLength: 1000000, maxOutputTokens: 384000, toolCalling: true },
   ],
   features: {
     usage: true,

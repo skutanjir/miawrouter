@@ -1,28 +1,31 @@
 "use client";
 
 import { useEffect } from "react";
-import { Card, CardSkeleton, Toggle } from "@/shared/components";
+import { CardSkeleton, Toggle, Badge } from "@/shared/components";
 import { FEATURE_FLAGS } from "@/lib/settings/dashboardSettings";
 import useSettingsStore from "@/store/settingsStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { ConfigSection, ConfigRow } from "../../components/ConfigSection";
+
+import { Icon } from "@/shared/components/Icon";
 
 // Categories for backend flags
 const FLAG_CATEGORIES = [
   {
     id: "reasoning-agent",
-    title: "Reasoning & Agent Architecture",
+    title: "Reasoning & agent architecture",
     icon: "psychology",
     keys: ["hermesAutonomyEnabled", "aiMemoryEnabled", "aiMemoryAutoCapture", "antiSlopEnabled"],
   },
   {
     id: "caching-dedup",
-    title: "Caching & Content Deduplication",
+    title: "Caching & content deduplication",
     icon: "database",
     keys: ["cacheL2Enabled", "cacheL3Enabled"],
   },
   {
     id: "proxy-transforms",
-    title: "Proxy & Compression Transforms",
+    title: "Proxy & compression transforms",
     icon: "transform",
     keys: ["headroomEnabled", "pxpipeEnabled"],
   },
@@ -43,15 +46,15 @@ export default function FeatureFlagsClient() {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-          <span className="material-symbols-outlined text-primary">flag</span>
-          Feature Flags
-        </h1>
-        <p className="text-sm text-text-muted">
-          Configure experimental and advanced runtime behaviors. Changes persist immediately in MiawRouter settings.
-        </p>
+    <div className="flex flex-col gap-6">
+      <div className="workspace-heading">
+        <div>
+          <h1>Feature flags</h1>
+          <p>
+            Runtime behavior switches that are not part of the routing tables. Each change is written
+            to settings immediately — there is no save step.
+          </p>
+        </div>
       </div>
 
       {loading && !settings ? (
@@ -63,43 +66,50 @@ export default function FeatureFlagsClient() {
             if (flags.length === 0) return null;
 
             return (
-              <Card
+              <ConfigSection
                 key={category.id}
                 title={category.title}
                 icon={category.icon}
-                padding="sm"
+                subtitle={`${flags.length} flag${flags.length === 1 ? "" : "s"}`}
               >
-                <div className="divide-y divide-border-subtle">
-                  {flags.map((flag) => (
-                    <div
+                {flags.map((flag) => {
+                  const enabled = settings?.[flag.key] === true;
+                  return (
+                    <ConfigRow
                       key={flag.key}
-                      className="flex items-start justify-between gap-4 py-3.5 first:pt-0 last:pb-0"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-xs sm:text-sm text-text-main">
-                          {flag.name}
-                        </p>
-                        <p className="mt-0.5 text-xs text-text-muted leading-relaxed">
-                          {flag.description}
-                        </p>
-                        <code className="mt-1 inline-block font-mono text-[10px] text-text-muted bg-surface-2 px-1.5 py-0.5 rounded border border-border-subtle">
-                          {flag.key}
-                        </code>
-                      </div>
-                      <div className="shrink-0 pt-0.5">
+                      label={flag.name}
+                      help={flag.description}
+                      badge={
+                        <Badge variant={enabled ? "success" : "default"} size="sm">
+                          {enabled ? "On" : "Off"}
+                        </Badge>
+                      }
+                      control={
                         <Toggle
-                          checked={settings?.[flag.key] === true}
-                          onChange={(enabled) => setFlag(flag, enabled)}
+                          checked={enabled}
+                          onChange={(value) => setFlag(flag, value)}
                           disabled={!settings || loading}
                           ariaLabel={`Toggle ${flag.name}`}
                         />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                      }
+                    >
+                      <code className="mt-1.5 inline-block rounded-md border border-border-subtle bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-text-muted">
+                        {flag.key}
+                      </code>
+                    </ConfigRow>
+                  );
+                })}
+              </ConfigSection>
             );
           })}
+
+          <div className="flex items-start gap-3 rounded-[10px] border border-border-subtle bg-surface-2/40 p-4">
+            <Icon name="info" className="mt-0.5 text-[16px] text-text-muted" />
+            <p className="text-[13px] leading-relaxed text-text-muted">
+              Flags here mirror the same keys the router reads at request time. Caching and transform
+              flags can also be changed from the Cache and Token saver pages — the value is shared.
+            </p>
+          </div>
         </div>
       )}
     </div>

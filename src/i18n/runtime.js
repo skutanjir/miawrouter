@@ -82,8 +82,9 @@ function processTextNode(node) {
   
   if (skipTags.includes(tagName)) return;
   
-  // Store original text if not already stored
-  if (!node._originalText) {
+  // React reuses text nodes when titles, statuses, and live totals change.
+  // Keep the last translation so a new React value becomes the new source.
+  if (!node._originalText || node.nodeValue !== node._translatedText) {
     node._originalText = node.nodeValue;
   }
   
@@ -95,6 +96,7 @@ function processTextNode(node) {
   if (translated !== node.nodeValue) {
     node.nodeValue = translated;
   }
+  node._translatedText = translated;
 }
 
 // Process all text nodes in element

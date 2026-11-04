@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { Card, Button } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
 const fmtTokens = (n) => {
   if (n >= 1000000) return `${(n / 1000000).toFixed(2)}M`;
   if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
@@ -51,9 +52,9 @@ const REASON_LABELS = {
 function SummaryCard({ label, value, sub, tone }) {
   return (
     <Card className="p-4">
-      <p className="text-xs text-text-muted uppercase tracking-wide">{label}</p>
-      <p className={`text-xl font-semibold mt-1 ${tone || ""}`}>{value}</p>
-      {sub && <p className="text-xs text-text-muted mt-0.5">{sub}</p>}
+      <p className="text-xs text-text-muted">{label}</p>
+      <p className={`mt-1 text-xl font-semibold tabular-nums ${tone || "text-text-main"}`}>{value}</p>
+      {sub && <p className="mt-0.5 text-xs text-text-muted">{sub}</p>}
     </Card>
   );
 }
@@ -102,14 +103,14 @@ export default function PxpipeClient() {
           : "Stopped";
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">image</span>
-          PXPIPE Dashboard
-        </h2>
+    <div className="mx-auto w-full max-w-7xl space-y-5 px-1 sm:px-0">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-[22px] font-semibold text-text-main">PXPIPE</h1>
+          <p className="mt-1 text-sm text-text-muted">Compression status and recent activity.</p>
+        </div>
         <div className="flex items-center gap-2">
-          <a href="/dashboard/token-saver" className="text-xs text-primary underline hover:opacity-80">
+          <a href="/dashboard/token-saver" className="text-sm text-primary hover:underline">
             Token Saver settings
           </a>
           <Button size="sm" variant="ghost" onClick={refresh} disabled={loading}>
@@ -118,7 +119,8 @@ export default function PxpipeClient() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+
         <SummaryCard
           label="Status"
           value={statusLabel}
@@ -135,15 +137,15 @@ export default function PxpipeClient() {
       <Card className="p-4">
         <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
           <h3 className="font-medium">Token savings (estimated)</h3>
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-bg-subtle p-1">
+          <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
             {WINDOW_TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setWindowId(tab.id)}
-                className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
                   windowId === tab.id
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-text-muted hover:text-text hover:bg-bg-hover"
+                    ? "bg-primary text-bg"
+                    : "text-text-muted hover:bg-surface-2 hover:text-text-main"
                 }`}
               >
                 {tab.label}
@@ -182,17 +184,11 @@ export default function PxpipeClient() {
         {stats?.timeline?.some((d) => d.tokensSavedEst > 0) ? (
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={stats.timeline} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gradPxpipe" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
+              <CartesianGrid stroke="var(--color-border-subtle)" strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => d.slice(5)} />
               <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtTokens} width={48} />
               <Tooltip formatter={(v) => [fmtTokens(v), "Tokens saved"]} labelFormatter={(d) => d} />
-              <Area type="monotone" dataKey="tokensSavedEst" stroke="#10b981" fill="url(#gradPxpipe)" strokeWidth={2} />
+              <Area type="monotone" dataKey="tokensSavedEst" stroke="var(--color-primary)" fill="none" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
@@ -271,7 +267,7 @@ export default function PxpipeClient() {
       <Card className="p-4" id="logs">
         <h3 className="font-medium mb-3">PXPIPE Logs</h3>
         {logs?.installLog ? (
-          <pre className="rounded bg-black/5 dark:bg-white/5 p-3 text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap">
+          <pre className="rounded bg-surface-2 p-3 text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap">
             {logs.installLog}
           </pre>
         ) : (

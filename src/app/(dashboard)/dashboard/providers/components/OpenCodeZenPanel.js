@@ -5,6 +5,7 @@ import { Toggle } from "@/shared/components";
 import { cn } from "@/shared/utils/cn";
 import { getRelativeTime } from "@/shared/utils";
 
+import { Icon } from "@/shared/components/Icon";
 const PREVIEW_IDS = 3;
 
 function DiffList({ items, kind }) {
@@ -19,7 +20,7 @@ function DiffList({ items, kind }) {
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
         <span className="w-1 h-2.5 rounded-full bg-primary/60 shrink-0" aria-hidden="true" />
-        <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-text-muted">
+        <span className="text-[10px] font-mono font-semibold text-text-muted">
           {kind} ({ids.length})
         </span>
       </div>
@@ -27,7 +28,7 @@ function DiffList({ items, kind }) {
         {shown.map((id) => (
           <span
             key={id}
-            className="font-mono text-[11px] tabular-nums rounded px-2 py-0.5 truncate max-w-[180px] bg-surface-2 border border-border-subtle text-text-muted hover:text-text-main transition-colors"
+            className="font-mono text-[11px] tabular-nums rounded-md px-2 py-0.5 truncate max-w-[180px] bg-surface-2 border border-border-subtle text-text-muted hover:text-text-main transition-colors"
             title={id}
           >
             {id}
@@ -38,7 +39,7 @@ function DiffList({ items, kind }) {
             type="button"
             id={buttonId}
             onClick={() => setExpanded((v) => !v)}
-            className="text-[11px] font-mono font-medium rounded px-2 py-0.5 border border-dashed border-border text-text-muted hover:text-text-main hover:border-primary/40 bg-surface transition-colors cursor-pointer"
+            className="text-[11px] font-mono font-medium rounded-md px-2 py-0.5 border border-dashed border-border text-text-muted hover:text-text-main hover:border-primary/40 bg-surface transition-colors cursor-pointer"
             aria-expanded={expanded}
             aria-controls={listId}
             aria-label={expanded ? `Collapse ${kind} models` : `Show ${hidden} more ${kind} models`}
@@ -123,15 +124,15 @@ export default function OpenCodeZenPanel() {
   const catalogError = catalog?.error || null;
 
   return (
-    <div className="rounded-xl border border-border-subtle bg-surface p-4 flex flex-col gap-3 shadow-soft">
+    <div className="rounded-[10px] border border-border-subtle bg-surface p-4 flex flex-col gap-3">
       {/* Control console header strip */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-border-subtle">
         <div className="flex items-center gap-2 min-w-0">
           <span className="w-1 h-3.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
-          <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-text-main truncate">
+          <h2 className="text-[15px] font-semibold text-text-main truncate">
             OpenCode Zen Catalog
           </h2>
-          <span className="text-[10px] font-mono font-medium uppercase tracking-wider text-text-muted px-1.5 py-0.5 rounded border border-border-subtle bg-surface-2 shrink-0">
+          <span className="text-[10px] font-mono font-medium text-text-muted px-1.5 py-0.5 rounded-md border border-border-subtle bg-surface-2 shrink-0">
             Telemetry
           </span>
         </div>
@@ -142,7 +143,7 @@ export default function OpenCodeZenPanel() {
 
       <div
         role="note"
-        className="rounded-lg px-3 py-2 text-xs leading-relaxed bg-primary/5 border border-primary/15 text-text-muted"
+        className="rounded-[10px] px-3 py-2 text-xs leading-relaxed bg-primary/5 border border-primary/15 text-text-muted"
       >
         <span className="font-medium text-text-main">Honest status:</span>{" "}
         OpenCode Free through MiawRouter is gated upstream (not keyless here).
@@ -155,7 +156,7 @@ export default function OpenCodeZenPanel() {
         {catalogLoadError && (
           <div
             role="alert"
-            className="rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/20 text-red-500"
+            className="rounded-[10px] px-3 py-2 text-xs bg-danger/10 border border-danger/20 text-danger"
           >
             Could not load the Zen catalog: {catalogLoadError}
           </div>
@@ -163,7 +164,7 @@ export default function OpenCodeZenPanel() {
         {settingsLoadError && (
           <div
             role="alert"
-            className="rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/20 text-red-500"
+            className="rounded-[10px] px-3 py-2 text-xs bg-danger/10 border border-danger/20 text-danger"
           >
             Could not load settings — the free-only toggle is unavailable: {settingsLoadError}
           </div>
@@ -172,31 +173,31 @@ export default function OpenCodeZenPanel() {
         {catalog && (
           <>
             {/* Metric strip */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-2.5 rounded-lg bg-surface-2 border border-border-subtle">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-2.5 rounded-[10px] bg-surface-2 border border-border-subtle">
               <div className="flex flex-col">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Free Models</span>
+                <span className="text-[10px] font-mono text-text-muted">Free Models</span>
                 <span className="font-mono tabular-nums text-lg sm:text-xl font-bold text-text-main">
                   {freeCount}
                   <span className="text-xs font-normal text-text-muted ml-1">/ {total}</span>
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Catalog Ratio</span>
+                <span className="text-[10px] font-mono text-text-muted">Catalog Ratio</span>
                 <span className="font-mono tabular-nums text-lg sm:text-xl font-bold text-primary">
                   {total > 0 ? `${Math.round((freeCount / total) * 100)}%` : "0%"}
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Status</span>
+                <span className="text-[10px] font-mono text-text-muted">Status</span>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span
                     className={cn(
                       "size-2 rounded-full shrink-0",
                       catalogError
-                        ? "bg-red-500"
+                        ? "bg-danger"
                         : stale
-                          ? "bg-amber-500"
-                          : "bg-emerald-500"
+                          ? "bg-warning"
+                          : "bg-success"
                     )}
                     aria-hidden="true"
                   />
@@ -206,7 +207,7 @@ export default function OpenCodeZenPanel() {
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">Last Refresh</span>
+                <span className="text-[10px] font-mono text-text-muted">Last Refresh</span>
                 <span className="text-xs font-mono text-text-muted truncate mt-0.5" title={fetchedAt ? new Date(fetchedAt).toLocaleString() : "never"}>
                   {fetchedAt ? getRelativeTime(new Date(fetchedAt).toISOString()) : "never"}
                 </span>
@@ -216,9 +217,9 @@ export default function OpenCodeZenPanel() {
             {stale && !catalogError && (
               <div
                 role="status"
-                className="rounded-lg px-3 py-2 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center gap-2"
+                className="rounded-[10px] px-3 py-2 text-xs bg-warning/10 border border-warning/20 text-warning flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-[16px] shrink-0" aria-hidden="true">schedule</span>
+                <Icon name={"schedule"} className=" text-[16px] shrink-0" aria-hidden="true" />
                 <span>Catalog may be outdated — next refresh pending.</span>
               </div>
             )}
@@ -226,9 +227,9 @@ export default function OpenCodeZenPanel() {
             {catalogError && (
               <div
                 role="alert"
-                className="rounded-lg px-3 py-2 text-xs bg-red-500/10 border border-red-500/20 text-red-500 flex items-center gap-2"
+                className="rounded-[10px] px-3 py-2 text-xs bg-danger/10 border border-danger/20 text-danger flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-[16px] shrink-0" aria-hidden="true">error</span>
+                <Icon name={"error"} className=" text-[16px] shrink-0" aria-hidden="true" />
                 <span>Catalog unavailable: {catalogError}</span>
               </div>
             )}
@@ -236,9 +237,9 @@ export default function OpenCodeZenPanel() {
             {unknownRetention > 0 && (
               <div
                 role="status"
-                className="rounded-lg px-3 py-2 text-xs bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 flex items-start gap-2"
+                className="rounded-[10px] px-3 py-2 text-xs bg-warning/10 border border-warning/20 text-warning flex items-start gap-2"
               >
-                <span className="material-symbols-outlined text-[16px] text-amber-500 shrink-0 mt-0.5" aria-hidden="true">warning</span>
+                <Icon name={"warning"} className=" text-[16px] text-warning shrink-0 mt-0.5" aria-hidden="true" />
                 <span>
                   <strong>Retention warning:</strong> {unknownRetention} model{unknownRetention === 1 ? "" : "s"} have unknown data
                   retention — treat as unsafe. Zen may retain and train on submitted data for some free
@@ -254,7 +255,7 @@ export default function OpenCodeZenPanel() {
             </div>
 
             {/* One settings row */}
-            <div className="flex flex-col gap-1 rounded-lg px-3 py-2.5 bg-surface-2 border border-border-subtle">
+            <div className="flex flex-col gap-1 rounded-[10px] px-3 py-2.5 bg-surface-2 border border-border-subtle">
               <Toggle
                 checked={zenFreeOnly === true}
                 onChange={handleToggle}
@@ -263,7 +264,7 @@ export default function OpenCodeZenPanel() {
                 description="When on, only route Zen models marked free — still requires a Zen API key"
               />
               {saveError && (
-                <p className="text-xs text-red-500 mt-1" role="alert">
+                <p className="text-xs text-danger mt-1" role="alert">
                   {saveError}
                 </p>
               )}

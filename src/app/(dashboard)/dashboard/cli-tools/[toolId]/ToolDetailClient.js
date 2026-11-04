@@ -11,6 +11,7 @@ import {
   CopilotToolCard, ClineToolCard, KiloToolCard, DeepSeekTuiToolCard,
   JcodeToolCard, GrokBuildToolCard,
 } from "../components";
+import { Icon } from "@/shared/components/Icon";
 
 const CLOUD_URL = process.env.NEXT_PUBLIC_CLOUD_URL;
 
@@ -178,7 +179,7 @@ export default function ToolDetailClient({ toolId, machineId }) {
     return (
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:px-0">
         <Link href="/dashboard/cli-tools" className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary w-fit">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          <Icon name={"arrow_back"} className=" text-[18px]" />
           Back to CLI Tools
         </Link>
         <p className="text-sm text-text-muted">Tool not found or disabled.</p>
@@ -187,14 +188,16 @@ export default function ToolDetailClient({ toolId, machineId }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-1 sm:px-0">
-      <Link href="/dashboard/cli-tools" className="inline-flex items-center gap-1 text-sm text-text-muted hover:text-primary w-fit">
-        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-        Back to CLI Tools
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-1 sm:px-0">
+      <Link href="/dashboard/cli-tools" className="inline-flex w-fit items-center gap-1 text-sm text-text-muted transition-colors hover:text-primary">
+        <Icon name={"arrow_back"} className="text-[18px]" />
+        CLI tools
       </Link>
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-text-main sm:text-2xl">{tool.name}</h1>
-        <p className="text-sm text-text-muted">{tool.description}</p>
+      <div className="workspace-heading">
+        <div>
+          <h1>{tool.name}</h1>
+          <p>{tool.description}</p>
+        </div>
       </div>
       {loading ? <CardSkeleton /> : renderToolCard()}
     </div>

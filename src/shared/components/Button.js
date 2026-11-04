@@ -1,20 +1,21 @@
 "use client";
 
 import { cn } from "@/shared/utils/cn";
+import { Icon } from "@/shared/components/Icon";
 
 const variants = {
-  primary: "bg-brand-500 hover:bg-brand-600 text-white shadow-sm disabled:bg-surface-3 disabled:text-text-muted",
-  secondary: "bg-surface-2 hover:bg-surface-3 text-text-main border border-border disabled:opacity-50",
-  outline: "border border-border text-text-main hover:bg-surface-2 hover:border-primary/40",
+  primary: "bg-primary text-bg font-semibold hover:bg-primary-hover shadow-xs disabled:bg-surface-2 disabled:text-text-muted",
+  secondary: "border border-border bg-surface-2/80 text-text-main hover:bg-surface-3 hover:border-border shadow-2xs",
+  outline: "border border-border bg-transparent text-text-main hover:bg-surface-2",
   ghost: "text-text-muted hover:bg-surface-2 hover:text-text-main",
-  danger: "bg-red-500 hover:bg-red-600 text-white shadow-sm disabled:bg-surface-3 disabled:text-text-muted",
-  success: "bg-green-600 hover:bg-green-700 text-white shadow-sm disabled:bg-surface-3 disabled:text-text-muted",
+  danger: "bg-danger text-white hover:bg-danger/90 shadow-xs disabled:bg-surface-2 disabled:text-text-muted",
+  success: "bg-success text-bg font-semibold hover:bg-success/90 shadow-xs disabled:bg-surface-2 disabled:text-text-muted",
 };
 
 const sizes = {
-  sm: "min-h-9 px-3 text-xs rounded-[6px]",
-  md: "h-9 px-4 text-sm rounded-[var(--radius-brand)]",
-  lg: "h-11 px-6 text-sm rounded-[var(--radius-brand)]",
+  sm: "h-7.5 px-2.5 text-xs rounded-lg",
+  md: "h-9 px-3.5 text-[13.5px] rounded-lg",
+  lg: "h-10.5 px-4.5 text-sm rounded-lg",
 };
 
 export default function Button({
@@ -32,24 +33,26 @@ export default function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 font-semibold transition-colors duration-150 ease-out cursor-pointer",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50 disabled:cursor-not-allowed",
-        variants[variant],
+        "ui-button",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 cursor-pointer",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-50 disabled:cursor-not-allowed",
+        variants[variant] || variants.primary,
         sizes[size],
         fullWidth && "w-full",
         className
       )}
       disabled={disabled || loading}
+      data-variant={variant}
       {...props}
     >
       {loading ? (
-        <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+        <Icon name={"progress_activity"} className="animate-spin text-[17px]" />
       ) : icon ? (
-        <span className="material-symbols-outlined text-[18px]">{icon}</span>
+        <Icon name={icon} className="text-[17px]" />
       ) : null}
       {children}
       {iconRight && !loading && (
-        <span className="material-symbols-outlined text-[18px]">{iconRight}</span>
+        <Icon name={iconRight} className="text-[17px]" />
       )}
     </button>
   );

@@ -1,13 +1,13 @@
 "use client";
 
 import { cn } from "@/shared/utils/cn";
+import { Icon } from "@/shared/components/Icon";
 
 const variants = {
-  default: "bg-surface border-border-subtle",
-  metric: "bg-surface border-border-subtle",
-  section: "bg-surface-2 border-border-subtle",
-  interactive:
-    "bg-surface border-border hover:border-primary/50 hover:bg-surface-2 focus-within:border-primary focus-within:shadow-[var(--shadow-focus)]",
+  default: "bg-surface border-border",
+  metric: "bg-surface border-border",
+  section: "bg-surface border-border",
+  interactive: "bg-surface border-border hover:border-primary/45 focus-within:border-primary",
   danger: "bg-surface border-danger/35",
 };
 
@@ -27,39 +27,40 @@ export default function Card({
   const paddings = {
     none: "",
     xs: "p-3",
-    sm: "p-3.5",
+    sm: "p-4",
     md: "p-5",
-    lg: "p-7",
+    lg: "p-6",
   };
 
   return (
     <div
       className={cn(
-        "border rounded-[var(--radius-brand)]",
+        "ui-card",
+        "border rounded-xl",
         variants[variant] || variants.default,
-        elev ? "rounded-[var(--radius-brand-lg)] shadow-[var(--shadow-elev)]" : "shadow-[var(--shadow-soft)]",
-        (hover || variant === "interactive") && "transition-colors",
-        hover && "hover:border-primary/40",
-        variant === "metric" && "tabular-nums",
+        elev ? "shadow-elev" : "shadow-soft",
+        (hover || variant === "interactive") && "transition-all duration-150",
+        hover && "hover:border-primary/45 hover:shadow-warm",
         paddings[padding],
         className
       )}
+      data-variant={variant}
       {...props}
     >
       {(title || action) && (
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3 min-w-0">
             {icon && (
-              <div className="size-7 rounded flex items-center justify-center bg-bg border border-border-subtle text-text-muted shrink-0">
-                <span className="material-symbols-outlined text-[17px]">{icon}</span>
+              <div className="icon-box text-primary shrink-0">
+                <Icon name={icon} weight="duotone" className="text-[18px]" />
               </div>
             )}
-            <div>
+            <div className="min-w-0">
               {title && (
-                <h3 className="text-text-main font-semibold text-sm tracking-tight">{title}</h3>
+                <h3 className="ui-card-title text-text-main font-semibold text-[15px] tracking-tight leading-snug">{title}</h3>
               )}
               {subtitle && (
-                <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
+                <p className="text-[12.5px] text-text-muted mt-0.5 leading-relaxed">{subtitle}</p>
               )}
             </div>
           </div>
@@ -75,8 +76,8 @@ Card.Section = function CardSection({ children, className, ...props }) {
   return (
     <div
       className={cn(
-        "p-3.5 rounded-[var(--radius-brand)]",
-        "bg-bg border border-border-subtle",
+        "p-3.5 rounded-lg",
+        "bg-surface-2/80 border border-border-subtle",
         className
       )}
       {...props}
@@ -92,7 +93,7 @@ Card.Row = function CardRow({ children, className, ...props }) {
       className={cn(
         "p-2.5 -mx-2.5 px-2.5 transition-colors",
         "border-b border-border-subtle last:border-b-0",
-        "hover:bg-bg-alt/60",
+        "hover:bg-surface-2/60",
         className
       )}
       {...props}
@@ -113,14 +114,14 @@ Card.ListItem = function CardListItem({
       className={cn(
         "group flex items-center justify-between p-2.5 -mx-2.5 px-2.5",
         "border-b border-border-subtle last:border-b-0",
-        "hover:bg-bg-alt/60 transition-colors",
+        "hover:bg-surface-2/60 transition-colors",
         className
       )}
       {...props}
     >
       <div className="flex-1 min-w-0">{children}</div>
       {actions && (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
           {actions}
         </div>
       )}

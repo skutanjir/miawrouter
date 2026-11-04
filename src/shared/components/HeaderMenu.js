@@ -6,19 +6,18 @@ import { useTheme } from "@/shared/hooks/useTheme";
 import ChangelogModal from "./ChangelogModal";
 import { ConfirmModal } from "./Modal";
 
+import { Icon } from "@/shared/components/Icon";
 function MenuItem({ icon, label, onClick, trailing, danger }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors ${
+      className={`flex w-full items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
         danger
-          ? "text-red-500 hover:bg-red-500/10"
-          : "text-text-main hover:bg-black/5 dark:hover:bg-white/5"
+          ? "text-danger hover:bg-danger/10"
+          : "text-text-main hover:bg-surface-2"
       }`}
     >
-      <span className={`material-symbols-outlined text-[20px] ${danger ? "" : "text-text-muted"}`}>
-        {icon}
-      </span>
+      <Icon name={icon} className={` text-[20px] ${danger ? "" : "text-text-muted"}`} />
       <span className="flex-1 text-left">{label}</span>
       {trailing && <span className="text-base">{trailing}</span>}
     </button>
@@ -71,14 +70,14 @@ export default function HeaderMenu({ onLogout }) {
       <div className="relative" ref={menuRef}>
         <button
           onClick={() => setIsOpen((v) => !v)}
-          className="flex items-center justify-center p-2 rounded-lg text-text-muted hover:text-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+          className="flex size-8 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main"
           title="Menu"
         >
-          <span className="material-symbols-outlined">grid_view</span>
+          <Icon name="grid_view" className="text-[18px]" />
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 top-full mt-2 w-60 bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden py-1">
+          <div className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-[10px] border border-border bg-surface py-1 shadow-elevated">
             <MenuItem
               icon="history"
               label="Change Log"

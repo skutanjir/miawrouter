@@ -17,7 +17,7 @@ const STRIP_HEADERS = new Set([
  * Send body to MiawRouter at the given path and return the fetch Response object.
  * Optionally forwards client headers (stripped of hop-by-hop / overridden keys).
  */
-async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHeaders = {}) {
+async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHeaders = {}, signal) {
   const forwarded = {};
   for (const [k, v] of Object.entries(clientHeaders)) {
     if (!k.startsWith(":") && !STRIP_HEADERS.has(k.toLowerCase())) forwarded[k] = v;
@@ -30,7 +30,8 @@ async function fetchRouter(openaiBody, path = "/v1/chat/completions", clientHead
       "Content-Type": "application/json",
       ...(API_KEY && { "Authorization": `Bearer ${API_KEY}` })
     },
-    body: JSON.stringify(openaiBody)
+    body: JSON.stringify(openaiBody),
+    signal,
   });
 
   // Forward response as-is (status + body). pipeSSE will propagate status.

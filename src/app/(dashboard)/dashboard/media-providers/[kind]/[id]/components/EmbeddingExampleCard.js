@@ -7,6 +7,7 @@ import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { Row } from "./exampleShared";
 
+import { Icon } from "@/shared/components/Icon";
 const DEFAULT_RESPONSE_EXAMPLE = `{
   "object": "list",
   "data": [{
@@ -148,7 +149,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
                   useTunnel ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-text-muted hover:text-primary"
                 }`}
               >
-                <span className="material-symbols-outlined text-[14px]">wifi_tethering</span>
+                <Icon name={"wifi_tethering"} className=" text-[14px]" />
                 Tunnel
               </button>
             )}
@@ -180,7 +181,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
                 onClick={() => setInput("")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <Icon name={"close"} className=" text-[14px]" />
               </button>
             )}
           </div>
@@ -207,7 +208,7 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
                 onClick={() => copyCurl(curlSnippet)}
                 className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-[14px]">{copiedCurl ? "check" : "content_copy"}</span>
+                <Icon name={copiedCurl ? "check" : "content_copy"} className=" text-[14px]" />
                 {copiedCurl ? "Copied" : "Copy"}
               </button>
               <button
@@ -215,18 +216,16 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
                 disabled={running || !input.trim() || !modelFull}
                 className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-3 py-1 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span className="material-symbols-outlined text-[14px]" style={running ? { animation: "spin 1s linear infinite" } : undefined}>
-                  play_arrow
-                </span>
+                <Icon name={"play_arrow"} className=" text-[14px]" style={running ? { animation: "spin 1s linear infinite" } : undefined} />
                 {running ? "Running..." : "Run"}
               </button>
             </div>
           </div>
-          <pre className="bg-sidebar rounded-lg px-3 py-2.5 text-xs font-mono text-text-main overflow-x-auto whitespace-pre-wrap break-all">{curlSnippet}</pre>
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-surface-2 px-3 py-2.5 font-mono text-xs text-text-main">{curlSnippet}</pre>
         </div>
 
         {/* Error */}
-        {error && <p className="text-xs text-red-500 break-words">{error}</p>}
+        {error && <p className="break-words text-xs text-danger">{error}</p>}
 
         {/* Response — default example or real result */}
         <div>
@@ -239,12 +238,12 @@ export function EmbeddingExampleCard({ providerId, customAlias }) {
                 onClick={() => copyRes(resultJson)}
                 className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-[14px]">{copiedRes ? "check" : "content_copy"}</span>
+                <Icon name={copiedRes ? "check" : "content_copy"} className=" text-[14px]" />
                 {copiedRes ? "Copied" : "Copy"}
               </button>
             )}
           </div>
-          <pre className="bg-sidebar rounded-lg px-3 py-2.5 text-xs font-mono text-text-main overflow-x-auto whitespace-pre-wrap break-all opacity-70">
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-surface-2 px-3 py-2.5 font-mono text-xs text-text-main opacity-70">
             {formatResultJson(result?.data)}
           </pre>
         </div>

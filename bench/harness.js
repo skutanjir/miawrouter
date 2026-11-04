@@ -21,6 +21,9 @@
 
 import { register } from "node:module";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Environment isolation MUST happen before any open-sse/src module evaluates:
 // proxyFetch.js reads proxy env at call time, and src/lib/db/paths.js reads
@@ -31,9 +34,7 @@ if (typeof process !== "undefined") {
   for (const k of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) {
     delete process.env[k];
   }
-  if (!process.env.DATA_DIR) {
-    process.env.DATA_DIR = fileURLToPath(new URL("../.bench-data", import.meta.url));
-  }
+  process.env.DATA_DIR = process.env.MIAW_BENCH_DATA_DIR || mkdtempSync(join(tmpdir(), "miawrouter-bench-"));
 }
 
 // ---------------------------------------------------------------------------

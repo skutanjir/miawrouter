@@ -81,6 +81,10 @@ export const ANTHROPIC_COMPAT_BASE = "https://api.anthropic.com/v1";
 export const ANTIGRAVITY_IDE_VERSION = "2.8.1";
 export const ANTIGRAVITY_IDE_BASE_URL = "https://daily-cloudcode-pa.googleapis.com";
 export const ANTIGRAVITY_IDE_USER_AGENT = `antigravity/ide/${ANTIGRAVITY_IDE_VERSION} darwin/arm64`;
+// Gemini 4 Argon is only listed/served for the hub/CLI client identity; the
+// exact string below was verified working in Antigravity-Manager issue #3665.
+export const ANTIGRAVITY_HUB_VERSION = "2.17.0";
+export const ANTIGRAVITY_HUB_USER_AGENT = `antigravity/hub/${ANTIGRAVITY_HUB_VERSION} (aidev_client; os_type=darwin; arch=arm64; cl=986210228)`;
 
 // Antigravity OAuth client credentials (public CLI client — duplicated in usage.js + src/lib/oauth)
 export const ANTIGRAVITY_OAUTH_CLIENT = {

@@ -104,11 +104,14 @@ rl.on("line", (line) => {
 });
 `.trimStart();
 
-function ensureClientToolsScript() {
-  const scriptPath = path.join(os.tmpdir(), "miawrouter-devin-client-tools.mjs");
-  // Always rewrite so script upgrades land without a process restart.
-  fs.writeFileSync(scriptPath, CLIENT_TOOLS_MCP_SCRIPT);
-  return scriptPath;
+let clientToolsScriptPath;
+export function ensureClientToolsScript() {
+  if (clientToolsScriptPath && fs.existsSync(clientToolsScriptPath)) return clientToolsScriptPath;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "miawrouter-devin-"));
+  const scriptPath = path.join(dir, "client-tools.mjs");
+  fs.writeFileSync(scriptPath, CLIENT_TOOLS_MCP_SCRIPT, { flag: "wx", mode: 0o600 });
+  clientToolsScriptPath = scriptPath;
+  return clientToolsScriptPath;
 }
 
 // Map OpenAI tools ([{type:"function",function:{name,description,parameters}}])
@@ -789,7 +792,7 @@ export class DevinCliExecutor extends BaseExecutor {
         // ── Send initialize ───────────────────────────────────────────────
         sendRpc("initialize", {
           protocolVersion: "0.3",
-          clientInfo: { name: "miawrouter", version: "1.2.2" },
+          clientInfo: { name: "miawrouter", version: "1.2.5" },
           capabilities: {},
         });
       },

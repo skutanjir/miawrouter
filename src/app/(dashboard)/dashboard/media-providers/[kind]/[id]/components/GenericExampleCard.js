@@ -7,6 +7,7 @@ import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 import { Row, KIND_EXAMPLE_CONFIG } from "./exampleShared";
 
+import { Icon } from "@/shared/components/Icon";
 const CLOUDFLARE_TEST_IMAGE_URL = "https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png";
 const CLOUDFLARE_TEST_MASK_URL = "https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog-mask.png";
 
@@ -265,7 +266,7 @@ export function GenericExampleCard({ providerId, kind }) {
                   useTunnel ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-text-muted hover:text-primary"
                 }`}
               >
-                <span className="material-symbols-outlined text-[14px]">wifi_tethering</span>
+                <Icon name={"wifi_tethering"} className=" text-[14px]" />
                 Tunnel
               </button>
             )}
@@ -316,7 +317,7 @@ export function GenericExampleCard({ providerId, kind }) {
                 onClick={() => setInput("")}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-[14px]">close</span>
+                <Icon name={"close"} className=" text-[14px]" />
               </button>
             )}
           </div>
@@ -339,7 +340,7 @@ export function GenericExampleCard({ providerId, kind }) {
                     onClick={() => setRefImage("")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors"
                   >
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name={"close"} className=" text-[14px]" />
                   </button>
                 )}
               </div>
@@ -374,7 +375,7 @@ export function GenericExampleCard({ providerId, kind }) {
                     onClick={() => setMaskImage("")}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-text-muted hover:text-primary transition-colors"
                   >
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                    <Icon name={"close"} className=" text-[14px]" />
                   </button>
                 )}
               </div>
@@ -452,7 +453,7 @@ export function GenericExampleCard({ providerId, kind }) {
                 onClick={() => copyCurl(curlSnippet)}
                 className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-[14px]">{copiedCurl ? "check" : "content_copy"}</span>
+                <Icon name={copiedCurl ? "check" : "content_copy"} className=" text-[14px]" />
                 {copiedCurl ? "Copied" : "Copy"}
               </button>
             <button
@@ -460,22 +461,18 @@ export function GenericExampleCard({ providerId, kind }) {
               disabled={running || !input.trim() || !modelFull}
               className="flex w-full sm:w-auto items-center justify-center gap-1.5 px-3 py-1 rounded-lg bg-primary text-white text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <span className="material-symbols-outlined text-[14px]" style={running ? { animation: "spin 1s linear infinite" } : undefined}>
-                  play_arrow
-                </span>
+                <Icon name={"play_arrow"} className=" text-[14px]" style={running ? { animation: "spin 1s linear infinite" } : undefined} />
                 {running ? "Running..." : "Run"}
               </button>
             </div>
           </div>
-          <pre className="bg-sidebar rounded-lg px-3 py-2.5 text-xs font-mono text-text-main overflow-x-auto whitespace-pre-wrap break-all">{curlSnippet}</pre>
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-surface-2 px-3 py-2.5 font-mono text-xs text-text-main">{curlSnippet}</pre>
         </div>
 
         {/* Streaming progress */}
         {(running || progress) && useStreaming && (
           <div className="flex flex-col gap-2 px-3 py-2 rounded-lg bg-sidebar border border-border sm:flex-row sm:items-center sm:gap-3">
-            <span className="material-symbols-outlined text-[16px] text-primary" style={running ? { animation: "spin 1s linear infinite" } : undefined}>
-              {running ? "progress_activity" : "check_circle"}
-            </span>
+            <Icon name={running ? "progress_activity" : "check_circle"} className=" text-[16px] text-primary" style={running ? { animation: "spin 1s linear infinite" } : undefined} />
             <span className="text-xs text-text-muted">
               {progress?.stage || "starting"}
               {!running && progress?.bytesReceived ? ` · ${(progress.bytesReceived / 1024).toFixed(1)} KB` : ""}
@@ -498,7 +495,7 @@ export function GenericExampleCard({ providerId, kind }) {
         )}
 
         {/* Error */}
-        {error && <p className="text-xs text-red-500 break-words">{error}</p>}
+        {error && <p className="break-words text-xs text-danger">{error}</p>}
 
         {/* Response */}
         <div>
@@ -511,12 +508,12 @@ export function GenericExampleCard({ providerId, kind }) {
                 onClick={() => copyRes(resultJson)}
                 className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors"
               >
-                <span className="material-symbols-outlined text-[14px]">{copiedRes ? "check" : "content_copy"}</span>
+                <Icon name={copiedRes ? "check" : "content_copy"} className=" text-[14px]" />
                 {copiedRes ? "Copied" : "Copy"}
               </button>
             )}
           </div>
-          <pre className="bg-sidebar rounded-lg px-3 py-2.5 text-xs font-mono text-text-main overflow-x-auto whitespace-pre-wrap break-all opacity-70">
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all rounded-md bg-surface-2 px-3 py-2.5 font-mono text-xs text-text-main opacity-70">
             {result ? resultJson : exConfig.defaultResponse}
           </pre>
           {kind === "image" && (binaryImageUrl || result?.data?.data?.[0]) && (
@@ -527,7 +524,7 @@ export function GenericExampleCard({ providerId, kind }) {
                   download="image.png"
                   className="inline-flex items-center gap-1 text-xs text-text-muted hover:text-primary transition-colors"
                 >
-                  <span className="material-symbols-outlined text-[14px]">download</span>
+                  <Icon name={"download"} className=" text-[14px]" />
                   Download
                 </a>
               </div>

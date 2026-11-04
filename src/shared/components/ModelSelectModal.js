@@ -5,12 +5,14 @@ import PropTypes from "prop-types";
 import Modal from "./Modal";
 import ProviderIcon from "./ProviderIcon";
 import CapacityBadges from "./CapacityBadges";
+import Badge from "./Badge";
 import { getThinkingLevels } from "open-sse/providers/thinkingLevels.js";
 import { expandModelEffortOptions } from "@/shared/utils/modelEffortOptions";
 import { useModelCaps } from "@/shared/hooks/useModelCaps";
 import { getModelsByProviderId, getModelKind } from "@/shared/constants/models";
 import { OAUTH_PROVIDERS, APIKEY_PROVIDERS, FREE_PROVIDERS, FREE_TIER_PROVIDERS, AI_PROVIDERS, isOpenAICompatibleProvider, isAnthropicCompatibleProvider, getProviderAlias } from "@/shared/constants/providers";
 
+import { Icon } from "@/shared/components/Icon";
 // Provider order: OAuth first, then Free Tier, then API Key (matches dashboard/providers)
 const PROVIDER_ORDER = [
   ...Object.keys(OAUTH_PROVIDERS),
@@ -23,6 +25,23 @@ const PROVIDER_ORDER = [
 const NO_AUTH_PROVIDER_IDS = Object.keys(FREE_PROVIDERS).filter(
   id => FREE_PROVIDERS[id].noAuth && !FREE_PROVIDERS[id].hidden,
 );
+
+const KIND_FILTER_LABELS = {
+  image: "image generation",
+  tts: "text to speech",
+  stt: "speech to text",
+  embedding: "embeddings",
+  imageToText: "image understanding",
+  webSearch: "web search",
+  webFetch: "web fetch",
+};
+
+const CAP_FILTER_LABELS = {
+  vision: "vision",
+  pdf: "PDF",
+  audioInput: "audio input",
+  videoInput: "video input",
+};
 
 export default function ModelSelectModal({
   isOpen,
@@ -482,6 +501,33 @@ export default function ModelSelectModal({
     }
   };
 
+  const totalModels = Object.values(groupedModels).reduce((sum, group) => sum + group.models.length, 0);
+  const hasResults = Object.keys(filteredGroups).length > 0 || filteredCombos.length > 0;
+  const scopeLabel = kindFilter && KIND_FILTER_LABELS[kindFilter] ? KIND_FILTER_LABELS[kindFilter] : "chat";
+  const scopeName = capFilter ? (CAP_FILTER_LABELS[capFilter] || capFilter) : scopeLabel;
+
+  const emptyState = searchQuery.trim() ? (
+    <>
+      <p className="text-sm font-medium text-text-main">
+        No {scopeName} model matches &ldquo;{searchQuery.trim()}&rdquo;
+      </p>
+      <p className="text-[13px] text-text-muted">
+        Clear the search box to browse all <span className="tabular-nums">{totalModels}</span> {scopeName}{" "}
+        models from the connected providers.
+      </p>
+    </>
+  ) : (
+    <>
+      <p className="text-sm font-medium text-text-main">
+        No {scopeName} models are available to pick
+      </p>
+      <p className="text-[13px] text-text-muted">
+        Connect a provider that serves {scopeName}, or re-enable its models in the provider settings, then
+        open the picker again.
+      </p>
+    </>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
@@ -490,161 +536,160 @@ export default function ModelSelectModal({
         setSearchQuery("");
       }}
       title={title}
-      size="md"
-      className="p-4!"
+      size="xl"
       footer={null}
     >
-      {/* Info bar */}
-      <div className="flex items-center gap-2 mb-3 px-2.5 py-2 bg-primary/8 border border-primary/20 rounded-lg text-xs text-text-muted">
-        <span className="material-symbols-outlined text-primary shrink-0" style={{ fontSize: "14px" }}>info</span>
-        <span>{onDeselect ? "Click to add, click again to remove." : "Select a model to use its full ID, including the chosen effort."}</span>
-      </div>
+      <div className="flex flex-col gap-3">
+        {/* Search + effort controls: the deciding controls for this list */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="relative flex-1">
+            <Icon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[16px] text-text-muted" />
+            <input
+              type="text"
+              placeholder="Search models by name or ID"
+              aria-label="Search models"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 w-full rounded-md border border-border bg-surface-2 pl-8 pr-3 text-[13px] text-text-main placeholder:text-text-subtle transition-colors duration-150 focus:outline-none focus:border-primary"
+            />
+          </div>
 
-      {/* Search - compact */}
-      {(!kindFilter || kindFilter === "llm") && effortLevels.length > 0 && (
-        <div className="mb-3">
-          <label className="flex items-center gap-2 text-xs text-text-muted">
-            Effort
-            <select aria-label="Effort" value={effortMode} onChange={(event) => setEffortMode(event.target.value)} className="rounded border border-border bg-surface px-2 py-1 text-text-main">
-              <option value="auto">Auto (upstream default)</option>
-              <option value="all">All supported efforts</option>
-              {effortLevels.map((level) => <option key={level} value={level}>{level}</option>)}
-            </select>
-          </label>
-          <p className="mt-1 text-[10px] text-text-muted">Effort controls reasoning depth and is included in the selected model ID. Save or apply your configuration to keep it. Models without that effort keep their default.</p>
+          {(!kindFilter || kindFilter === "llm") && effortLevels.length > 0 && (
+            <label className="flex shrink-0 items-center gap-2 text-xs text-text-muted">
+              Effort
+              <select
+                aria-label="Effort"
+                value={effortMode}
+                onChange={(event) => setEffortMode(event.target.value)}
+                className="h-9 rounded-md border border-border bg-surface-2 px-2 text-[13px] text-text-main focus:outline-none focus:border-primary"
+              >
+                <option value="auto">Auto (upstream default)</option>
+                <option value="all">All supported efforts</option>
+                {effortLevels.map((level) => <option key={level} value={level}>{level}</option>)}
+              </select>
+            </label>
+          )}
         </div>
-      )}
-      <div className="mb-3">
-        <div className="relative">
-          <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted text-[16px]">
-            search
-          </span>
-          <input
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-surface border border-border rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
-        </div>
-      </div>
 
-      {/* Models grouped by provider - compact */}
-      <div className="max-h-[400px] overflow-y-auto space-y-3">
-        {/* Combos section - always first */}
+        <p className="text-xs text-text-muted">
+          {onDeselect
+            ? "Click a model to add it, click it again to remove it."
+            : "Selecting a model uses its full ID, including the chosen effort."}
+          {(!kindFilter || kindFilter === "llm") && effortLevels.length > 0
+            ? " The effort is part of the selected model ID, so save or apply your configuration to keep it."
+            : ""}
+        </p>
+
+        {/* Combos first: they route across providers */}
         {filteredCombos.length > 0 && (
-          <div>
-            <div className="flex items-center gap-1.5 mb-1.5 sticky top-0 bg-surface py-0.5">
-              <span className="material-symbols-outlined text-primary text-[14px]">layers</span>
-              <span className="text-xs font-medium text-primary">Combos</span>
-              <span className="text-[10px] text-text-muted">({filteredCombos.length})</span>
-            </div>
+          <section className="flex flex-col gap-1">
+            <header className="sticky top-0 z-10 flex items-center gap-2 bg-surface py-1">
+              <Icon name="layers" weight="duotone" className="text-[16px] text-primary" />
+              <span className="text-[13px] font-semibold text-text-main">Combos</span>
+              <span className="text-xs text-text-muted tabular-nums">{filteredCombos.length}</span>
+            </header>
             <div className="flex flex-wrap gap-1.5">
               {filteredCombos.map((combo) => {
                 const isSelected = selectedModel === combo.name;
+                const isAdded = addedModelValues.includes(combo.name);
                 return (
                   <button
                     key={combo.id}
+                    type="button"
                     onClick={() => handleSelect({ id: combo.name, name: combo.name, value: combo.name })}
-                    className={`
-                      px-2 py-1 rounded-xl text-xs font-medium transition-all border hover:cursor-pointer flex items-center gap-1
-                      ${isSelected
-                        ? "bg-primary text-white border-primary"
-                        : addedModelValues.includes(combo.name)
-                          ? "bg-primary border-primary text-white hover:bg-primary-hover"
-                          : "bg-surface border-border text-text-main hover:border-primary/50 hover:bg-primary/5"
-                      }
-                    `}
+                    aria-pressed={isSelected || isAdded}
+                    className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[13px] font-medium transition-colors duration-150 ${
+                      isSelected || isAdded
+                        ? "border-primary/40 bg-primary/10 text-primary"
+                        : "border-border bg-surface text-text-main hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+                    }`}
                   >
-                    {addedModelValues.includes(combo.name) && (
-                      <span className="material-symbols-outlined leading-none" style={{ fontSize: "10px" }}>check</span>
-                    )}
+                    {isAdded && <Icon name="check" weight="fill" className="text-[12px]" />}
                     {combo.name}
                   </button>
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Provider models */}
-        {Object.entries(filteredGroups).map(([providerId, group]) => (
-          <div key={providerId}>
-            {/* Provider header */}
-            <div className="flex items-center gap-1.5 mb-1.5 sticky top-0 bg-surface py-0.5">
-              <ProviderIcon
-                src={`/providers/${providerId}.png`}
-                alt={group.name}
-                size={14}
-                fallbackText={(group.name || providerId).slice(0, 2).toUpperCase()}
-                fallbackColor={group.color}
-              />
-              <span className="text-xs font-medium text-primary">
-                {group.name}
-              </span>
-              <span className="text-[10px] text-text-muted">
-                ({group.models.length})
-              </span>
-            </div>
+        {/* Provider groups */}
+        <div className="flex max-h-[420px] flex-col gap-4 overflow-y-auto custom-scrollbar">
+          {Object.entries(filteredGroups).map(([providerId, group]) => (
+            <section key={providerId} className="flex flex-col gap-1">
+              <header className="sticky top-0 z-10 flex items-center gap-2 bg-surface py-1">
+                <ProviderIcon
+                  src={`/providers/${providerId}.png`}
+                  alt={group.name}
+                  size={16}
+                  fallbackText={(group.name || providerId).slice(0, 2).toUpperCase()}
+                  fallbackColor={group.color}
+                />
+                <span className="text-[13px] font-semibold text-text-main">{group.name}</span>
+                <span className="text-xs text-text-muted tabular-nums">{group.models.length}</span>
+              </header>
 
-            <div className="flex flex-wrap gap-1.5">
-              {group.models.map((model) => {
-                const isSelected = selectedModel === model.value;
-                const isPlaceholder = model.isPlaceholder;
-                return (
-                  <button
-                    key={model.value}
-                    onClick={() => handleSelect(model)}
-                    title={isPlaceholder ? "Select to pre-fill, then edit model ID in the input" : undefined}
-                    className={`
-                      px-2 py-1 rounded-xl text-xs font-medium transition-all border hover:cursor-pointer
-                      ${isPlaceholder
-                        ? "border-dashed border-border text-text-muted hover:border-primary/50 hover:text-primary bg-surface italic"
-                        : isSelected
-                          ? "bg-primary text-white border-primary"
-                          : addedModelValues.includes(model.value)
-                            ? "bg-primary border-primary text-white hover:bg-primary-hover"
-                            : "bg-surface border-border text-text-main hover:border-primary/50 hover:bg-primary/5"
-                      }
-                    `}
-                  >
-                    <span className="flex items-center gap-1">
-                      {addedModelValues.includes(model.value) && !isPlaceholder && (
-                        <span className="material-symbols-outlined leading-none" style={{ fontSize: "10px" }}>check</span>
-                      )}
-                      {isPlaceholder ? (
-                        <>
-                          <span className="material-symbols-outlined text-[11px]">edit</span>
+              <div className="flex flex-col">
+                {group.models.map((model) => {
+                  const isSelected = selectedModel === model.value;
+                  const isPlaceholder = model.isPlaceholder;
+                  const isAdded = addedModelValues.includes(model.value) && !isPlaceholder;
+                  const caps = isPlaceholder ? null : getCaps(model.value);
+                  return (
+                    <button
+                      key={model.value}
+                      type="button"
+                      onClick={() => handleSelect(model)}
+                      aria-pressed={isSelected || isAdded}
+                      title={isPlaceholder ? "Select to pre-fill the model ID, then edit it" : model.value}
+                      className={`flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-left transition-colors duration-150 ${
+                        isPlaceholder
+                          ? "text-text-muted hover:bg-surface-2 hover:text-primary"
+                          : isSelected || isAdded
+                            ? "bg-primary/10 text-primary"
+                            : "text-text-main hover:bg-surface-2"
+                      }`}
+                    >
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        <span
+                          className={`truncate text-[13px] font-medium ${isPlaceholder ? "italic" : ""}`}
+                        >
                           {model.name}
-                        </>
-                      ) : model.isCustom ? (
-                        <>
-                          {model.name}
-                          <span className="text-[9px] opacity-60 font-normal">custom</span>
-                          <CapacityBadges caps={getCaps(model.value)} />
-                        </>
-                      ) : (
-                        <>
-                          {model.name}
-                          <CapacityBadges caps={getCaps(model.value)} />
-                        </>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+                        </span>
+                        {isPlaceholder ? (
+                          <span className="shrink-0 text-xs text-text-muted">placeholder — edit after selecting</span>
+                        ) : (
+                          <span className="truncate font-mono text-xs text-text-subtle">{model.value}</span>
+                        )}
+                        {model.isCustom && !isPlaceholder && (
+                          <Badge variant="primary">custom</Badge>
+                        )}
+                      </span>
 
-        {Object.keys(filteredGroups).length === 0 && filteredCombos.length === 0 && (
-          <div className="text-center py-4 text-text-muted">
-            <span className="material-symbols-outlined text-2xl mb-1 block">
-              search_off
-            </span>
-            <p className="text-xs">No models found</p>
-          </div>
-        )}
+                      <span className="flex shrink-0 items-center gap-2">
+                        <CapacityBadges caps={caps} size={14} />
+                        {isAdded && (
+                          <Icon
+                            name="check"
+                            weight="fill"
+                            className="text-[14px] text-primary"
+                            aria-label="Added"
+                          />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+
+          {!hasResults && (
+            <div className="flex flex-col items-start gap-1 rounded-[10px] border border-border bg-surface-2 p-4">
+              {emptyState}
+            </div>
+          )}
+        </div>
       </div>
     </Modal>
   );

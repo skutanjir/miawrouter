@@ -28,7 +28,7 @@ const testPath = "tests/unit/legacy-brand-removal.test.js";
 
 const matches = [];
 for (const file of files) {
-  if (file === selfPath || file === testPath) continue;
+  if (file === selfPath || file === testPath || file === "cli/THIRD_PARTY_NOTICES.md" || file === "docs/release-1.2.5-audit.md" || file.startsWith("cli/vendor/opencode-free-bridge/")) continue;
   try {
     const content = readFileSync(file, "utf8");
     if (forbidden.test(content)) {

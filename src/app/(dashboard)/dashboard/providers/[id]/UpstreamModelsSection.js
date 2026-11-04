@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Spinner } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
 /**
  * UpstreamModelsSection — shows publicly available models from a provider's
  * upstream API with Refresh and Import All actions.
@@ -156,14 +157,14 @@ export default function UpstreamModelsSection({
 
   if (status === "error") {
     return (
-      <div className="w-full mt-2 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
-        <span className="material-symbols-outlined text-[16px] text-red-500 shrink-0">error</span>
-        <span className="text-xs text-red-600 dark:text-red-400">Failed to load upstream models</span>
+      <div className="mt-2 flex w-full items-center gap-2 rounded-md border border-danger/20 bg-danger/10 px-3 py-2">
+        <Icon name={"error"} className="shrink-0 text-danger text-[16px]" />
+        <span className="text-xs text-danger">Failed to load upstream models</span>
         <button
           onClick={handleRefresh}
           className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline"
         >
-          <span className="material-symbols-outlined text-[14px]">refresh</span>
+          <Icon name={"refresh"} className=" text-[14px]" />
           Retry
         </button>
       </div>
@@ -172,14 +173,14 @@ export default function UpstreamModelsSection({
 
   if (status === "auth_required") {
     return (
-      <div className="w-full mt-2 flex items-center gap-2 rounded-lg border border-black/[0.06] dark:border-white/[0.06] px-3 py-2">
-        <span className="material-symbols-outlined text-[16px] text-text-muted shrink-0">vpn_key</span>
+      <div className="mt-2 flex w-full items-center gap-2 rounded-md border border-border-subtle px-3 py-2">
+        <Icon name={"vpn_key"} className=" text-[16px] text-text-muted shrink-0" />
         <span className="text-xs text-text-muted">Connect an active API key above to load live models from this provider</span>
         <button
           onClick={handleRefresh}
           className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline"
         >
-          <span className="material-symbols-outlined text-[14px]">refresh</span>
+          <Icon name={"refresh"} className=" text-[14px]" />
           Check
         </button>
       </div>
@@ -205,12 +206,7 @@ export default function UpstreamModelsSection({
           className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-text-muted transition-colors hover:bg-surface-2 hover:text-primary disabled:opacity-50"
           title="Re-fetch from provider API"
         >
-          <span
-            className="material-symbols-outlined text-[14px]"
-            style={status === "loading" ? { animation: "spin 1s linear infinite" } : undefined}
-          >
-            {status === "loading" ? "progress_activity" : "refresh"}
-          </span>
+          <Icon name={status === "loading" ? "progress_activity" : "refresh"} className=" text-[14px]" style={status === "loading" ? { animation: "spin 1s linear infinite" } : undefined} />
           Refresh
         </button>
         {newCount > 0 && (
@@ -219,12 +215,7 @@ export default function UpstreamModelsSection({
             disabled={importing}
             className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] text-primary transition-colors hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span
-              className="material-symbols-outlined text-[14px]"
-              style={importing ? { animation: "spin 1s linear infinite" } : undefined}
-            >
-              {importing ? "progress_activity" : "download"}
-            </span>
+            <Icon name={importing ? "progress_activity" : "download"} className=" text-[14px]" style={importing ? { animation: "spin 1s linear infinite" } : undefined} />
             {importing
               ? `Adding ${importProgress.done}/${importProgress.total}…`
               : `Import all (${newCount})`}
@@ -233,7 +224,7 @@ export default function UpstreamModelsSection({
       </div>
 
       {/* Model chips */}
-      <div className="flex flex-wrap gap-2">
+      <div role="table" aria-label="Upstream models" className="flex flex-col overflow-hidden rounded-md border border-border-subtle">
         {models.map((m) => {
           const fullModel = `${providerStorageAlias}/${m.id}`;
           const isAdded =
@@ -243,10 +234,10 @@ export default function UpstreamModelsSection({
               key={m.id}
               onClick={isAdded ? undefined : async () => { await onAddModel(m.id); await onRefreshCustomModels(); }}
               disabled={isAdded || importing}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+              className={`flex min-w-0 items-center gap-3 border-b px-3 py-2 text-left text-sm transition-colors ${
                 isAdded
-                  ? "border-green-500/20 bg-green-500/5 text-green-600 dark:text-green-400 cursor-default"
-                  : "border-black/10 dark:border-white/10 text-text-muted hover:text-primary hover:border-primary/40 hover:bg-primary/5"
+                  ? "cursor-default bg-success/10 text-success"
+                  : "text-text-muted hover:bg-surface-2 hover:text-primary"
               } ${importing && !isAdded ? "opacity-60" : ""}`}
               title={
                 isAdded
@@ -254,9 +245,7 @@ export default function UpstreamModelsSection({
                   : `${m.name || m.id}${m.contextLength ? ` · ${(m.contextLength / 1000).toFixed(0)}k ctx` : ""}`
               }
             >
-              <span className="material-symbols-outlined text-[13px]">
-                {isAdded ? "check" : "add"}
-              </span>
+              <Icon name={isAdded ? "check" : "add"} className=" text-[13px]" />
               {m.id.split("/").pop()}
             </button>
           );

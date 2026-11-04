@@ -6,6 +6,7 @@ import Card from "./Card";
 import Select from "./Select";
 import Badge from "./Badge";
 
+import { Icon } from "@/shared/components/Icon";
 const NONE_PROXY_POOL_VALUE = "__none__";
 const STRATEGIES = [
   { value: "none", label: "None (single pool)" },
@@ -79,8 +80,8 @@ export default function NoAuthProxyCard({ providerId }) {
   return (
     <Card>
       <div className="flex items-center gap-3 mb-4">
-        <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-green-500/10 text-green-500">
-          <span className="material-symbols-outlined text-[20px]">lock_open</span>
+        <div className="inline-flex items-center justify-center size-8 rounded-md bg-success/10 text-success">
+          <Icon name="lock_open" className="text-[18px]" />
         </div>
         <div className="flex-1">
           <p className="text-sm font-medium">No authentication required</p>
@@ -98,16 +99,16 @@ export default function NoAuthProxyCard({ providerId }) {
           { value: NONE_PROXY_POOL_VALUE, label: "None (direct)" },
           ...proxyPools.map((pool) => ({ value: pool.id, label: pool.name })),
         ]}
-        hint={isRotation ? "Pool selector is ignored when rotation is active — all active pools are used." : undefined}
+        hint={isRotation ? "Pool selector is ignored when rotation is active. All active pools are used." : undefined}
       />
 
       <div className="flex flex-col gap-2 mt-4">
-        <label className="text-sm font-medium text-text-main">Rotation Strategy</label>
+        <label className="text-[13px] font-medium text-text-main">Rotation Strategy</label>
         <select
           value={rotateStrategy}
           onChange={(e) => handleStrategyChange(e.target.value)}
           disabled={saving}
-          className="py-2 px-3 text-sm text-text-main bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/50 focus:outline-none transition-all disabled:opacity-50"
+          className="h-[34px] px-3 text-sm text-text-main bg-surface border border-border rounded-md focus:ring-2 focus:ring-primary/25 focus:border-primary focus:outline-none transition-colors disabled:opacity-50"
         >
           {STRATEGIES.map((s) => (
             <option key={s.value} value={s.value} disabled={s.value !== "none" && !canRotate}>

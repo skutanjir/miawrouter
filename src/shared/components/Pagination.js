@@ -3,6 +3,7 @@
 import { cn } from "@/shared/utils/cn";
 import Button from "./Button";
 
+import { Icon } from "@/shared/components/Icon";
 export default function Pagination({
   currentPage,
   pageSize,
@@ -59,11 +60,10 @@ export default function Pagination({
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               className={cn(
-                "h-9 rounded-lg border border-black/10 dark:border-white/10 bg-surface",
-                "text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/20",
+                "h-[34px] rounded-md border border-border bg-surface px-2",
+                "text-sm text-text-main focus:outline-none focus:ring-2 focus:ring-primary/25",
                 "cursor-pointer"
               )}
-              style={{ colorScheme: 'auto' }}
             >
               {[10, 20, 50].map((size) => (
                 <option key={size} value={size}>
@@ -81,9 +81,9 @@ export default function Pagination({
               size="sm"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className="w-9 px-0"
+              className="w-7 px-0"
             >
-              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+              <Icon name={"chevron_left"} className=" text-[18px]" />
             </Button>
 
             {pageNumbers[0] > 1 && (
@@ -92,7 +92,7 @@ export default function Pagination({
                   variant="ghost"
                   size="sm"
                   onClick={() => onPageChange(1)}
-                  className="w-9 px-0 hidden sm:inline-flex"
+                  className="w-7 px-0 hidden sm:inline-flex"
                 >
                   1
                 </Button>
@@ -109,7 +109,7 @@ export default function Pagination({
                 size="sm"
                 onClick={() => onPageChange(page)}
                 className={cn(
-                  "w-9 px-0",
+                  "w-7 px-0",
                   currentPage === page ? "inline-flex" : "hidden sm:inline-flex"
                 )}
               >
@@ -126,7 +126,7 @@ export default function Pagination({
                   variant="ghost"
                   size="sm"
                   onClick={() => onPageChange(totalPages)}
-                  className="w-9 px-0 hidden sm:inline-flex"
+                  className="w-7 px-0 hidden sm:inline-flex"
                 >
                   {totalPages}
                 </Button>
@@ -138,9 +138,9 @@ export default function Pagination({
               size="sm"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="w-9 px-0"
+              className="w-7 px-0"
             >
-              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+              <Icon name={"chevron_right"} className=" text-[18px]" />
             </Button>
           </div>
         )}

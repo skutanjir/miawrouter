@@ -4,12 +4,13 @@ import { useState } from "react";
 import { Card, Button, Badge } from "@/shared/components";
 import CacheStatsPanel from "../components/CacheStatsPanel";
 
-const PERIODS = [
-  { value: "today", label: "Today" },
-  { value: "24h", label: "24h" },
-  { value: "7d", label: "7D" },
-  { value: "30d", label: "30D" },
-  { value: "60d", label: "60D" },
+import { Icon } from "@/shared/components/Icon";
+
+const LAYERS = [
+  { id: "L0", icon: "cloud", name: "Provider prompt cache", note: "Reported by the provider — savings happen upstream, not on this machine." },
+  { id: "L1", icon: "bolt", name: "Local exact-match cache", note: "In-memory, TTL-bounded. Only deterministic, non-streaming requests are stored." },
+  { id: "L2", icon: "psychology", name: "Local semantic cache", note: "Reuses responses for similar requests via a local embedding model." },
+  { id: "L3", icon: "compress", name: "Content dedup", note: "Rewrites repeated large blocks in the last message as references. Activity, not a cache hit." },
 ];
 
 export default function CachePageClient() {
@@ -35,14 +36,13 @@ export default function CachePageClient() {
   };
 
   return (
-    <div className="flex w-full flex-col gap-6 px-1 sm:px-0">
-      <div className="flex flex-col gap-3 border-b border-border-subtle pb-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-6">
+      <div className="workspace-heading">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-text-main sm:text-2xl">
-            Cache Control & Telemetry
-          </h1>
-          <p className="mt-0.5 text-xs text-text-muted sm:text-sm">
-            Local L1/L2 response cache, provider L0 prompt cache, and L3 content-address dedup.
+          <h1>Cache</h1>
+          <p>
+            What the router reused instead of re-asking a provider. Metrics come from recorded
+            events only — nothing on this page is estimated.
           </p>
         </div>
         {!confirming ? (
@@ -50,12 +50,12 @@ export default function CachePageClient() {
             Clear cache
           </Button>
         ) : (
-          <div className="flex items-center gap-2">
-            <Badge variant="warning" size="sm">Clear all local cache layers?</Badge>
-            <Button variant="danger" size="sm" onClick={clearCache} disabled={clearing}>
-              {clearing ? "Clearing…" : "Confirm"}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[13px] text-text-muted">Clear all local layers?</span>
+            <Button variant="danger" size="sm" onClick={clearCache} loading={clearing}>
+              Confirm clear
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => setConfirming(false)} disabled={clearing}>
+            <Button variant="ghost" size="sm" onClick={() => setConfirming(false)} disabled={clearing}>
               Cancel
             </Button>
           </div>
@@ -63,35 +63,46 @@ export default function CachePageClient() {
       </div>
 
       {result && (
-        <Card
-          padding="sm"
-          className={result.ok ? "border-emerald-500/30 bg-emerald-500/5" : "border-fail/30 bg-fail/5"}
-        >
-          <p className={`text-xs font-medium ${result.ok ? "text-emerald-600 dark:text-emerald-400" : "text-fail"}`}>
-            {result.ok
-              ? `Cleared: ${result.cleared.join(", ")}`
-              : result.error}
-          </p>
+        <Card padding="sm" className={result.ok ? "border-success/35" : "border-danger/35"}>
+          <div className="flex items-start gap-2">
+            <Icon
+              name={result.ok ? "success" : "error"}
+              className={`mt-0.5 text-[16px] ${result.ok ? "text-success" : "text-danger"}`}
+            />
+            <p className={`text-[13px] ${result.ok ? "text-success" : "text-danger"}`}>
+              {result.ok ? `Cleared: ${result.cleared.join(", ") || "nothing cached"}` : result.error}
+            </p>
+          </div>
         </Card>
       )}
 
       <CacheStatsPanel period={period} setPeriod={setPeriod} />
 
-      <Card padding="sm" className="border-border-subtle bg-surface-2/40">
-        <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-[16px] text-muted mt-0.5">info</span>
-          <div className="text-xs text-muted space-y-1">
-            <p>
-              <strong className="text-ink font-medium">L0</strong> is provider-confirmed prompt-cache usage (token
-              savings at the provider). <strong className="text-ink font-medium">L1/L2</strong> are local
-              response-cache hits. <strong className="text-ink font-medium">L3</strong> dedup is activity, not a
-              provider cache hit.
-            </p>
-            <p>
-              Clearing resets the local L1/L2/L3 layers. Metrics shown here come from recorded events only —
-              no values are estimated.
-            </p>
-          </div>
+      <Card title="Cache layers" icon="layers" subtitle="Four separate mechanisms feed the numbers above.">
+        <dl className="grid gap-3.5 sm:grid-cols-2">
+          {LAYERS.map((layer) => (
+            <div key={layer.id} className="flex items-start gap-3 min-w-0 rounded-xl border border-border-subtle bg-surface-2/50 p-3.5">
+              <div className="icon-box icon-box-sm text-primary mt-0.5">
+                <Icon name={layer.icon} weight="duotone" className="text-[16px]" />
+              </div>
+              <div className="min-w-0">
+                <dt className="flex items-center gap-2">
+                  <code className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-xs font-bold text-primary">{layer.id}</code>
+                  <span className="text-[13.5px] font-semibold text-text-main">{layer.name}</span>
+                </dt>
+                <dd className="mt-1 text-[12.5px] leading-relaxed text-text-muted">{layer.note}</dd>
+              </div>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border-subtle pt-4">
+          <Badge variant="default" size="sm">L0 provider</Badge>
+          <Badge variant="primary" size="sm">L1/L2 local</Badge>
+          <Badge variant="default" size="sm">L3 dedup</Badge>
+          <p className="text-[13px] text-text-muted">
+            Clearing resets the local L1/L2/L3 layers only; a provider&apos;s own prompt cache is not
+            under this router&apos;s control.
+          </p>
         </div>
       </Card>
     </div>

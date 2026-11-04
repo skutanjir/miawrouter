@@ -54,25 +54,19 @@ export default {
     },
   ],
   models: [
-    // Flagship K3 — platform.kimi.ai id `kimi-k3`, Kimi Code OAuth id `k3` (up to 1M)
-    { id: "kimi-k3", name: "Kimi K3" },
-    { id: "k3", name: "Kimi K3 (Code)" },
-    // Kimi Code subscription stable ids (map to K2.7 Code backend)
+    { id: "kimi-k3", name: "Kimi K3", contextLength: 1000000, supportsVision: true, supportsReasoning: true, toolCalling: true },
+    { id: "k3", name: "Kimi K3 (Code)", contextLength: 1000000, supportsVision: true, supportsReasoning: true, toolCalling: true },
     { id: "kimi-for-coding", name: "Kimi for Coding" },
     { id: "kimi-for-coding-highspeed", name: "Kimi for Coding Highspeed" },
-    // Pay-as-you-go platform ids
-    { id: "kimi-k2.7-code", name: "Kimi K2.7 Code" },
-    { id: "kimi-k2.7-code-highspeed", name: "Kimi K2.7 Code Highspeed" },
-    { id: "kimi-k2.6", name: "Kimi K2.6" },
-    { id: "kimi-k2.5", name: "Kimi K2.5" },
-    { id: "kimi-k2.5-thinking", name: "Kimi K2.5 Thinking" },
-    { id: "kimi-latest", name: "Kimi Latest" },
+    { id: "kimi-k2.7-code", name: "Kimi K2.7 Code", contextLength: 256000, toolCalling: true },
+    { id: "kimi-k2.7-code-highspeed", name: "Kimi K2.7 Code Highspeed", contextLength: 256000, toolCalling: true },
+    { id: "kimi-k2.6", name: "Kimi K2.6", contextLength: 256000, supportsVision: true, supportsReasoning: true, toolCalling: true },
   ],
   serviceKinds: ["llm", "webSearch"],
   searchViaChat: {
     defaultModel: "kimi-k3",
-    endpoint: "https://api.moonshot.cn/v1/chat/completions",
-    pricingUrl: "https://platform.kimi.ai/docs/pricing/chat",
+    endpoint: "https://api.moonshot.ai/v1/chat/completions",
+    pricingUrl: "https://platform.moonshot.ai/docs/pricing/chat",
   },
   oauth: {
     clientId: "17e5f671-d194-4dfb-9706-5516cb48c098",

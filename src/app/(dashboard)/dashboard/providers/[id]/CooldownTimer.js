@@ -1,3 +1,4 @@
+import { Icon } from "@/shared/components/Icon";
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 
@@ -31,8 +32,9 @@ export default function CooldownTimer({ until }) {
   if (!remaining) return null;
 
   return (
-    <span className="text-xs text-orange-500 font-mono">
-      ⏱ {remaining}
+    <span className="inline-flex items-center gap-1 text-xs text-warning font-mono">
+      <Icon name="schedule" />
+      {remaining}
     </span>
   );
 }

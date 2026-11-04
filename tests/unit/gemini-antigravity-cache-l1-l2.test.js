@@ -63,6 +63,11 @@ describe("BUG 1A: L1 and L2 Cache Gemini, Vertex & Antigravity Support", () => {
       expect(isCacheable(nonZero)).toBe(false);
     });
 
+    it("does not cache a stochastic request merely because a seed is set", () => {
+      expect(isCacheable({ ...geminiBody, generationConfig: { temperature: 0.7, seed: 123 } })).toBe(false);
+      expect(isCacheable({ ...geminiBody, generationConfig: { seed: 123 } })).toBe(false);
+    });
+
     it("rejects Gemini request containing functionCall in parts", () => {
       expect(isCacheable(geminiWithToolCall)).toBe(false);
     });

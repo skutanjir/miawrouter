@@ -13,11 +13,29 @@
 import { describe, it, expect, afterAll } from "vitest";
 import { installMockFetch, loadOpenSse, setActiveProvider, drainResponseBody } from "../../bench/harness.js";
 import { MockProvider } from "../../bench/mockProvider.js";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const CHAT_URL = "http://mock.test/v1/chat/completions";
 const BODY = { model: "mock/gpt-5-mini", messages: [{ role: "user", content: "hi" }] };
 
 describe("bench/harness.js ordering guard", () => {
+  it("does not use an existing application DATA_DIR", () => {
+    const moduleUrl = pathToFileURL(path.resolve("bench/harness.js")).href;
+    const inherited = path.join(os.tmpdir(), "miawrouter-not-benchmark-data");
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", `await import(${JSON.stringify(moduleUrl)}); console.log(process.env.DATA_DIR)`], {
+      encoding: "utf8", env: { ...process.env, DATA_DIR: inherited, MIAW_BENCH_DATA_DIR: "" }, timeout: 10000,
+    });
+    expect(result.status).toBe(0);
+    const scratch = result.stdout.trim();
+    expect(scratch).not.toBe(inherited);
+    expect(path.dirname(scratch)).toBe(path.resolve(os.tmpdir()));
+    expect(path.basename(scratch)).toMatch(/^miawrouter-bench-/);
+    fs.rmdirSync(scratch);
+  });
   it("loadOpenSse fails closed when installMockFetch has not run", () => {
     expect(() => loadOpenSse()).toThrow(/installMockFetch/);
   });

@@ -1,5 +1,5 @@
 const { err } = require("../logger");
-const { IS_DEV } = require("../config");
+const { ENABLE_FILE_LOG } = require("../config");
 const { fetchRouter, pipeTransformedEventStream } = require("./base");
 const fs = require("fs");
 const path = require("path");
@@ -7,7 +7,7 @@ const path = require("path");
 // Debug trace log — written to data/logs/mitm/kiro-debug.log (dev only)
 const DEBUG_LOG = path.join(__dirname, "../../../data/logs/mitm/kiro-debug.log");
 function dbg(msg) {
-  if (!IS_DEV) return;
+  if (!ENABLE_FILE_LOG) return;
   try {
     fs.appendFileSync(DEBUG_LOG, `${new Date().toISOString()} ${msg}\n`);
   } catch {}
@@ -363,7 +363,7 @@ function convertOpenAIToKiro(chunk, state) {
       // Emit incremental input fragment
       if (tc.function?.arguments) {
         const init = state.toolCallInit[idx];
-        dbg(`toolUseEvent fragment: ${tc.function.arguments.slice(0, 100)}`);
+        dbg("toolUseEvent fragment received");
         frames.push(buildEventStreamFrame("toolUseEvent", {
           input: tc.function.arguments,
           name: init?.name || tc.function?.name || "",

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Button, Modal } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
 export default function AddCustomModelModal({ isOpen, providerAlias, providerDisplayAlias, onSave, onClose }) {
   const [modelId, setModelId] = useState("");
   const [testStatus, setTestStatus] = useState(null); // null | "testing" | "ok" | "error"
@@ -68,7 +69,7 @@ export default function AddCustomModelModal({ isOpen, providerAlias, providerDis
               onChange={(e) => { setModelId(e.target.value); setTestStatus(null); setTestError(""); }}
               onKeyDown={handleKeyDown}
               placeholder="e.g. claude-opus-4-5"
-              className="flex-1 px-3 py-2 text-sm border border-border rounded-lg bg-background focus:outline-none focus:border-primary"
+              className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-bg focus:outline-none focus:border-primary"
               autoFocus
             />
             <Button
@@ -82,20 +83,20 @@ export default function AddCustomModelModal({ isOpen, providerAlias, providerDis
             </Button>
           </div>
           <p className="text-xs text-text-muted mt-1">
-            Sent to provider as: <code className="font-mono bg-sidebar px-1 rounded">{stripAlias(modelId.trim()) || "model-id"}</code>
+            Sent to provider as: <code className="font-mono bg-surface-2 px-1 rounded-md">{stripAlias(modelId.trim()) || "model-id"}</code>
           </p>
         </div>
 
         {/* Test result */}
         {testStatus === "ok" && (
-          <div className="flex items-center gap-2 text-sm text-green-600">
-            <span className="material-symbols-outlined text-base">check_circle</span>
+          <div className="flex items-center gap-2 text-sm text-success">
+            <Icon name={"check_circle"} className=" text-base" />
             Model is reachable
           </div>
         )}
         {testStatus === "error" && (
-          <div className="flex items-start gap-2 text-sm text-red-500">
-            <span className="material-symbols-outlined text-base shrink-0">cancel</span>
+          <div className="flex items-start gap-2 text-sm text-danger">
+            <Icon name={"cancel"} className=" text-base shrink-0" />
             <span>{testError || "Model not reachable"}</span>
           </div>
         )}

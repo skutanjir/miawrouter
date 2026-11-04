@@ -148,7 +148,7 @@ export function createMcpCore({ registry, timeoutMs = 10_000, audit = () => {} }
           ? request.params.protocolVersion
           : LATEST_PROTOCOL_VERSION,
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "miawrouter", version: "1.2.2" },
+        serverInfo: { name: "miawrouter", version: "1.2.5" },
       },
     });
     if (request.method === "notifications/initialized") return null;

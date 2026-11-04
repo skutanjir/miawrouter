@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
 /**
  * Cursor Auth Modal
  * Auto-detect and import token from Cursor IDE's local SQLite database
@@ -12,6 +13,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
   const [accessToken, setAccessToken] = useState("");
   const [machineId, setMachineId] = useState("");
   const [error, setError] = useState(null);
+  const [autoDetectError, setAutoDetectError] = useState(null);
   const [importing, setImporting] = useState(false);
   const [autoDetecting, setAutoDetecting] = useState(false);
   const [autoDetected, setAutoDetected] = useState(false);
@@ -19,7 +21,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
 
   const runAutoDetect = async () => {
     setAutoDetecting(true);
-    setError(null);
+    setAutoDetectError(null);
     setAutoDetected(false);
     setWindowsManual(false);
 
@@ -34,10 +36,10 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
       } else if (data.windowsManual) {
         setWindowsManual(true);
       } else {
-        setError(data.error || "Could not auto-detect tokens");
+        setAutoDetectError(data.error || "Could not auto-detect tokens");
       }
     } catch (err) {
-      setError("Failed to auto-detect tokens");
+      setAutoDetectError("Failed to auto-detect tokens");
     } finally {
       setAutoDetecting(false);
     }
@@ -51,12 +53,12 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
 
   const handleImportToken = async () => {
     if (!accessToken.trim()) {
-      setError("Please enter an access token");
+      setError("No access token. Paste the token from Cursor's storage, or run Retry to auto-detect.");
       return;
     }
 
     if (!machineId.trim()) {
-      setError("Please enter a machine ID");
+      setError("No machine ID. Paste the machine ID from Cursor's storage, or run Retry to auto-detect.");
       return;
     }
 
@@ -76,7 +78,7 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Import failed");
+        throw new Error(data.error || `Import failed (HTTP ${res.status}).`);
       }
 
       onSuccess?.();
@@ -90,117 +92,122 @@ export default function CursorAuthModal({ isOpen, onSuccess, onClose }) {
 
   return (
     <Modal isOpen={isOpen} title="Connect Cursor IDE" onClose={onClose}>
-      <div className="flex flex-col gap-4">
-        {/* Auto-detecting state */}
-        {autoDetecting && (
-          <div className="text-center py-6">
-            <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-3xl text-primary animate-spin">
-                progress_activity
-              </span>
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Auto-detecting tokens...</h3>
-            <p className="text-sm text-text-muted">
-              Reading from Cursor IDE database
-            </p>
+      {autoDetecting ? (
+        <div className="flex flex-col gap-3 py-6">
+          <div className="flex items-center gap-2.5 text-sm text-text-muted">
+            <Icon name="progress_activity" className="animate-spin text-[18px] text-primary" />
+            Reading the token database from the Cursor IDE installation…
           </div>
-        )}
-
-        {/* Form (shown after auto-detect completes) */}
-        {!autoDetecting && (
-          <>
-            {/* Success message if auto-detected */}
-            {autoDetected && (
-              <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                <div className="flex gap-2">
-                  <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
-                  <p className="text-sm text-green-800 dark:text-green-200">
-                    Tokens auto-detected from Cursor IDE successfully!
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Windows manual instructions */}
-            {windowsManual && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800 flex flex-col gap-2">
-                <div className="flex gap-2 items-center">
-                  <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">info</span>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                    Could not read Cursor database automatically.
-                  </p>
-                </div>
-                <p className="text-xs text-amber-700 dark:text-amber-300">
-                  Make sure Cursor IDE has been opened at least once, then click <strong>Retry</strong>. If the problem persists, paste your tokens manually below.
-                </p>
-                <Button onClick={runAutoDetect} variant="outline" fullWidth>
-                  Retry
-                </Button>
-              </div>
-            )}
-
-            {/* Info message if not auto-detected */}
-            {!autoDetected && !windowsManual && !error && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex gap-2">
-                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    Cursor IDE not detected. Please paste your tokens manually.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Access Token Input */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Access Token <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={accessToken}
-                onChange={(e) => setAccessToken(e.target.value)}
-                placeholder="Access token will be auto-filled..."
-                rows={3}
-                className="w-full px-3 py-2 text-sm font-mono border border-border rounded-lg bg-background focus:outline-none focus:border-primary resize-none"
-              />
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {autoDetected && (
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-success/20 bg-success/10 p-3">
+              <Icon name="check_circle" weight="fill" className="mt-0.5 text-[18px] text-success shrink-0" />
+              <p className="text-sm text-text-main">
+                Access token and machine ID were read from the local Cursor installation. Import to store
+                them.
+              </p>
             </div>
+          )}
 
-            {/* Machine ID Input */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Machine ID <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={machineId}
-                onChange={(e) => setMachineId(e.target.value)}
-                placeholder="Machine ID will be auto-filled..."
-                className="font-mono text-sm"
-              />
-            </div>
-
-            {/* Error Display */}
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          {windowsManual && (
+            <div className="flex flex-col gap-3 rounded-[10px] border border-warning/20 bg-warning/10 p-3">
+              <div className="flex items-start gap-2.5">
+                <Icon name="warning" weight="fill" className="mt-0.5 text-[18px] text-warning shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-text-main">
+                    Cursor&apos;s database could not be read on this machine
+                  </p>
+                  <p className="mt-1 text-text-muted">
+                    Open Cursor IDE at least once so its storage exists, then run Retry. If it still fails,
+                    paste the two values manually below.
+                  </p>
+                </div>
               </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="flex gap-2">
-              <Button
-                onClick={handleImportToken}
-                fullWidth
-                disabled={importing || !accessToken.trim() || !machineId.trim()}
-              >
-                {importing ? "Importing..." : "Import Token"}
-              </Button>
-              <Button onClick={onClose} variant="ghost" fullWidth>
-                Cancel
+              <Button onClick={runAutoDetect} variant="outline" size="sm" icon="refresh" className="self-start">
+                Retry auto-detect
               </Button>
             </div>
-          </>
-        )}
-      </div>
+          )}
+
+          {!autoDetected && !windowsManual && !autoDetectError && (
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-border bg-surface-2 p-3">
+              <Icon name="info" className="mt-0.5 text-[18px] text-text-muted shrink-0" />
+              <p className="text-sm text-text-muted">
+                No Cursor installation was found. Paste the access token and machine ID manually, or run
+                Retry after opening Cursor once.
+              </p>
+            </div>
+          )}
+
+          {autoDetectError && (
+            <div className="flex flex-col gap-3 rounded-[10px] border border-warning/20 bg-warning/10 p-3">
+              <div className="flex items-start gap-2.5">
+                <Icon name="warning" weight="fill" className="mt-0.5 text-[18px] text-warning shrink-0" />
+                <div className="text-sm">
+                  <p className="font-medium text-text-main">Auto-detect didn&apos;t find tokens</p>
+                  <p className="mt-1 text-text-muted">{autoDetectError}</p>
+                  <p className="mt-1 text-text-muted">
+                    Open Cursor IDE once, then run Retry — or paste the values manually below.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={runAutoDetect} variant="outline" size="sm" icon="refresh" className="self-start">
+                Retry auto-detect
+              </Button>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="cursor-access-token" className="text-sm font-medium text-text-main">
+              Access token
+              <span className="ml-1 text-danger">*</span>
+            </label>
+            <textarea
+              id="cursor-access-token"
+              value={accessToken}
+              onChange={(e) => setAccessToken(e.target.value)}
+              placeholder="JWT copied from Cursor's storage"
+              rows={3}
+              className="w-full resize-none rounded-md border border-border bg-surface-2 px-3 py-2 font-mono text-[13px] text-text-main placeholder:text-text-subtle transition-colors duration-150 focus:outline-none focus:border-primary"
+            />
+          </div>
+
+          <Input
+            label="Machine ID"
+            required
+            value={machineId}
+            onChange={(e) => setMachineId(e.target.value)}
+            placeholder="Machine ID from Cursor's storage"
+            inputClassName="font-mono text-[13px]"
+          />
+
+          {error && (
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger/10 p-3">
+              <Icon name="error" className="mt-0.5 text-[18px] text-danger shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-text-main">Import failed</p>
+                <p className="mt-1 text-text-muted">{error}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose} fullWidth>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleImportToken}
+              fullWidth
+              loading={importing}
+              disabled={!accessToken.trim() || !machineId.trim()}
+            >
+              Import token
+            </Button>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

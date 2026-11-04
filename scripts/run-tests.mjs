@@ -27,8 +27,8 @@ const explicit = argv.filter((a) => !a.startsWith("--"));
 
 // vitest lives in the tests workspace, not at the repo root.
 const candidates = [
-  resolve(ROOT, "tests/node_modules/.bin/vitest"),
-  resolve(ROOT, "node_modules/.bin/vitest"),
+  resolve(ROOT, "tests/node_modules/vitest/vitest.mjs"),
+  resolve(ROOT, "node_modules/vitest/vitest.mjs"),
 ];
 const vitest = candidates.find((p) => existsSync(p));
 if (!vitest) {
@@ -50,7 +50,7 @@ if (!runAll && explicit.length === 0) {
   }
 }
 
-const args = ["run", "--config", "tests/vitest.config.js", "--root", "."];
+const args = [vitest, "run", "--config", "tests/vitest.config.js", "--root", "."];
 
 if (explicit.length > 0) {
   args.push(...explicit);
@@ -58,10 +58,12 @@ if (explicit.length > 0) {
   for (const e of excludes) args.push("--exclude", e);
 }
 
-const res = spawnSync(vitest, args, {
+const res = spawnSync(process.execPath, args, {
   cwd: ROOT,
   stdio: "inherit",
   env: process.env,
 });
+
+if (res.error) console.error(`[test-gate] failed to start vitest: ${res.error.message}`);
 
 process.exit(res.status ?? 1);

@@ -26,7 +26,7 @@ export default {
   modelsFetcher: { url: "https://opencode.ai/zen/go/v1/models", type: "openai" },
   transport: {
     baseUrl: "https://opencode.ai/zen/go/v1/chat/completions",
-    headers: { "User-Agent": "MiawRouter/1.2.2" },
+    headers: { "User-Agent": "MiawRouter/1.2.5" },
   },
   models: [{
   id: "glm-5.2",
@@ -431,10 +431,11 @@ export default {
   "targetFormat": "claude",
   "supportsReasoning": true
 },
-    // Added from the live catalog on 2026-09-30.
-    {"id":"deepseek-flash","name":"DeepSeek Flash"},
-    {"id":"space-bunny-free","name":"space-bunny-free"},
-    {"id":"longcat-2.5-preview-free","name":"longcat-2.5-preview-free"},
-    {"id":"gpt-6-luna","name":"GPT 6 Luna"}
+    { id: "gpt-6-luna", name: "GPT 6 Luna", contextLength: 1050000 },
+    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5", targetFormat: "claude", contextLength: 1000000, maxOutputTokens: 128000 },
+    { id: "space-bunny", name: "Space Bunny" },
+    { id: "step-5-preview", name: "Step 5 Preview" },
+    { id: "longcat-2.5-preview-free", name: "LongCat 2.5 Preview Free" },
+    { id: "cat-jam-free", name: "Cat Jam Free" },
   ],
 };

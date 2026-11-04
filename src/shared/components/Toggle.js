@@ -17,9 +17,9 @@ export default function Toggle({
   ariaDescribedby,
 }) {
   const sizes = {
-    sm: { track: "w-8 h-4", thumb: "size-3", translate: "translate-x-4" },
-    md: { track: "w-11 h-6", thumb: "size-5", translate: "translate-x-5" },
-    lg: { track: "w-14 h-7", thumb: "size-6", translate: "translate-x-7" },
+    sm: { track: "w-8 h-[18px]", thumb: "size-3.5", translate: "translate-x-[14px]" },
+    md: { track: "w-8 h-[18px]", thumb: "size-3.5", translate: "translate-x-[14px]" },
+    lg: { track: "w-9 h-5", thumb: "size-4", translate: "translate-x-4" },
   };
 
   const autoId = useId();
@@ -54,20 +54,20 @@ export default function Toggle({
         onClick={handleClick}
         className={cn(
           "relative inline-flex shrink-0 cursor-pointer rounded-full",
-          "transition-colors duration-200 ease-in-out",
-          "focus:outline-none focus:ring-2 focus:ring-brand-500/30",
-          checked ? "bg-brand-500" : "bg-surface-3",
-          sizes[size].track,
+          "transition-colors duration-150",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+          checked ? "bg-primary" : "bg-surface-2 border border-border",
+          sizes[size] || sizes.md,
           disabled && "cursor-not-allowed"
         )}
       >
         <span
           className={cn(
-            "pointer-events-none inline-block rounded-full bg-white shadow-sm",
-            "transform transition duration-200 ease-in-out",
+            "pointer-events-none inline-block rounded-full shadow-2xs",
+            checked ? "bg-bg" : "bg-text-muted",
+            "transition-transform duration-150",
             checked ? sizes[size].translate : "translate-x-0.5",
-            sizes[size].thumb,
-            "mt-0.5"
+            sizes[size].thumb
           )}
         />
       </button>

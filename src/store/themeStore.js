@@ -37,11 +37,7 @@ function applyTheme(theme) {
   if (typeof window === "undefined") return;
 
   const root = document.documentElement;
-  const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-
-  const effectiveTheme = theme === "system" ? systemTheme : theme;
+  const effectiveTheme = theme === "light" ? "light" : "dark";
 
   if (effectiveTheme === "dark") {
     root.classList.add("dark");

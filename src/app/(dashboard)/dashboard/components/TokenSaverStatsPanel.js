@@ -56,6 +56,13 @@ function pctOf(saved, total) {
   return Math.round((saved / total) * 100);
 }
 
+const BADGE_TITLE = (meta) =>
+  meta.estimate
+    ? "Estimated: bytes/context converted to tokens"
+    : meta.badge === "proxy"
+      ? "Proxy-reported token counts"
+      : "Measured end-to-end deltas";
+
 function StageRow({ meta, st, maxSaved }) {
   const tokensBefore = num(st?.tokensBefore);
   const tokensAfter = num(st?.tokensAfter);
@@ -84,46 +91,39 @@ function StageRow({ meta, st, maxSaved }) {
   const metaLine = parts.join(" · ") || meta.note;
 
   return (
-    <div
-      className="flex min-w-0 flex-col gap-1 rounded-[var(--radius-brand)] border p-2.5 bg-chassis"
-      style={{ borderColor: "var(--color-rule)" }}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
-          {meta.label}
-          <span
-            className={`rounded-full border px-1.5 py-px font-mono text-[9px] uppercase tracking-normal ${
-              meta.estimate ? "border-warn/60 text-warn" : "text-muted"
-            }`}
-            style={!meta.estimate ? { borderColor: "var(--color-rule)" } : undefined}
-            title={
-              meta.estimate
-                ? "Estimated: bytes/context converted to tokens"
-                : meta.badge === "proxy"
-                  ? "Proxy-reported token counts"
-                  : "Measured end-to-end deltas"
-            }
-          >
-            {meta.badge}
-          </span>
-        </span>
-        <span className="truncate font-mono tabular-nums text-[9px] text-muted">{metaLine}</span>
-      </div>
-      {before === null || after === null ? (
-        <p className="text-[10px] text-muted">No savings recorded for this period.</p>
-      ) : (
-        <>
-          <div className="flex items-baseline gap-1">
-            <span className="font-mono tabular-nums text-base font-semibold text-ink">
-              {saved !== null ? `−${showSaved(saved)}` : "—"}
+    <tr className="border-b border-border-subtle last:border-b-0">
+      <td className="px-3 py-2.5 align-top">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="flex items-center gap-1.5">
+            <span className="text-[13px] font-medium text-text-main">{meta.label}</span>
+            <span
+              className={`rounded-md border px-1.5 py-px font-mono text-[10px] ${
+                meta.estimate ? "border-warning/40 bg-warning/10 text-warning" : "border-border-subtle bg-surface-2 text-text-muted"
+              }`}
+              title={BADGE_TITLE(meta)}
+            >
+              {meta.badge}
             </span>
-            <span className="font-mono tabular-nums text-[10px] text-muted">{unit} saved</span>
-            {pct !== null && (
-              <span className="ml-auto font-mono tabular-nums text-[10px] text-muted">−{pct}%</span>
-            )}
-          </div>
+          </span>
+          <span className="text-xs text-text-muted">{metaLine}</span>
+        </div>
+      </td>
+      <td className="px-3 py-2.5 align-top">
+        {before === null || after === null ? (
+          <span className="text-[13px] text-text-muted">No savings recorded</span>
+        ) : (
+          <span className="font-mono text-[13px] font-medium tabular-nums text-text-main">
+            {saved !== null ? `−${showSaved(saved)} ${unit}` : "—"}
+          </span>
+        )}
+      </td>
+      <td className="px-3 py-2.5 align-top font-mono text-[13px] tabular-nums text-text-muted">
+        {pct !== null ? `−${pct}%` : "—"}
+      </td>
+      <td className="px-3 py-2.5 align-top">
+        <div className="flex min-w-[8rem] items-center gap-2">
           <div
-            className="flex h-1.5 w-full overflow-hidden rounded-full bg-surface-2"
+            className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2"
             role="img"
             aria-label={
               saved !== null ? `${meta.label}: ${showSaved(saved)} ${unit} saved` : `${meta.label}: no savings`
@@ -131,19 +131,21 @@ function StageRow({ meta, st, maxSaved }) {
           >
             {saved !== null && ofTotal !== null && (
               <span
-                className={meta.estimate ? "bg-warn" : "bg-signal"}
+                className={meta.estimate ? "bg-warning" : "bg-primary"}
                 style={{ width: `${ofTotal}%` }}
                 aria-hidden="true"
               />
             )}
           </div>
-          <span className="font-mono tabular-nums text-[9px] text-muted">
-            {showSaved(before)} → {showSaved(after)} {unit}
-            {ofTotal !== null && ` · ${ofTotal}% of max stage`}
+          <span className="shrink-0 font-mono text-xs tabular-nums text-text-muted">
+            {ofTotal !== null ? `${ofTotal}%` : "—"}
           </span>
-        </>
-      )}
-    </div>
+        </div>
+      </td>
+      <td className="px-3 py-2.5 align-top font-mono text-xs tabular-nums text-text-muted">
+        {before === null || after === null ? "—" : `${showSaved(before)} → ${showSaved(after)}`}
+      </td>
+    </tr>
   );
 }
 
@@ -219,7 +221,8 @@ export default function TokenSaverStatsPanel({ period: periodProp, setPeriod: se
   return (
     <Card
       title="Token saver savings"
-      subtitle="Weighted savings by stage and timeline"
+      subtitle={`Savings by stage · ${activePeriod}`}
+      icon="token"
       padding="sm"
       action={
         <SegmentedControl
@@ -232,22 +235,23 @@ export default function TokenSaverStatsPanel({ period: periodProp, setPeriod: se
       }
     >
       {status === "loading" && (
-        <div className="flex h-40 items-center justify-center text-sm text-muted" role="status" aria-live="polite">
+        <div className="flex h-40 items-center justify-center text-sm text-text-muted" role="status" aria-live="polite">
           Loading token-saver stats…
         </div>
       )}
       {status === "error" && (
         <div
           role="alert"
-          className="flex flex-col items-center gap-2 rounded-[var(--radius-brand)] border p-6 text-sm text-fail"
-          style={{ borderColor: "var(--color-rule)" }}
+          className="flex flex-col items-center gap-2 rounded-[10px] border border-danger/35 bg-danger/5 p-6 text-sm text-danger"
         >
           <span>{error}</span>
+          <span className="text-center text-xs text-text-muted">
+            /api/saver/stats did not answer. Retry, or check that the router is running.
+          </span>
           <button
             type="button"
             onClick={() => setRetryKey((k) => k + 1)}
-            className="rounded-md border px-3 py-1 text-xs font-medium text-ink transition-colors hover:bg-surface-2"
-            style={{ borderColor: "var(--color-rule)" }}
+            className="rounded-md border border-border px-3 py-1 text-xs font-medium text-text-main transition-colors hover:bg-surface-2"
           >
             Retry
           </button>
@@ -255,51 +259,62 @@ export default function TokenSaverStatsPanel({ period: periodProp, setPeriod: se
       )}
       {status === "ready" && !hasAny && (
         <div
-          className="flex h-24 items-center justify-center rounded-[var(--radius-brand)] border p-4 text-sm text-muted"
-          style={{ borderColor: "var(--color-rule)" }}
+          className="flex h-24 items-center justify-center rounded-[10px] border border-border-subtle bg-surface-2/40 p-4 text-center text-sm text-text-muted"
           role="status"
         >
-          No token-saver events recorded for this period.
+          No token-saver activity recorded in this period. Send a request through a saver stage to see
+          numbers here.
         </div>
       )}
       {status === "ready" && hasAny && (
-        <div className="flex flex-col gap-4" role="group" aria-label="Token-saver savings by stage">
-          {/* Per-stage savings */}
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {STAGES.map((meta) => (
-              <StageRow key={meta.id} meta={meta} st={stages[meta.id]} maxSaved={maxSaved} />
-            ))}
-          </div>
-
+        <div className="flex flex-col gap-5" role="group" aria-label="Token-saver savings by stage">
           {/* Weighted totals */}
-          <div
-            className="flex flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-chassis"
-            style={{ borderColor: "var(--color-rule)" }}
-            role="group"
-            aria-label="Weighted savings totals"
-          >
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Weighted total</span>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-              <span className="font-mono tabular-nums text-[11px] text-muted">
-                saved <span className="text-signal">{savedTokens !== null ? `−${fmt(savedTokens)} tok` : "—"}</span>
-              </span>
-              <span className="font-mono tabular-nums text-[11px] text-muted">
-                of which estimated <span className="text-warn">{estimatedTokens !== null ? `${fmt(estimatedTokens)} tok` : "—"}</span>
-              </span>
-              <span className="font-mono tabular-nums text-[11px] text-muted">
-                provider-dispatched <span className="text-ink">{dispatched !== null ? fmt(dispatched) : "—"}</span>
-              </span>
+          <dl className="grid gap-3 rounded-[10px] border border-border-subtle bg-surface-2/40 p-3 sm:grid-cols-3">
+            <div>
+              <dt className="text-xs text-text-muted">Saved tokens</dt>
+              <dd className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-primary">
+                {savedTokens !== null ? `−${fmt(savedTokens)}` : "—"}
+              </dd>
             </div>
-            <p className="text-[10px] text-muted" style={{ opacity: 0.85 }}>
-              Weighted by stage: bars scale to the largest recorded stage savings for the period.
-            </p>
+            <div>
+              <dt className="text-xs text-text-muted">Of which estimated</dt>
+              <dd className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-warning">
+                {estimatedTokens !== null ? fmt(estimatedTokens) : "—"}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs text-text-muted">Provider-dispatched requests</dt>
+              <dd className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-text-main">
+                {dispatched !== null ? fmt(dispatched) : "—"}
+              </dd>
+            </div>
+          </dl>
+
+          {/* Per-stage savings */}
+          <div className="overflow-x-auto rounded-[10px] border border-border-subtle">
+            <table className="w-full min-w-[44rem] border-collapse text-left" aria-label="Token savings by stage">
+              <thead>
+                <tr className="border-b border-border text-[13px] text-text-muted">
+                  <th scope="col" className="px-3 py-2 font-medium">Stage</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Saved</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Reduction</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Share of largest stage</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Before → after</th>
+                </tr>
+              </thead>
+              <tbody>
+                {STAGES.map((meta) => (
+                  <StageRow key={meta.id} meta={meta} st={stages[meta.id]} maxSaved={maxSaved} />
+                ))}
+              </tbody>
+            </table>
           </div>
 
           {/* Timeline */}
           <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Timeline</span>
+            <span className="text-[13px] font-medium text-text-main">Reported and estimated savings over time</span>
             {!hasTimeline ? (
-              <p className="rounded-[var(--radius-brand)] border p-3 text-xs text-muted" style={{ borderColor: "var(--color-rule)" }} role="status">
+              <p className="rounded-[10px] border border-border-subtle bg-surface-2/40 p-3 text-xs text-text-muted" role="status">
                 No per-bucket timeline recorded for this period.
               </p>
             ) : (
@@ -321,25 +336,26 @@ export default function TokenSaverStatsPanel({ period: periodProp, setPeriod: se
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--color-bg)",
+                      backgroundColor: "var(--color-surface)",
                       border: "1px solid var(--color-border)",
-                      borderRadius: "8px",
+                      borderRadius: "10px",
+                      color: "var(--color-text-main)",
                       fontSize: "12px",
                     }}
                     formatter={(value, name) => [fmt(Number(value) || 0), name]}
                   />
                   <Legend wrapperStyle={{ fontSize: "11px" }} />
-                  <Bar dataKey="Reported" stackId="s" fill="var(--color-signal)" />
-                  <Bar dataKey="Estimated" stackId="s" fill="var(--color-warn)" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="Reported" stackId="s" fill="var(--color-primary)" />
+                  <Bar dataKey="Estimated" stackId="s" fill="var(--color-warning)" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          <p className="text-[10px] text-muted" style={{ opacity: 0.85 }}>
-            RTK, PXPIPE, and L3 savings are estimates (bytes/context converted to tokens); Headroom and L2 counts are
-            proxy-reported. Savings are counted only for provider-dispatched requests — requests answered by the
-            cache are excluded.
+          <p className="text-xs text-text-muted">
+            RTK, PXPIPE and L3 savings are estimates (bytes or context converted to tokens); Headroom
+            and L2 counts are proxy-reported. Savings are counted only for provider-dispatched
+            requests — requests answered by the cache are excluded.
           </p>
         </div>
       )}

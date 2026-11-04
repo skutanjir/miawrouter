@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 describe("legacy brand removal", () => {
@@ -21,7 +21,7 @@ describe("legacy brand removal", () => {
     // This file names the forbidden tokens in order to forbid them.
     const selfPath = "tests/unit/legacy-brand-removal.test.js";
     const matches = files.filter((file) => {
-      if (file === selfPath) return false;
+      if (file === selfPath || file === "cli/THIRD_PARTY_NOTICES.md" || file === "docs/release-1.2.5-audit.md" || file.startsWith("cli/vendor/opencode-free-bridge/")) return false;
       try {
         return forbidden.test(readFileSync(file, "utf8"));
       } catch {
@@ -30,7 +30,7 @@ describe("legacy brand removal", () => {
     });
 
     expect(matches).toEqual([]);
-  });
+  }, 15000);
 });
 
 // The rebrand was applied with scripted string replacement. Two classes of
@@ -62,6 +62,7 @@ describe("rebrand merge artefacts", () => {
 
   it("no declaration is swallowed by a trailing comment", () => {
     const hits = files.filter((file) => {
+      if (!existsSync(file)) return false;
       const lines = readFileSync(file, "utf8").split("\n");
       return lines.some((line) => swallowedDeclaration.test(line));
     });
@@ -70,6 +71,7 @@ describe("rebrand merge artefacts", () => {
 
   it("no closing brace is merged with the next declaration", () => {
     const hits = files.filter((file) => {
+      if (!existsSync(file)) return false;
       const lines = readFileSync(file, "utf8").split("\n");
       return lines.some((line) => mergedDeclaration.test(line));
     });

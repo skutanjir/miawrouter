@@ -1,24 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Card, Badge, Button, CardSkeleton } from "@/shared/components";
-import { cn } from "@/shared/utils/cn";
+import { Badge, Button, Card, CardSkeleton, Drawer } from "@/shared/components";
+import { Icon } from "@/shared/components/Icon";
 
 const STATUS_URL = "/api/mcp/status";
-
-/* ── Helpers ─────────────────────────────────────────────────────── */
-
-const transportColor = (t) => {
-  if (t === "stdio") return "primary";
-  if (t === "sse") return "info";
-  return "default";
-};
-
-const transportIcon = (t) => {
-  if (t === "stdio") return "terminal";
-  if (t === "sse") return "swap_vert";
-  return "language";
-};
 
 function timeAgo(ts) {
   if (!ts) return "never";
@@ -30,268 +16,32 @@ function timeAgo(ts) {
   return `${Math.floor(sec / 86400)}d ago`;
 }
 
-/* ── Health Bar ──────────────────────────────────────────────────── */
-
-function HealthBar({ health }) {
+function ForwardingMetrics({ health }) {
   if (!health || health.total === 0) {
-    return (
-      <span className="text-xs text-text-muted">No forwarded tool calls recorded</span>
-    );
+    return <span className="text-[11px] text-text-muted">No forwarded calls</span>;
   }
   const pct = Math.round((health.ok / health.total) * 100);
-  const color =
-    pct >= 95 ? "bg-green-500" : pct >= 70 ? "bg-yellow-500" : "bg-red-500";
+  const color = pct >= 95 ? "bg-success" : pct >= 70 ? "bg-warning" : "bg-danger";
   return (
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="flex-1 h-1.5 rounded-full bg-surface-3 overflow-hidden min-w-[60px]">
-        <div
-          className={cn("h-full rounded-full transition-all", color)}
-          style={{ width: `${pct}%` }}
-        />
+    <div className="flex items-center gap-2 min-w-0">
+      <div className="w-16 h-1.5 rounded-full bg-surface-2 overflow-hidden shrink-0">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs text-text-muted tabular-nums shrink-0">
+      <span className="text-[11px] font-mono tabular-nums text-text-muted shrink-0">
         {pct}% ({health.ok}/{health.total})
       </span>
     </div>
   );
 }
 
-/* ── Plugin Card ─────────────────────────────────────────────────── */
-
-function PluginCard({ plugin, expanded, onToggle }) {
-  const isLocal = plugin.type === "local";
-  const statusLabel = isLocal
-    ? plugin.running
-      ? "Running"
-      : "Stopped"
-    : "Remote";
-  const statusVariant = isLocal
-    ? plugin.running
-      ? "success"
-      : "error"
-    : "info";
-
-  return (
-    <Card padding="sm" className="overflow-hidden">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div
-            className={cn(
-              "size-9 rounded-lg flex items-center justify-center shrink-0",
-              isLocal && plugin.running
-                ? "bg-green-500/10 text-green-600"
-                : isLocal && !plugin.running
-                ? "bg-surface-3 text-text-muted"
-                : "bg-blue-500/10 text-blue-600"
-            )}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              {isLocal ? "dns" : "cloud"}
-            </span>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-sm text-text-main">
-                {plugin.title || plugin.name}
-              </h3>
-              <Badge variant={statusVariant} size="sm" dot>
-                {statusLabel}
-              </Badge>
-              <Badge variant={transportColor(plugin.transport)} size="sm">
-                <span className="material-symbols-outlined text-[11px]">
-                  {transportIcon(plugin.transport)}
-                </span>
-                {plugin.transport.toUpperCase()}
-              </Badge>
-              {plugin.oauth && (
-                <Badge variant="warning" size="sm">
-                  OAuth
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-text-muted mt-0.5 truncate">
-              {plugin.description}
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={onToggle}
-          className="p-1 rounded hover:bg-surface-2 transition-colors text-text-muted cursor-pointer shrink-0"
-          aria-label={expanded ? "Collapse" : "Expand"}
-        >
-          <span
-            className="material-symbols-outlined text-[18px] transition-transform"
-            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0)" }}
-          >
-            expand_more
-          </span>
-        </button>
-      </div>
-
-      {/* Expanded details */}
-      {expanded && (
-        <div className="mt-4 space-y-4 pt-4 border-t border-border-subtle">
-          {/* Health */}
-          <div>
-            <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-               Forwarded Tool Calls
-            </h4>
-            <HealthBar health={plugin.health} />
-            {plugin.health?.lastTs && (
-              <p className="text-[11px] text-text-muted mt-1">
-                Last: {timeAgo(plugin.health.lastTs)}
-                {plugin.health.fail > 0 && (
-                  <span className="text-red-500 ml-2">
-                    {plugin.health.fail} failure
-                    {plugin.health.fail !== 1 ? "s" : ""}
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
-
-          {/* Tools */}
-          <div>
-            <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">
-              Registered Tools ({plugin.tools.length})
-            </h4>
-            {plugin.tools.length === 0 ? (
-              <p className="text-xs text-text-muted">No tools registered</p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {plugin.tools.map((t) => (
-                  <span
-                    key={t.name}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-2 text-[11px] font-mono text-text-main border border-border-subtle"
-                  >
-                    <span className="material-symbols-outlined text-[10px] text-text-muted">
-                      build
-                    </span>
-                    {t.name}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* URL for remote */}
-          {plugin.url && (
-            <div>
-              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">
-                Endpoint
-              </h4>
-              <code className="text-[11px] font-mono text-text-muted break-all">
-                {plugin.url}
-              </code>
-            </div>
-          )}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-/* ── Summary Cards ───────────────────────────────────────────────── */
-
-function SummaryCards({ data, loading }) {
-  const bridge = data?.bridge;
-  const items = [
-    {
-      title: "Total Plugins",
-      value: loading ? "—" : (bridge?.localCount ?? 0) + (bridge?.remoteCount ?? 0),
-      icon: "cable",
-      sub: loading
-        ? ""
-        : `${bridge?.localCount ?? 0} local · ${bridge?.remoteCount ?? 0} remote`,
-    },
-    {
-      title: "Bridges Running",
-      value: loading ? "—" : bridge?.runningCount ?? 0,
-      icon: "play_circle",
-      sub: loading
-        ? ""
-        : `of ${bridge?.localCount ?? 0} local stdio bridge${
-            (bridge?.localCount ?? 0) !== 1 ? "s" : ""
-          }`,
-      accent: (bridge?.runningCount ?? 0) > 0 ? "text-green-600" : "text-text-muted",
-    },
-    {
-      title: "Registered Tools",
-      value: loading ? "—" : bridge?.totalTools ?? 0,
-      icon: "build",
-      sub: "across all plugins",
-    },
-    {
-      title: "Gateway MCP",
-       value: loading ? "—" : data?.api?.responding ? "Responding" : "Error",
-      icon: "health_and_safety",
-      accent: loading
-        ? "text-text-muted"
-         : data?.api?.responding
-        ? "text-green-600"
-        : "text-red-500",
-    },
-  ];
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((item) => (
-        <Card key={item.title} padding="sm">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-1.5 rounded-md bg-bg text-text-muted">
-              <span className="material-symbols-outlined text-[18px]">
-                {item.icon}
-              </span>
-            </div>
-            <span className="text-xs text-text-muted">{item.title}</span>
-          </div>
-          <p className={cn("text-2xl font-semibold", item.accent || "text-text-main")}>
-            {item.value}
-          </p>
-          {item.sub && (
-            <p className="text-[11px] text-text-muted mt-0.5">{item.sub}</p>
-          )}
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-/* ── Page Header ─────────────────────────────────────────────────── */
-
-function PageHeader({ loading, refresh }) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold">MCP</h1>
-        <p className="text-sm text-text-muted">
-          Model Context Protocol — bridge status, transports, tools, and
-           forwarded-call telemetry.
-        </p>
-      </div>
-      <Button
-        variant="secondary"
-        size="sm"
-        onClick={refresh}
-        disabled={loading}
-        icon="refresh"
-      >
-        {loading ? "Loading…" : "Refresh"}
-      </Button>
-    </div>
-  );
-}
-
-/* ── Main Page Component ─────────────────────────────────────────── */
 
 export default function McpPageClient() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState({});
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [selectedPlugin, setSelectedPlugin] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -314,64 +64,138 @@ export default function McpPageClient() {
     load();
   }, [load]);
 
-  const toggleExpand = (name) =>
-    setExpanded((prev) => ({ ...prev, [name]: !prev[name] }));
-
+  const bridge = data?.bridge;
   const plugins = data?.plugins || [];
-  const filtered =
-    filter === "all"
-      ? plugins
-      : filter === "local"
-      ? plugins.filter((p) => p.type === "local")
-      : plugins.filter((p) => p.type === "remote");
+
+  const filtered = plugins.filter((p) => {
+    const matchesFilter = filter === "all" || p.type === filter;
+    const matchesSearch =
+      !search.trim() ||
+      (p.name && p.name.toLowerCase().includes(search.toLowerCase())) ||
+      (p.title && p.title.toLowerCase().includes(search.toLowerCase())) ||
+      (p.description && p.description.toLowerCase().includes(search.toLowerCase()));
+    return matchesFilter && matchesSearch;
+  });
 
   const filterOptions = [
     { value: "all", label: `All (${plugins.length})` },
-    {
-      value: "local",
-      label: `Local (${
-        plugins.filter((p) => p.type === "local").length
-      })`,
-    },
-    {
-      value: "remote",
-      label: `Remote (${
-        plugins.filter((p) => p.type === "remote").length
-      })`,
-    },
+    { value: "local", label: `Local (${plugins.filter((p) => p.type === "local").length})` },
+    { value: "remote", label: `Remote (${plugins.filter((p) => p.type === "remote").length})` },
   ];
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
-      <PageHeader loading={loading} refresh={load} />
+    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0 font-sans">
+      {/* ── Page Header ─────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between border-b border-border pb-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold flex items-center gap-2.5 leading-tight text-text-main">
+            <Icon name="extension" className="text-primary text-[24px]" />
+            MCP
+          </h1>
+          <p className="text-sm text-text-muted mt-0.5">
+            Model Context Protocol — bridge status, stdio/sse transports, tool forward telemetry.
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={load}
+          disabled={loading}
+          icon="refresh"
+        >
+          {loading ? "Loading…" : "Refresh"}
+        </Button>
+      </div>
 
       {error && (
-        <Card className="border-red-500/30 text-sm text-red-500" padding="sm">
+        <Card className="border-danger/30 text-xs text-danger" padding="sm">
           {error}
         </Card>
       )}
 
-      <SummaryCards data={data} loading={loading} />
+      {/* ── Summary Stats ────────────────────────────────────────── */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="cable" className="text-[16px]" />
+            <span>Total Plugins</span>
+          </div>
+          <p className="text-xl font-semibold font-mono tabular-nums text-text-main">
+            {loading ? "—" : (bridge?.localCount ?? 0) + (bridge?.remoteCount ?? 0)}
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5">
+            {loading ? "" : `${bridge?.localCount ?? 0} local · ${bridge?.remoteCount ?? 0} remote`}
+          </p>
+        </div>
 
-      {/* Plugin list header with filter */}
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="play_circle" className="text-[16px]" />
+            <span>Active Bridges</span>
+          </div>
+          <p className="text-xl font-semibold font-mono tabular-nums text-text-main">
+            {loading ? "—" : bridge?.runningCount ?? 0}
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5">
+            {loading ? "" : `of ${bridge?.localCount ?? 0} stdio`}
+          </p>
+        </div>
+
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="build" className="text-[16px]" />
+            <span>Registered Tools</span>
+          </div>
+          <p className="text-xl font-semibold font-mono tabular-nums text-text-main">
+            {loading ? "—" : bridge?.totalTools ?? 0}
+          </p>
+          <p className="text-[11px] text-text-muted mt-0.5">across all connected plugins</p>
+        </div>
+
+        <div className="p-3 rounded-[10px] border border-border bg-surface">
+          <div className="flex items-center gap-2 text-text-muted mb-1 text-[11px]">
+            <Icon name="health_and_safety" className="text-[16px]" />
+            <span>Gateway API</span>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <Badge variant={data?.api?.responding ? "success" : "danger"} dot size="sm">
+              {loading ? "Checking" : data?.api?.responding ? "Responding" : "Error"}
+            </Badge>
+          </div>
+          <p className="text-[11px] text-text-muted mt-0.5">local endpoint</p>
+        </div>
+      </div>
+
+      {/* ── Toolbar ──────────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-sm font-semibold text-text-main flex items-center gap-2">
-          <span className="material-symbols-outlined text-[18px] text-primary">
-            extension
-          </span>
-          MCP Plugins
-        </h2>
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-bg-subtle border border-border-subtle">
+        <div className="flex-1 min-w-[200px] max-w-sm">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-border bg-surface text-xs">
+            <Icon name="search" className="text-text-muted text-[16px] shrink-0" />
+            <input
+              type="text"
+              placeholder="Search plugins by name…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent text-text-main outline-none placeholder:text-text-muted text-xs"
+            />
+            {search && (
+              <button type="button" onClick={() => setSearch("")} className="text-text-muted hover:text-text-main cursor-pointer">
+                <Icon name="close" className="text-[14px]" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 p-0.5 rounded-md bg-surface-2 border border-border">
           {filterOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => setFilter(opt.value)}
-              className={cn(
-                "px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
+              className={`px-3 py-1 rounded text-xs font-medium transition-colors cursor-pointer ${
                 filter === opt.value
-                  ? "bg-surface text-text-main shadow-sm"
+                  ? "bg-surface text-text-main shadow-xs font-semibold"
                   : "text-text-muted hover:text-text-main"
-              )}
+              }`}
             >
               {opt.label}
             </button>
@@ -379,62 +203,203 @@ export default function McpPageClient() {
         </div>
       </div>
 
-      {/* Plugin cards */}
+      {/* ── Dense Table ─────────────────────────────────────────── */}
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <CardSkeleton />
-          <CardSkeleton />
-        </div>
+        <CardSkeleton />
       ) : filtered.length === 0 ? (
         <Card padding="lg">
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <span className="material-symbols-outlined text-[40px] text-text-muted/40 mb-3">
-              cable
-            </span>
-            <p className="text-sm text-text-muted">
-              {plugins.length === 0
-                ? "No MCP plugins configured."
-                : `No ${filter} plugins found.`}
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <Icon name="cable" className="text-[32px] text-text-muted mb-2" />
+            <p className="text-sm font-semibold text-text-main">
+              {plugins.length === 0 ? "No MCP plugins configured" : "No plugins match your filter"}
+            </p>
+            <p className="text-xs text-text-muted mt-1 max-w-sm">
+              Add local stdio tools or remote SSE plugin URLs in your server configuration.
             </p>
           </div>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map((plugin) => (
-            <PluginCard
-              key={plugin.name}
-              plugin={plugin}
-              expanded={!!expanded[plugin.name]}
-              onToggle={() => toggleExpand(plugin.name)}
-            />
-          ))}
+        <div className="rounded-[10px] border border-border bg-surface overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-surface-2/60 text-text-muted font-medium">
+                  <th className="py-2.5 px-4 font-semibold text-text-main">Plugin</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main">Status</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main">Transport</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main hidden sm:table-cell">Tools</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main hidden md:table-cell">Forwarded Tool Calls</th>
+                  <th className="py-2.5 px-4 font-semibold text-text-main text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border-subtle">
+                {filtered.map((plugin) => {
+                  const isLocal = plugin.type === "local";
+                  const statusLabel = isLocal ? (plugin.running ? "Running" : "Stopped") : "Remote";
+                  const statusVariant = isLocal ? (plugin.running ? "success" : "default") : "info";
+
+                  return (
+                    <tr
+                      key={plugin.name}
+                      onClick={() => setSelectedPlugin(plugin)}
+                      className="hover:bg-surface-2/60 transition-colors cursor-pointer group"
+                    >
+                      <td className="py-2.5 px-4 max-w-[240px]">
+                        <div className="flex items-center gap-2">
+                          <Icon
+                            name={isLocal ? "dns" : "cloud"}
+                            className="text-text-muted text-[16px] shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <span className="font-semibold text-text-main truncate block">
+                              {plugin.title || plugin.name}
+                            </span>
+                            <span className="text-[11px] text-text-muted truncate block">
+                              {plugin.description || plugin.name}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-2.5 px-4 whitespace-nowrap">
+                        <Badge variant={statusVariant} size="sm" dot>
+                          {statusLabel}
+                        </Badge>
+                      </td>
+
+                      <td className="py-2.5 px-4 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 font-mono text-[11px] px-1.5 py-0.5 rounded bg-surface-2 text-text-muted border border-border-subtle">
+                          <Icon
+                            name={plugin.transport === "stdio" ? "terminal" : "swap_vert"}
+                            className="text-[11px]"
+                          />
+                          {plugin.transport.toUpperCase()}
+                        </span>
+                      </td>
+
+                      <td className="py-2.5 px-4 hidden sm:table-cell font-mono tabular-nums text-text-muted">
+                        <Badge variant="default" size="sm">
+                          {plugin.tools?.length || 0} tools
+                        </Badge>
+                      </td>
+
+                      <td className="py-2.5 px-4 hidden md:table-cell">
+                        <ForwardingMetrics health={plugin.health} />
+                      </td>
+
+                      <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon="visibility"
+                          onClick={() => setSelectedPlugin(plugin)}
+                          title="View plugin detail"
+                          aria-label={`View details for ${plugin.name}`}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Info footer */}
-      <Card padding="sm" className="border-border-subtle/50">
-        <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-[16px] text-text-muted mt-0.5">
-            info
-          </span>
-          <div className="text-xs text-text-muted space-y-1">
-            <p>
-              <strong className="text-text-main">Local stdio bridges</strong>{" "}
-              spawn on demand when a client connects via SSE, and shut down
-              after the last session disconnects.
-            </p>
-            <p>
-              <strong className="text-text-main">Remote plugins</strong>{" "}
-              connect to external MCP servers over HTTPS. OAuth-enabled
-              servers require authentication before tools can be listed.
-            </p>
-            <p>
-              Tool names shown are the safe, registered names — no API keys
-              or credentials are exposed through this page.
-            </p>
+      {/* ── Plugin Detail Drawer ─────────────────────────────────── */}
+      <Drawer
+        isOpen={!!selectedPlugin}
+        onClose={() => setSelectedPlugin(null)}
+        title={selectedPlugin?.title || selectedPlugin?.name || "Plugin Details"}
+        width="md"
+      >
+        {selectedPlugin && (
+          <div className="space-y-5 text-xs text-text-main">
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Description</span>
+              <p className="mt-1 text-sm text-text-main leading-relaxed">
+                {selectedPlugin.description || "No description provided."}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-md bg-surface-2 border border-border-subtle">
+                <span className="text-[11px] text-text-muted">Type</span>
+                <p className="mt-1 font-mono font-semibold text-text-main">{selectedPlugin.type}</p>
+              </div>
+              <div className="p-3 rounded-md bg-surface-2 border border-border-subtle">
+                <span className="text-[11px] text-text-muted">Transport</span>
+                <p className="mt-1 font-mono font-semibold text-text-main">{selectedPlugin.transport}</p>
+              </div>
+            </div>
+
+            {selectedPlugin.url && (
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Endpoint URL</span>
+                <code className="block mt-1 p-2.5 rounded bg-surface-2 font-mono text-[11px] text-text-main break-all select-all">
+                  {selectedPlugin.url}
+                </code>
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                  Registered Tools ({selectedPlugin.tools?.length || 0})
+                </span>
+              </div>
+              {selectedPlugin.tools?.length === 0 ? (
+                <p className="text-text-muted">No tools registered.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {selectedPlugin.tools?.map((tool) => (
+                    <div
+                      key={tool.name}
+                      className="p-2.5 rounded-md border border-border-subtle bg-surface-2/40"
+                    >
+                      <div className="flex items-center gap-1.5 font-mono text-xs font-semibold text-text-main">
+                        <Icon name="build" className="text-primary text-[12px]" />
+                        {tool.name}
+                      </div>
+                      {tool.description && (
+                        <p className="text-[11px] text-text-muted mt-1 leading-normal">
+                          {tool.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Forwarded Tool Calls</span>
+              <div className="mt-2 p-3 rounded-md bg-surface-2 border border-border-subtle space-y-2">
+                <ForwardingMetrics health={selectedPlugin.health} />
+                <div className="grid grid-cols-3 gap-2 text-[11px] pt-2 border-t border-border-subtle">
+                  <div>
+                    <span className="text-text-muted block">Total Calls</span>
+                    <strong className="font-mono">{selectedPlugin.health?.total ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span className="text-text-muted block">Forwarded</span>
+                    <strong className="font-mono text-success">{selectedPlugin.health?.ok ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span className="text-text-muted block">Not forwarded</span>
+                    <strong className="font-mono text-danger">{selectedPlugin.health?.fail ?? 0}</strong>
+                  </div>
+                </div>
+                {selectedPlugin.health?.lastTs && (
+                  <p className="text-[10px] font-mono text-text-muted pt-1">
+                    Last forwarding: {timeAgo(selectedPlugin.health.lastTs)}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-      </Card>
+        )}
+      </Drawer>
     </div>
   );
 }

@@ -3,8 +3,7 @@
 import { useEffect } from "react";
 import { cn } from "@/shared/utils/cn";
 import Button from "./Button";
-import Tooltip from "./Tooltip";
-
+import { Icon } from "@/shared/components/Icon";
 export default function Modal({
   isOpen,
   onClose,
@@ -54,60 +53,37 @@ export default function Modal({
       {/* Modal content */}
       <div
         className={cn(
+          "ui-modal",
           "relative w-full bg-surface",
-          "border border-border-subtle",
-          "rounded-[var(--radius-brand-lg)] shadow-[var(--shadow-elev)]",
-          "fade-in",
+          "border border-border",
+          "rounded-2xl shadow-elevated",
           sizes[size],
           className
         )}
+        data-traffic-lights={showTrafficLights || undefined}
       >
         {/* Header */}
-        {(title || showTrafficLights || onClose) && (
-          <div className="flex items-center justify-between p-2 border-b border-border-subtle">
-            <div className="flex items-center min-w-0">
-              {/* Traffic lights — desktop only */}
-              {showTrafficLights && (
-                <div className="hidden md:flex items-center gap-2 mr-4 ml-2">
-                  <Tooltip text="Close" position="top" color="#FF5F56">
-                    <button
-                      onClick={onClose}
-                      aria-label="Close"
-                      title="Close"
-                      className="w-4 h-4 rounded-full bg-[#FF5F56] hover:brightness-90 transition-all cursor-pointer flex items-center justify-center group/dot"
-                    >
-                      <span className="text-[9px] font-bold text-white opacity-0 group-hover/dot:opacity-100 transition-opacity leading-none">✕</span>
-                    </button>
-                  </Tooltip>
-                  <div className="w-4 h-4 rounded-full bg-[#3a3a3a]/20 dark:bg-white/15 cursor-not-allowed" />
-                  <div className="w-4 h-4 rounded-full bg-[#3a3a3a]/20 dark:bg-white/15 cursor-not-allowed" />
-                </div>
-              )}
-              {title && (
-                <h2 className="text-base font-semibold text-text-main truncate">{title}</h2>
-              )}
+        {(title || onClose) && (
+          <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-border">
+            <div className="min-w-0">
+              {title && <h2 className="text-[16px] font-bold tracking-tight text-text-main truncate">{title}</h2>}
             </div>
-            {/* Close button — all breakpoints when traffic lights are off, mobile only when on */}
             <button
               onClick={onClose}
               aria-label="Close"
-              title="Close"
-              className={cn(
-                "shrink-0 p-1.5 rounded-[var(--radius-brand)] text-text-muted hover:bg-surface-2 hover:text-text-main transition-colors",
-                showTrafficLights && "md:hidden"
-              )}
+              className="shrink-0 p-1.5 rounded-lg text-text-muted hover:bg-surface-2 hover:text-text-main transition-colors"
             >
-              <span className="material-symbols-outlined text-[20px]">close</span>
+              <Icon name="close" className="text-[18px]" />
             </button>
           </div>
         )}
 
         {/* Body */}
-        <div className="p-6 max-h-[calc(85vh-100px)] overflow-y-auto custom-scrollbar">{children}</div>
+        <div className="p-5 max-h-[calc(85vh-100px)] overflow-y-auto custom-scrollbar">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-border-subtle">
+          <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border bg-surface-2/40 rounded-b-2xl">
             {footer}
           </div>
         )}

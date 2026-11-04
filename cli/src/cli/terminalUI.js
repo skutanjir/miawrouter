@@ -8,10 +8,12 @@ const { showCliToolsMenu } = require("./menus/cliTools");
 
 const COLORS = {
   reset: "\x1b[0m",
-  green: "\x1b[32m",
-  red: "\x1b[31m",
+  green: "\x1b[38;2;52;211;153m",
+  red: "\x1b[38;2;239;68;68m",
   dim: "\x1b[2m",
-  cyan: "\x1b[36m"
+  cyan: "\x1b[38;2;217;119;87m",
+  terracotta: "\x1b[38;2;217;119;87m",
+  platinum: "\x1b[38;2;244;244;245m"
 };
 
 // Cached header (SWR): show last value instantly, refresh in background.

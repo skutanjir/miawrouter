@@ -40,34 +40,34 @@ export default function RequestLogger() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Request Logs</h2>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-[15px] font-semibold text-text-main">Request Logs</h2>
         <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-text-muted flex items-center gap-2 cursor-pointer">
+          <div className="text-[13px] font-medium text-text-muted flex items-center gap-2">
             <span>Auto Refresh (3s)</span>
-            <div
+            <button
+              type="button"
+              role="switch"
+              aria-label="Auto Refresh"
+              aria-checked={autoRefresh}
               onClick={() => setAutoRefresh(!autoRefresh)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${autoRefresh ? "bg-primary" : "bg-bg-subtle border border-border"
-                }`}
+              className={`relative inline-flex h-[18px] w-8 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${autoRefresh ? "bg-primary" : "bg-surface-2 border border-border"}`}
             >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${autoRefresh ? "translate-x-5" : "translate-x-1"
-                  }`}
-              />
-            </div>
-          </label>
+              <span className={`inline-block size-3.5 rounded-full transition-transform ${autoRefresh ? "translate-x-[14px] bg-bg" : "translate-x-0.5 bg-text-muted"}`} />
+            </button>
+          </div>
         </div>
       </div>
 
-      <Card className="overflow-hidden bg-black/5 dark:bg-black/20">
+      <Card padding="none" className="overflow-hidden">
         <div className="p-0 overflow-x-auto max-h-[600px] overflow-y-auto font-mono text-xs">
           {loading && logs.length === 0 ? (
             <div className="p-8 text-center text-text-muted">Loading logs...</div>
           ) : logs.length === 0 ? (
-            <div className="p-8 text-center text-text-muted">No logs recorded yet.</div>
+            <div className="p-8 text-center text-text-muted">No request logs yet. Send a request to populate this table.</div>
           ) : (
             <table className="w-full text-left border-collapse whitespace-nowrap">
-              <thead className="sticky top-0 bg-bg-subtle border-b border-border z-10">
+              <thead className="sticky top-0 bg-surface-2 border-b border-border z-10">
                 <tr>
                   <th className="px-3 py-2 border-r border-border">DateTime</th>
                   <th className="px-3 py-2 border-r border-border">Model</th>
@@ -93,17 +93,14 @@ export default function RequestLogger() {
                       <td className="px-3 py-1.5 border-r border-border text-text-muted">{parts[0]}</td>
                       <td className="px-3 py-1.5 border-r border-border font-medium">{parts[1]}</td>
                       <td className="px-3 py-1.5 border-r border-border">
-                        <span className="px-1.5 py-0.5 rounded bg-bg-subtle border border-border text-[10px] uppercase font-bold">
+                        <span className="px-1.5 py-0.5 rounded-md bg-surface-2 border border-border text-[10px] font-medium">
                           {parts[2]}
                         </span>
                       </td>
                       <td className="px-3 py-1.5 border-r border-border truncate max-w-[150px]" title={parts[3]}>{parts[3]}</td>
-                      <td className="px-3 py-1.5 border-r border-border text-right text-primary">{parts[4]}</td>
-                      <td className="px-3 py-1.5 border-r border-border text-right text-success">{parts[5]}</td>
-                      <td className={`px-3 py-1.5 font-bold ${isSuccess ? 'text-success' :
-                          isFailed ? 'text-error' :
-                            'text-primary animate-pulse'
-                        }`}>
+                      <td className="px-3 py-1.5 border-r border-border text-right text-text-muted">{parts[4]}</td>
+                      <td className="px-3 py-1.5 border-r border-border text-right text-text-muted">{parts[5]}</td>
+                      <td className={`px-3 py-1.5 font-medium ${isSuccess ? 'text-success' : isFailed ? 'text-danger' : 'text-primary'}`}>
                         {status}
                       </td>
                     </tr>

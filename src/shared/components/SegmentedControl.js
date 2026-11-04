@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/shared/utils/cn";
+import { Icon } from "@/shared/components/Icon";
 
 export default function SegmentedControl({
   options = [],
@@ -12,8 +13,8 @@ export default function SegmentedControl({
 }) {
   const sizes = {
     sm: "h-7 text-xs",
-    md: "h-9 text-sm",
-    lg: "h-11 text-base",
+    md: "h-8 text-xs sm:text-[13px]",
+    lg: "h-10 text-sm",
   };
 
   return (
@@ -21,8 +22,9 @@ export default function SegmentedControl({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "inline-flex items-center p-1 rounded-[var(--radius-brand)] overflow-x-auto",
-        "bg-bg-subtle border border-border-subtle",
+        "ui-segmented-control",
+        "inline-flex items-center p-1 rounded-lg overflow-x-auto gap-0.5",
+        "bg-surface-2 border border-border",
         className
       )}
     >
@@ -33,18 +35,16 @@ export default function SegmentedControl({
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "shrink-0 px-4 rounded-[6px] font-medium transition-all",
-            "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary/60",
+            "inline-flex items-center justify-center shrink-0 px-3 rounded-md font-medium transition-all duration-150",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             sizes[size],
             value === option.value
-              ? "bg-surface text-text-main shadow-sm"
-              : "text-text-muted hover:text-text-main"
+              ? "bg-surface text-primary font-semibold border border-border-subtle shadow-2xs"
+              : "border border-transparent text-text-muted hover:text-text-main"
           )}
         >
           {option.icon && (
-            <span className="material-symbols-outlined text-[16px] mr-1.5" aria-hidden="true">
-              {option.icon}
-            </span>
+            <Icon name={option.icon} className="text-[15px] mr-1.5 shrink-0" aria-hidden="true" />
           )}
           {option.label}
         </button>

@@ -65,7 +65,7 @@ describe("app-side getConsistentMachineId — salt resolution", () => {
     const file = path.join(tempDir, "machine-id-salt");
     expect(fs.existsSync(file)).toBe(true);
     const stat = fs.statSync(file);
-    expect(stat.mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(stat.mode & 0o777).toBe(0o600);
   });
 
   it("generated salt produces stable 16-hex ID across calls", async () => {

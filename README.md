@@ -4,9 +4,9 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/miawrouter"><img src="https://img.shields.io/npm/v/miawrouter.svg?style=flat-square&color=168BFF" alt="npm version"></a>
-  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.9.0-0ea5e9.svg?style=flat-square" alt="Node.js requirement"></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20.18.1-0ea5e9.svg?style=flat-square" alt="Node.js requirement"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-0284c7.svg?style=flat-square" alt="License: MIT"></a>
-  <a href="SECURITY.md"><img src="https://img.shields.io/badge/secrets-0600%20zero--leak-0369a1.svg?style=flat-square" alt="Security posture"></a>
+  <a href="SECURITY.md"><img src="https://img.shields.io/badge/security-policy-0369a1.svg?style=flat-square" alt="Security policy"></a>
   <a href="#mitm-interception"><img src="https://img.shields.io/badge/MITM-Antigravity%20%7C%20Cursor%20%7C%20Copilot%20%7C%20Amazon%20Q-168BFF.svg?style=flat-square" alt="IDE MITM targets"></a>
 </p>
 
@@ -17,7 +17,9 @@
 
 MiawRouter is a local AI gateway. It runs on your machine, serves one OpenAI-compatible endpoint at `/v1`, and routes each request to a provider driver in `open-sse/providers/registry/`. It rewrites request and response formats between providers, fails over to the next account or model in a combo when one breaks, and serves a dashboard on the same port.
 
-Nothing leaves your machine except the requests you route to an upstream provider.
+Requests and configured integrations can send data to upstream providers or services. Review the endpoints and privacy settings you enable.
+
+The source tree targets **1.2.5**. The npm badge shows the latest published version, which may differ. See [release audit](docs/release-1.2.5-audit.md) for verification results and outstanding work.
 
 ## Contents
 
@@ -39,11 +41,11 @@ Nothing leaves your machine except the requests you route to an upstream provide
 | Capability | How it works |
 | --- | --- |
 | One endpoint for every tool | `/v1/chat/completions`, `/v1/messages`, `/v1/models`, and the rest of the OpenAI surface. Point any OpenAI-compatible client at it. |
-| Provider drivers | 146 definitions under `open-sse/providers/registry/`, covering cloud APIs, subscription OAuth, free tiers, local runtimes, and media providers. |
+| Provider drivers | Registry definitions cover cloud APIs, subscription OAuth, free tiers, local runtimes, and media providers. Availability depends on the provider and account. |
 | Format translation | Translates between OpenAI, Anthropic, Gemini, and provider-specific wire formats, including streaming SSE and Protobuf relays. |
 | Fallback combos | Ordered model chains with automatic failover, plus round-robin pools for multi-account setups. |
 | MITM interception | Reroutes traffic from Antigravity, Cursor, GitHub Copilot, and Amazon Q without editing their config files. |
-| Token saver cache | Four fail-open cache layers in `open-sse/cache/` that reduce outbound tokens. |
+| Token saver and cache | Configurable compression and cache layers; effectiveness depends on the request and provider. |
 | Local runtimes | Whisper, llama.cpp, vLLM, Kokoro-FastAPI, and any OpenAI-compatible speech, embedding, or chat server you host. |
 
 ## Quick start
@@ -55,7 +57,11 @@ npm install -g miawrouter
 miawrouter
 ```
 
-The CLI starts the server and opens the dashboard at `http://127.0.0.1:21128/dashboard`. Data is stored in `~/.miawrouter`.
+Node.js 20.18.1 or newer is required. The 1.2.5 CLI defaults to loopback and opens `http://127.0.0.1:21128/dashboard`. Data defaults to `~/.miawrouter` on macOS/Linux and `%APPDATA%\miawrouter` on Windows. Set `DATA_DIR` to use another location.
+
+To deliberately permit LAN access, run `miawrouter --host 0.0.0.0` and configure authentication and network access controls. An occupied port is reported instead of terminating the service already using it.
+
+OpenCode Free Bridge is not started automatically. Existing compatible-provider configuration is preserved; use provider-supported access and observe upstream restrictions.
 
 ### Run from source
 
@@ -138,16 +144,16 @@ The **CLI Tools** page writes the config for each of these for you.
 
 - **Cloud APIs**: OpenAI, Anthropic, Google Gemini, DeepSeek, xAI, Groq, Mistral, Cohere, Together, Cerebras, SiliconFlow, OpenRouter, and others.
 - **Subscription OAuth**: active Claude Code, Codex, GitHub Copilot, and Cursor subscriptions. Tokens refresh in the background.
-- **Free tiers**: the free model catalog, including Vertex and OpenCode free entries.
+- **Free tiers**: catalog entries where available. Eligibility, usage limits and availability depend on the provider; OpenCode Free is restricted to its supported client.
 - **Media and local**: speech to text, text to speech, embeddings, and self-hosted chat servers.
 
 ### Combos
 
-A combo is an ordered list of models. MiawRouter tries each entry until one answers. Round-robin combos spread load across the accounts in a pool. The **Combos** page also holds the capacity adapter: when the selected model cannot read images or audio, the adapter routes that one request to a pool model that can.
+A combo is an ordered list of models. Eligible failures can trigger fallback; invalid or cancelled requests do not. Round-robin rotates model choices; account selection is handled separately. The capacity adapter can add configured alternatives for image or audio requests. Capability metadata may be incomplete, so verify that each selected model supports the input.
 
 ### Model naming
 
-Address a model as `provider/model` (for example `anthropic/claude-sonnet-4`), or address a combo by its ID. `/v1/models` lists everything currently routable.
+Address a model as `provider/model` or address a combo by its ID. `/v1/models` lists models derived from configured connections and available catalogs; an entry does not guarantee live availability or account access.
 
 ## MITM interception
 
@@ -185,6 +191,8 @@ export MITM_CURSOR_CAPTURE_FULL=1   # add raw bytes, written to $DATA_DIR/logs/m
 
 Metadata capture never writes headers, cookies, tokens, or body text. Raw capture can contain prompts and tool results, so point it at a sanitized prompt and delete the captures when you are done.
 
+Development request/response dumps additionally require `NODE_ENV=development` and `MITM_DEBUG_CAPTURE=1`. Credential headers and URL queries are masked, but bodies can contain private data. MITM logs are retained across restarts. On Windows, file access is controlled by ACLs rather than Unix mode bits.
+
 ## Token saver cache
 
 Four layers in `open-sse/cache/`, all fail-open. A cache failure falls through to the provider instead of failing the request.
@@ -192,20 +200,22 @@ Four layers in `open-sse/cache/`, all fail-open. A cache failure falls through t
 | Layer | What it does |
 | --- | --- |
 | L0 | Keeps request prefixes stable so provider-side prompt caching keeps hitting. |
-| L1 | Exact-match LRU for deterministic, tool-free completions. |
-| L2 | Embedding similarity for paraphrased prompts. |
+| L1 | Exact-match LRU for non-streaming, tool-free requests with temperature zero. |
+| L2 | Optional embedding similarity for eligible prompts; disabled by default. |
 | L3 | Deduplicates repeated conversation blocks and context payloads. |
 
-Every response reports which layer answered through the `X-Miaw-Cache` and `X-Miaw-Cache-Layer` headers. Skip the cache for one request with `X-Miaw-Token-Saver: off`.
+Eligible response-cache lookups may return `X-Miaw-Cache` and `X-Miaw-Cache-Layer` headers. Bypass response caching with `X-Miaw-Bypass: cache` or specify individual layers such as `cache-l1,cache-l2`. Temperature zero is not a guarantee of deterministic provider output.
 
 ## Security model
 
 1. **Loopback by default.** The server binds `127.0.0.1`. Remote requests to dashboard setup routes return 403.
-2. **Generated secrets.** `JWT_SECRET`, `API_KEY_SECRET`, and `MACHINE_ID_SALT` are created on first boot as 32 random bytes and stored at mode `0600` under `$DATA_DIR`.
+2. **Generated secrets.** `JWT_SECRET`, `API_KEY_SECRET`, and `MACHINE_ID_SALT` are generated on first boot. Unix files use mode `0600`; Windows ACL hardening requires separate review.
 3. **Weak secret rejection.** `secret-policy.cjs` refuses placeholder secrets such as documented examples before the listener binds.
 4. **Socket-derived client IP.** `custom-server.js` reads the client address from the TCP socket and strips `X-Forwarded-For` unless a trusted loopback proxy set it.
-5. **SSRF guard.** `src/shared/utils/ssrfGuard.js` blocks outbound requests to cloud metadata addresses, private ranges, and loopback.
-6. **Packaging isolation.** The CLI builds inside an isolated temporary directory with exclusion filters, so local databases and credentials cannot reach a published artifact.
+5. **SSRF controls.** Destination validation is used in relevant proxy and webhook paths; local provider endpoints require separate consideration.
+6. **Packaging checks.** Build exclusions and package scans reduce accidental inclusion of local data; inspect each release artifact before publishing.
+
+Provider credentials are stored in the local database; protect the database and its backups. Optional request logs and MITM capture bodies may contain sensitive content.
 
 [SECURITY.md](SECURITY.md) has the threat model and the disclosure process.
 
@@ -215,7 +225,7 @@ Every response reports which layer answered through the `X-Miaw-Cache` and `X-Mi
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `DATA_DIR` | `~/.miawrouter` | Where the database, secrets, and logs live. |
+| `DATA_DIR` | platform-specific user data directory | Where the database, secrets, and logs live. |
 | `PORT` | `21128` | Listen port for the packaged server. `npm run dev` pins 21127 and `npm run start` pins 21128. |
 | `INITIAL_PASSWORD` | unset | Optional first password. The first successful loopback login bcrypt-hashes it into the database. |
 | `JWT_SECRET` | generated | Signing key for the dashboard session cookie. |
@@ -230,11 +240,15 @@ Every response reports which layer answered through the `X-Miaw-Cache` and `X-Mi
 | `HTTP_PROXY` / `HTTPS_PROXY` / `ALL_PROXY` / `NO_PROXY` | unset | Outbound proxy for provider calls. Lowercase variants work too. |
 | `SEARXNG_URL` | unset | Endpoint for the built-in web search provider. |
 | `MITM_CURSOR_CAPTURE` / `MITM_CURSOR_CAPTURE_FULL` | `0` | Wire capture for the Cursor relay. See [MITM interception](#mitm-interception). |
+| `MITM_DEBUG_CAPTURE` | unset | Enable raw MITM dumps in development only. |
+| `MIAW_MAX_CONCURRENT` / `MIAW_PROVIDER_MAX_CONCURRENT` / `MIAW_CONNECTION_MAX_CONCURRENT` | `256` / `64` / `32` | Concurrent upstream request limits. |
+| `MIAW_QUEUE_TIMEOUT_MS` | `120000` | Maximum wait for a concurrency slot. |
 
 ## Development
 
 ```bash
 npm install
+npm --prefix tests install
 npm run dev        # http://127.0.0.1:21127
 ```
 
@@ -260,7 +274,7 @@ The branding gate is part of the repository contract:
 node scripts/check-branding.mjs
 ```
 
-It walks the tree and fails on any leftover reference to the project this codebase was forked from. Run it before opening a pull request.
+Run it before opening a pull request. Required third-party license notices must be preserved.
 
 ## Documentation
 
@@ -268,6 +282,7 @@ It walks the tree and fails on any leftover reference to the project this codeba
 - [DOCKER.md](DOCKER.md): container deployment detail.
 - [CONTRIBUTING.md](CONTRIBUTING.md): development workflow and how to add a provider.
 - [CHANGELOG.md](CHANGELOG.md): release notes.
+- [1.2.5 audit](docs/release-1.2.5-audit.md): tested behavior and remaining release work.
 
 ## Contributing
 
@@ -276,3 +291,5 @@ Bug reports, provider integrations, and documentation fixes are welcome. Read [C
 ## License
 
 [MIT](LICENSE).
+
+Third-party license notices are included in [cli/THIRD_PARTY_NOTICES.md](cli/THIRD_PARTY_NOTICES.md).

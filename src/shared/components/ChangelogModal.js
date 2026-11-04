@@ -1,21 +1,21 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { marked } from "marked";
 import { GITHUB_CONFIG } from "@/shared/constants/config";
+import Modal from "./Modal";
+import Button from "./Button";
 
+import { Icon } from "@/shared/components/Icon";
 marked.setOptions({ gfm: true, breaks: true });
 
 export default function ChangelogModal({ isOpen, onClose }) {
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const modalRef = useRef(null);
 
-  useEffect(() => {
-    if (!isOpen || html) return;
+  const loadChangelog = useCallback(() => {
     setLoading(true);
     setError("");
     fetch(GITHUB_CONFIG.changelogUrl)
@@ -26,68 +26,44 @@ export default function ChangelogModal({ isOpen, onClose }) {
       .then((md) => setHtml(marked.parse(md)))
       .catch((err) => setError(err.message || "Failed to load"))
       .finally(() => setLoading(false));
-  }, [isOpen, html]);
+  }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (modalRef.current && !modalRef.current.contains(e.target)) {
-        onClose();
-      }
-    };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [isOpen, onClose]);
+    if (!isOpen || html) return;
+    loadChangelog();
+  }, [isOpen, html, loadChangelog]);
 
-  if (!isOpen || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      {/* Modal content */}
-      <div
-        ref={modalRef}
-        className="relative w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-w-3xl flex flex-col max-h-[85vh]"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b border-black/5 dark:border-white/5">
-          <h2 className="text-lg font-semibold text-text-main">Change Log</h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-text-muted hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            aria-label="Close"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Change Log" size="full">
+      {loading && (
+        <div className="flex items-center gap-2 py-10 text-sm text-text-muted">
+          <Icon name="progress_activity" className="animate-spin text-[18px]" />
+          Loading the release notes from GitHub…
         </div>
+      )}
 
-        {/* Body */}
-        <div className="p-6 overflow-y-auto flex-1">
-          {loading && (
-            <div className="flex items-center justify-center py-10 text-text-muted">
-              <span className="material-symbols-outlined animate-spin mr-2">progress_activity</span>
-              Loading...
+      {!loading && error && (
+        <div className="flex flex-col gap-3 rounded-[10px] border border-danger/20 bg-danger/10 p-4">
+          <div className="flex items-start gap-2.5">
+            <Icon name="error" className="mt-0.5 text-[18px] text-danger shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-text-main">Couldn&apos;t load the changelog</p>
+              <p className="mt-1 text-text-muted">
+                {GITHUB_CONFIG.changelogUrl} responded with {error}. Check your network connection or GitHub
+                availability, then try again.
+              </p>
             </div>
-          )}
-          {error && (
-            <div className="text-red-500 py-4">Failed to load changelog: {error}</div>
-          )}
-          {!loading && !error && html && (
-            <div
-              className="changelog-body text-text-main"
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
-          )}
+          </div>
+          <Button variant="outline" size="sm" icon="refresh" onClick={loadChangelog} className="self-start">
+            Try again
+          </Button>
         </div>
-      </div>
-    </div>,
-    document.body
+      )}
+
+      {!loading && !error && html && (
+        <div className="changelog-body text-text-main" dangerouslySetInnerHTML={{ __html: html }} />
+      )}
+    </Modal>
   );
 }
 

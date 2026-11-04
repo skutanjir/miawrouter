@@ -4,7 +4,7 @@ import { PROVIDER_MEDIA, PROVIDER_MODELS } from "../../providers/index.js";
 
 const TTS_CFG = PROVIDER_MEDIA["gemini"]?.ttsConfig || {};
 const TTS_BASE = TTS_CFG.baseUrl;
-const FALLBACK_MODEL = "gemini-3.1-flash-tts-preview";
+const FALLBACK_MODEL = "gemini-3.8-flash-tts";
 const KNOWN_MODELS = [
   ...(TTS_CFG.models || []),
   ...(PROVIDER_MODELS["gemini-tts-models"] || []),

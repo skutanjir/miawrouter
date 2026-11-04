@@ -38,6 +38,14 @@ function sanitize(headers) {
       out[k] = "miaw";
       continue;
     }
+    if (k === "X-PLATFORM") {
+      out[k] = "<PLATFORM>";
+      continue;
+    }
+    if (k === "X-Msh-Device-Model") {
+      out[k] = "<DEVICE>";
+      continue;
+    }
     out[k] = typeof v === "string"
       ? v.replace(/Bearer .+/, "Bearer <TOK>")
           .replace(/sk-test-APIKEY|tok-test-ACCESS/g, "<CRED>")

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Card, Button, Input, Modal, Toggle, ConfirmModal } from "@/shared/components";
-import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
-import { getCurrentLocale, onLocaleChange } from "@/i18n/runtime";
+import { Fragment, useState, useEffect, useCallback, useRef } from "react";
+import { Card, Button, Input, Modal, Toggle, ConfirmModal, Select } from "@/shared/components";
+import { getCurrentLocale, onLocaleChange, translate } from "@/i18n/runtime";
 import { waitForHeadroomInstall } from "@/shared/utils/headroomInstall";
 import {
   WENYAN_LOCALES,
@@ -15,6 +14,14 @@ import {
   TOKEN_SAVER_TIERS,
   TOKEN_SAVER_GENERAL_SETTINGS,
 } from "@/lib/catalog/tokenSaverCatalog";
+import { ConfigSection, ConfigRow } from "../components/ConfigSection";
+import { Icon } from "@/shared/components/Icon";
+
+const RESPONSE_FOCUS_OPTIONS = [
+  { value: "balanced", label: "Balanced" },
+  { value: "code", label: "Code-first" },
+  { value: "explanation", label: "Explanation-first" },
+];
 
 export default function TokenSaverClient() {
   const [rtkEnabled, setRtkEnabledState] = useState(true);
@@ -68,8 +75,6 @@ export default function TokenSaverClient() {
   const [pxpipeActionLoading, setPxpipeActionLoading] = useState(false);
   const [pxpipeActionError, setPxpipeActionError] = useState("");
   const [locale, setLocale] = useState("en");
-
-  const { copied, copy } = useCopyToClipboard();
 
   useEffect(() => {
     setLocale(getCurrentLocale());
@@ -241,7 +246,7 @@ export default function TokenSaverClient() {
   // Poll the install log tail while a pip install/uninstall is running.
   const startLogPolling = useCallback(() => {
     setInstallLog("");
-    if (logPollRef.current) clearInterval(logPollRef.current);
+    clearInterval(logPollRef.current);
     const tick = async () => {
       if (document.hidden) return;
       try {
@@ -537,21 +542,17 @@ export default function TokenSaverClient() {
             : pxpipeStatus.running
               ? "Running"
               : "Stopped";
-  const pxpipeChipClass = pxpipeOff
-    ? "bg-surface-2 text-text-muted"
-    : pxpipeHealthy || pxpipeStatus.running
-      ? "bg-success/15 text-success"
-      : "bg-warning/15 text-warning";
+  const pxpipeOk = !pxpipeOff && (pxpipeHealthy || pxpipeStatus.running);
 
   // ── Catalog status derivation ──────────────────────────────────────────
   // Status text comes only from real state; unavailable entries carry no
   // control at all (nothing to toggle, so nothing is rendered).
   const chipCls = (tone) =>
     tone === "success"
-      ? "text-xs px-2 py-0.5 rounded bg-success/15 text-success"
+      ? "text-xs px-2 py-0.5 rounded-md bg-success/10 text-success"
       : tone === "warning"
-        ? "text-xs px-2 py-0.5 rounded bg-warning/15 text-warning"
-        : "text-xs px-2 py-0.5 rounded bg-surface-2 text-text-muted";
+        ? "text-xs px-2 py-0.5 rounded-md bg-warning/10 text-warning"
+        : "text-xs px-2 py-0.5 rounded-md bg-surface-2 text-text-muted";
 
   const catalogStatus = (entry) => {
     switch (entry.id) {
@@ -604,66 +605,78 @@ export default function TokenSaverClient() {
     }
   };
 
-  const renderCatalogEntry = (entry) => {
+  const renderCatalogRow = (entry) => {
     const unavailable = entry.status === "unavailable";
     const st = catalogStatus(entry);
     return (
-      <div
+      <tr
         key={entry.id}
-        className={`rounded border p-3 mb-2 last:mb-0 ${unavailable ? "border-border bg-surface-2/40" : "border-border"}`}
+        className="border-b border-border-subtle last:border-b-0"
         aria-disabled={unavailable}
       >
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-medium">{entry.label}</p>
-              <code className="text-[10px] font-mono text-text-muted">{entry.id}</code>
+        {/* Engine */}
+        <td className="min-w-[18rem] px-3 py-2.5 align-top">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-2">
+              <span className={`text-[13px] font-medium ${unavailable ? "text-text-muted" : "text-text-main"}`}>
+                {entry.label}
+              </span>
+              <code className="font-mono text-[11px] text-text-subtle">{entry.id}</code>
               {entry.safeDefault && <span className={chipCls("success")}>Safe default</span>}
-              {unavailable && <span className={chipCls("warning")}>Unavailable</span>}
-              {!unavailable && st.chip && <span className={chipCls(st.chip.tone)}>{st.chip.text}</span>}
               {st.injected && <span className={chipCls("muted")}>instruction injection</span>}
-            </div>
-            <p className="text-sm text-text-muted mt-1">
-              {unavailable ? "Reason: " : ""}
-              {entry.detail}
-            </p>
-            <details className="mt-1">
-              <summary className="inline-block text-xs text-primary cursor-pointer hover:opacity-80 select-none">
-                Details
-              </summary>
-              <p className="text-xs text-text-muted mt-1">
-                {entry.coverage && <>Runtime: {entry.coverage}. </>}
-                {st.mode
-                  ? "Exclusive mode selector — one rtkMode value shared by lite / standard / aggressive."
-                  : unavailable
-                    ? "Not toggleable — no runtime stage exists in this build."
-                    : `Toggled via ${entry.control || "the linked control"}.`}
-              </p>
-            </details>
+            </span>
+            <span className="text-[13px] leading-relaxed text-text-muted">
+              {unavailable ? `No runtime in this build — ${entry.detail}` : entry.detail}
+            </span>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {st.mode ? (
-              <button
-                type="button"
-                disabled={rtkMode === entry.id || !rtkEnabled}
-                onClick={() => handleRtkMode(entry.id)}
-                className={`text-xs px-3 py-1.5 rounded border font-medium transition-colors ${
-                  rtkMode === entry.id
-                    ? "bg-primary text-white border-primary"
-                    : "bg-transparent border-border text-text-muted hover:bg-surface-2 disabled:opacity-40"
-                }`}
-                title={!rtkEnabled ? "RTK master switch is off — enable RTK first" : entry.detail}
-              >
-                {rtkMode === entry.id ? "Active" : "Select"}
-              </button>
-            ) : st.link ? (
-              <a href={st.link.href} className="text-xs text-primary underline hover:opacity-80">
-                {st.link.text}
-              </a>
-            ) : null}
-          </div>
-        </div>
-      </div>
+        </td>
+
+        {/* Runtime coverage */}
+        <td className="min-w-[16rem] px-3 py-2.5 align-top">
+          <span
+            className="line-clamp-2 font-mono text-[11px] text-text-muted"
+            title={entry.coverage || "No runtime in this build"}
+          >
+            {entry.coverage || "No runtime in this build"}
+          </span>
+        </td>
+
+        {/* Status */}
+        <td className="px-3 py-2.5 align-top">
+          {unavailable ? (
+            <span className={chipCls("warning")}>Unavailable</span>
+          ) : st.chip ? (
+            <span className={chipCls(st.chip.tone)}>{st.chip.text}</span>
+          ) : (
+            <span className="text-xs text-text-muted">Exclusive mode</span>
+          )}
+        </td>
+
+        {/* Control */}
+        <td className="px-3 py-2.5 align-top">
+          {st.mode ? (
+            <button
+              type="button"
+              disabled={rtkMode === entry.id || !rtkEnabled}
+              onClick={() => handleRtkMode(entry.id)}
+              className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${
+                rtkMode === entry.id
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-surface text-text-muted hover:bg-surface-2 hover:text-text-main disabled:opacity-40"
+              }`}
+              title={!rtkEnabled ? "RTK master switch is off — enable RTK first" : entry.detail}
+            >
+              {rtkMode === entry.id ? "Active mode" : "Use this mode"}
+            </button>
+          ) : st.link ? (
+            <a href={st.link.href} className="text-xs text-primary hover:underline">
+              {st.link.text}
+            </a>
+          ) : (
+            <span className="text-xs text-text-muted">Not configurable</span>
+          )}
+        </td>
+      </tr>
     );
   };
 
@@ -672,9 +685,8 @@ export default function TokenSaverClient() {
       id: "max_saver",
       icon: "bolt",
       name: "Maximum Savings",
-      badge: "Maximum Savings",
-      badgeColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-      description: "Aggressive compression for tool outputs, L0 prompt caching enabled, and concise code-first responses with zero filler.",
+      tone: "success",
+      description: "Aggressive compression for tool outputs, with concise code-first responses and no filler.",
       settings: {
         rtkEnabled: true,
         rtkMode: "aggressive",
@@ -690,9 +702,8 @@ export default function TokenSaverClient() {
       id: "balanced",
       icon: "tune",
       name: "Balanced (Recommended)",
-      badge: "Stable & Safe",
-      badgeColor: "bg-primary/15 text-primary border-primary/30",
-      description: "Standard tool output compression without altering language style or default model responses.",
+      tone: "primary",
+      description: "Standard tool-output compression without changing response style. The safe default.",
       settings: {
         rtkEnabled: true,
         rtkMode: "standard",
@@ -706,9 +717,8 @@ export default function TokenSaverClient() {
       id: "developer_pro",
       icon: "terminal",
       name: "Developer Pro",
-      badge: "Code-First & YAGNI",
-      badgeColor: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-      description: "Tailored for coding agents (Claude Code, Cursor, Windsurf): direct to-the-point code patches with minimal boilerplate.",
+      tone: "primary",
+      description: "For coding agents (Claude Code, Cursor, Windsurf): direct code patches with minimal boilerplate.",
       settings: {
         rtkEnabled: true,
         rtkMode: "standard",
@@ -723,9 +733,8 @@ export default function TokenSaverClient() {
       id: "passthrough",
       icon: "block",
       name: "Passthrough (Off)",
-      badge: "No Filters",
-      badgeColor: "bg-surface-2 text-text-muted border-border",
-      description: "Disable all filters for raw evaluation or uncompressed response debugging.",
+      tone: "muted",
+      description: "Every filter off, for raw evaluation or debugging responses that must not be touched.",
       settings: {
         rtkEnabled: false,
         cavemanEnabled: false,
@@ -789,7 +798,9 @@ export default function TokenSaverClient() {
     return "custom";
   };
   const activePresetId = getActivePresetId();
-
+  const activePresetLabel = translate(
+    PRESETS.find((preset) => preset.id === activePresetId)?.name || "Custom"
+  );
   const groups = getTokenSaverGroups();
   const totalEngines = TOKEN_SAVER_TIERS.reduce((n, t) => n + t.engineIds.length, 0);
   const unavailableCount = groups.reduce(
@@ -797,601 +808,571 @@ export default function TokenSaverClient() {
     0
   );
 
+  const responseFocusLabel =
+    responseFocus === "code" ? "Code-first" : responseFocus === "explanation" ? "Explanation-first" : "Balanced";
+
+  const liveState = [
+    { label: "RTK tool compression", value: rtkEnabled ? `On · ${rtkMode}` : "Off", on: rtkEnabled },
+    { label: "Headroom prompt compression", value: headroomEnabled ? `On · ${headroomStatusLabel}` : "Off", on: headroomEnabled && headroomRunning },
+    { label: "Caveman output style", value: cavemanEnabled ? `On · ${cavemanLevel}` : "Off", on: cavemanEnabled },
+    { label: "Ponytail minimal-code bias", value: ponytailEnabled ? `On · ${ponytailLevel}` : "Off", on: ponytailEnabled },
+    { label: "PXPIPE image context", value: pxpipeStatusLabel, on: pxpipeOk },
+    { label: "Response focus", value: responseFocusLabel, on: false },
+    {
+      label: "Auto-trigger threshold",
+      value: Number(autoTriggerTokens) === 0 ? "Immediate (0 tokens)" : `${autoTriggerTokens} tokens`,
+      on: false,
+    },
+  ];
+
   return (
-    <div className="workspace-canvas saver-workspace space-y-6">
-      <div className="workspace-heading"><div><h1>Make every token count</h1><p>Choose a profile, tune compression, and follow the savings.</p></div><a href="/dashboard/usage" className="workspace-link">View live activity <span aria-hidden="true">↗</span></a></div>
-      <nav className="saver-section-nav" aria-label="Token saver sections"><a href="#quick-presets">Profiles</a><a href="#rtk">Compression</a><a href="#token-saver-catalog">Integrations</a><a href="#token-saver-general">Preferences</a></nav>
-      <Card id="quick-presets">
-        <div className="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary">
-                tune
-              </span>
-              Savings profiles
-            </h2>
-            <p className="text-sm text-text-muted mt-0.5">
-              Select a strategy profile for throughput and compression telemetry without manual re-configuration.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-text-muted">Current Profile:</span>
-            <span className={`text-xs px-2.5 py-1 rounded-full font-medium border ${
-              activePresetId === "max_saver"
-                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
-                : activePresetId === "developer_pro"
-                ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
-                : activePresetId === "balanced"
-                ? "bg-primary/15 text-primary border-primary/30"
-                : activePresetId === "passthrough"
-                ? "bg-surface-2 text-text-muted border-border"
-                : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
-            }`}>
-              {activePresetId === "max_saver" ? "Maximum Savings"
-                : activePresetId === "developer_pro" ? "Developer Pro"
-                : activePresetId === "balanced" ? "Balanced"
-                : activePresetId === "passthrough" ? "Passthrough"
-                : "Custom"}
-            </span>
-          </div>
+    <div className="saver-workspace flex flex-col gap-6">
+      <div className="workspace-heading">
+        <div>
+          <h1>Token saver</h1>
+          <p>
+            Compress what leaves this machine — tool output, prompts and response style — so each
+            request costs fewer tokens at the provider.
+          </p>
         </div>
+        <a href="/dashboard/usage" className="workspace-link">View live activity</a>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-4">
-          {PRESETS.map((preset) => {
-            const isActive = activePresetId === preset.id;
-            const isApplied = appliedPresetId === preset.id;
-            return (
-              <div
-                key={preset.id}
-                className={`relative flex flex-col justify-between p-4 rounded-xl border transition-all ${
-                  isActive
-                    ? "border-primary bg-primary/5 shadow-sm"
-                    : "border-border bg-surface hover:border-text-muted/40 hover:bg-surface-2/40"
-                }`}
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className={`material-symbols-outlined text-xl ${isActive ? "text-primary" : "text-text-muted"}`}>
-                      {preset.icon}
-                    </span>
-                    <span className={`text-[11px] px-2 py-0.5 rounded border font-medium ${preset.badgeColor}`}>
-                      {preset.badge}
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-sm text-text mb-1">
-                    {preset.name}
-                  </h3>
-                  <p className="text-xs text-text-muted leading-relaxed mb-4">
-                    {preset.description}
-                  </p>
-                </div>
+      <nav className="saver-section-nav" aria-label="Token saver sections">
+        <a href="#quick-presets">Profiles</a>
+        <a href="#rtk">Compression</a>
+        <a href="#token-saver-catalog">Engine catalog</a>
+        <a href="#token-saver-general">Preferences</a>
+      </nav>
 
-                <button
-                  type="button"
+      {/* Current state — derived from the live settings above, nothing estimated. */}
+      <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-[10px] border border-border-subtle bg-surface-2/40 p-4 sm:grid-cols-2 lg:grid-cols-4">
+        {liveState.map((item) => (
+          <div key={item.label} className="min-w-0">
+            <dt className="text-xs text-text-muted">{item.label}</dt>
+            <dd className={`mt-0.5 truncate text-[13px] font-medium ${item.on ? "text-success" : "text-text-main"}`}>
+              {item.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {/* Profiles */}
+      <ConfigSection
+        id="quick-presets"
+        title={translate("Quick Presets (Token Saver Profiles)")}
+        icon="tune"
+        subtitle={translate("Choose a 1-click ready-to-use strategy for optimal performance and token savings without complex manual configuration.")}
+        action={
+          <span className="text-[13px] text-text-muted">
+            {translate("Current Profile:")} <span className="font-medium text-text-main">{activePresetLabel}</span>
+          </span>
+        }
+      >
+        {PRESETS.map((preset) => {
+          const isActive = activePresetId === preset.id;
+          const isApplied = appliedPresetId === preset.id;
+          return (
+            <ConfigRow
+              key={preset.id}
+              label={translate(preset.name)}
+              help={translate(preset.description)}
+              badge={isActive ? <span className={chipCls("success")}>{translate("Active Profile")}</span> : null}
+              control={
+                <Button
+                  variant={isActive ? "secondary" : "primary"}
+                  size="sm"
                   onClick={() => applyPreset(preset)}
-                  className={`w-full py-2 px-3 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5 ${
-                    isApplied
-                      ? "bg-emerald-600 text-white shadow"
-                      : isActive
-                      ? "bg-primary text-white shadow-sm"
-                      : "bg-surface-2 hover:bg-primary/10 hover:text-primary text-text-muted border border-border"
-                  }`}
+                  loading={isApplied}
+                  disabled={isActive && !isApplied}
+                  icon={isApplied ? "check" : undefined}
                 >
-                  <span className="material-symbols-outlined text-sm">
-                    {isApplied ? "check_circle" : isActive ? "check" : "play_arrow"}
-                  </span>
-                  {isApplied ? "Applied Successfully!" : isActive ? "Active Profile" : "Apply Profile"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                  {isApplied ? translate("Applied Successfully!") : isActive ? translate("Active Profile") : translate("Apply Profile")}
+                </Button>
+              }
+            />
+          );
+        })}
+      </ConfigSection>
 
-        {/* Live Status Highlights Bar */}
-        <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
-            <span className="text-text-muted block text-[11px]">Tool Compression (RTK)</span>
-            <span className="font-medium text-text mt-0.5 flex items-center gap-1">
-              <span className={`w-2 h-2 rounded-full ${rtkEnabled ? "bg-emerald-500" : "bg-text-muted/40"}`} />
-              {rtkEnabled ? `Active (${rtkMode})` : "Disabled"}
-            </span>
-          </div>
-          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
-            <span className="text-text-muted block text-[11px]">Prompt Caching (L0)</span>
-            <span className="font-medium text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Auto-Breakpoints
-            </span>
-          </div>
-          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
-            <span className="text-text-muted block text-[11px]">Response Focus Style</span>
-            <span className="font-medium text-text mt-0.5 block capitalize">
-              {responseFocus === "code" ? "Code-first" : responseFocus === "explanation" ? "Explanation-first" : "Balanced"}
-            </span>
-          </div>
-          <div className="p-2.5 rounded-lg bg-surface-2/60 border border-border/60">
-            <span className="text-text-muted block text-[11px]">Trigger Threshold</span>
-            <span className="font-medium text-text mt-0.5 block">
-              {Number(autoTriggerTokens) === 0 ? "Immediate (0 tokens)" : `${autoTriggerTokens} tokens`}
-            </span>
-          </div>
-        </div>
-      </Card>
-
-      <Card id="rtk">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
-              bolt
-            </span>
-            Token Saver
-          </h2>
-        </div>
-        <div className="flex items-center justify-between pt-2 pb-4 border-b border-border gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">
+      {/* Compression engines */}
+      <ConfigSection
+        id="rtk"
+        title="Compression"
+        icon="bolt"
+        subtitle="Each engine runs at a different point in the request. Off means the request passes through untouched."
+      >
+        <ConfigRow
+          label={
+            <>
               Compress tool output{" "}
               <a
                 href="https://github.com/rtk-ai/rtk"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-normal text-primary underline hover:opacity-80"
+                className="text-xs font-normal text-primary hover:underline"
               >
                 (RTK)
               </a>
-            </p>
-            <p className="text-sm text-text-muted">
-              git/grep/ls/tree/logs → 60-90% fewer input tokens
-            </p>
-          </div>
-          <Toggle
-            checked={rtkEnabled}
-            onChange={() => handleRtkEnabled(!rtkEnabled)}
-          />
-        </div>
-        <div className="flex items-center justify-between py-4 gap-4 flex-wrap" id="headroom-control">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="font-medium">
-                Compress context{" "}
-                <a
-                  href="https://github.com/headroomlabs-ai/headroom"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-normal text-primary underline hover:opacity-80"
-                >
-                  (Headroom)
-                </a>
-              </p>
-              <span
-                className={`text-xs px-2 py-0.5 rounded ${headroomRunning ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}
-              >
-                {headroomStatusLabel}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowHeadroomInstallModal(true)}
-                className="text-xs text-primary underline hover:opacity-80"
-              >
-                {headroomRunning ? "Manage" : "Setup"}
-              </button>
-            </div>
-            <p className="text-sm text-text-muted mt-1">
-              Compress prompts via /v1/compress before routing to the model
-            </p>
-          </div>
-          <Toggle
-            checked={headroomEnabled}
-            disabled={!headroomRunning}
-            onChange={() => handleHeadroomEnabled(!headroomEnabled)}
-          />
-        </div>
-        {headroomStatus.installed && (
-          <div className="mb-3 ml-1 pl-3 pb-4 border-l-2 border-border">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs text-text-muted">
-                Compression extras
-                {headroomExtras.version ? ` · v${headroomExtras.version}` : ""}:
-              </span>
-              {headroomExtras.available.map((extra) => {
-                const installed = !!headroomExtras.extras[extra];
-                const pending = pendingExtras.includes(extra);
-                const extraTitle =
-                  extra === "code"
-                    ? "tree-sitter AST compression for code responses"
-                    : "Kompress-v2 HF model for prose/agentic traces (~+1GB)";
+            </>
+          }
+          help="Rewrites git/grep/ls/tree/log output in tool results — typically 60–90% fewer input tokens."
+          control={
+            <Toggle
+              checked={rtkEnabled}
+              onChange={() => handleRtkEnabled(!rtkEnabled)}
+              ariaLabel="Compress tool output with RTK"
+            />
+          }
+        />
 
-                if (installed) {
-                  const active = extra === "code" ? codeAware : kompress;
+        {/* RTK mode */}
+        <ConfigRow
+          disabled={!rtkEnabled}
+          label="RTK compression mode"
+          help="One shared mode for the single RTK pass. Aggressive lowers the per-blob threshold to 100B; lite compresses only blobs of 2KB or more."
+          control={
+            <div className="flex items-center gap-1.5">
+              {["lite", "standard", "aggressive"].map((mode) => (
+                <Button
+                  key={mode}
+                  variant={rtkMode === mode ? "primary" : "secondary"}
+                  size="sm"
+                  disabled={!rtkEnabled}
+                  onClick={() => handleRtkMode(mode)}
+                >
+                  {mode}
+                </Button>
+              ))}
+            </div>
+          }
+        />
+
+        <ConfigRow
+          id="headroom-control"
+          label={
+            <>
+              Compress prompts{" "}
+              <a
+                href="https://github.com/headroomlabs-ai/headroom"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-normal text-primary hover:underline"
+              >
+                (Headroom)
+              </a>
+            </>
+          }
+          help="Sends the prompt through a local /v1/compress proxy before routing it to the model."
+          badge={
+            <span className={chipCls(headroomRunning ? "success" : "muted")}>{headroomStatusLabel}</span>
+          }
+          control={
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="settings"
+                onClick={() => setShowHeadroomInstallModal(true)}
+              >
+                {headroomRunning ? "Manage" : "Set up"}
+              </Button>
+              <Toggle
+                checked={headroomEnabled}
+                disabled={!headroomRunning}
+                onChange={() => handleHeadroomEnabled(!headroomEnabled)}
+                ariaLabel="Compress prompts with Headroom"
+              />
+            </>
+          }
+        >
+          {headroomStatus.installed && (
+            <div className="mt-3 rounded-md border border-border-subtle bg-surface-2/40 p-3">
+              <p className="text-[13px] text-text-muted">
+                Compression extras{headroomExtras.version ? ` · v${headroomExtras.version}` : ""}
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {headroomExtras.available.map((extra) => {
+                  const installed = !!headroomExtras.extras[extra];
+                  const pending = pendingExtras.includes(extra);
+                  const extraTitle =
+                    extra === "code"
+                      ? "tree-sitter AST compression for code responses"
+                      : "Kompress-v2 HF model for prose/agentic traces (~+1GB)";
+
+                  if (installed) {
+                    const active = extra === "code" ? codeAware : kompress;
+                    return (
+                      <div
+                        key={extra}
+                        className="flex items-center gap-2 rounded-md border border-success/40 bg-success/10 px-2 py-1 text-xs"
+                        title={extraTitle}
+                      >
+                        <Toggle
+                          size="sm"
+                          checked={active}
+                          disabled={restartingProxy}
+                          onChange={() => toggleExtraActive(extra, !active)}
+                          ariaLabel={`Activate ${extra} extra`}
+                        />
+                        <span className="font-mono font-medium text-text-main">[{extra}]</span>
+                        <span className="text-text-muted">{active ? "on" : "off"}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExtra(extra)}
+                          disabled={removingExtra === extra}
+                          className="text-danger hover:underline disabled:opacity-50"
+                          title={`Uninstall [${extra}]`}
+                        >
+                          {removingExtra === extra ? "Uninstalling…" : "Uninstall"}
+                        </button>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <div
+                    <label
                       key={extra}
-                      className="flex items-center gap-1.5 text-xs px-2 py-1 rounded border border-success/40 bg-success/5 text-text"
+                      className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+                        pending
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-surface text-text-muted hover:text-text-main"
+                      }`}
                       title={extraTitle}
                     >
-                      <Toggle
-                        size="sm"
-                        checked={active}
-                        disabled={restartingProxy}
-                        onChange={() => toggleExtraActive(extra, !active)}
+                      <input
+                        type="checkbox"
+                        className="size-3"
+                        checked={pending}
+                        onChange={() => togglePendingExtra(extra)}
                       />
-                      <span className="font-medium">[{extra}]</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveExtra(extra)}
-                        disabled={removingExtra === extra}
-                        className="ml-1 text-error underline hover:opacity-80 disabled:opacity-50"
-                        title={`Uninstall [${extra}]`}
-                      >
-                        {removingExtra === extra ? "Uninstalling…" : "Uninstall"}
-                      </button>
-                    </div>
+                      <span className="font-mono font-medium">[{extra}]</span>
+                      <span>not installed</span>
+                    </label>
                   );
-                }
-
-                return (
-                  <label
-                    key={extra}
-                    className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${
-                      pending
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-text-muted hover:bg-surface-2"
-                    }`}
-                    title={extraTitle}
+                })}
+                {pendingExtras.length > 0 && (
+                  <Button
+                    size="sm"
+                    loading={extrasActionLoading}
+                    onClick={handleInstallExtras}
                   >
-                    <input
-                      type="checkbox"
-                      className="w-3 h-3"
-                      checked={pending}
-                      onChange={() => togglePendingExtra(extra)}
-                    />
-                    <span className="font-medium">[{extra}]</span>
-                    <span className="opacity-70">not installed</span>
-                  </label>
-                );
-              })}
-              {pendingExtras.length > 0 && (
-                <button
-                  onClick={handleInstallExtras}
-                  disabled={extrasActionLoading}
-                  className="text-xs px-2.5 py-1 rounded bg-primary text-white hover:opacity-90 disabled:opacity-50"
-                >
-                  {extrasActionLoading
-                    ? "Installing…"
-                    : `Install [proxy,${pendingExtras.join(",")}]`}
-                </button>
+                    {extrasActionLoading ? "Installing…" : `Install [proxy,${pendingExtras.join(",")}]`}
+                  </Button>
+                )}
+              </div>
+              {extrasActionError && <p className="mt-1 text-xs text-danger">{extrasActionError}</p>}
+              {restartingProxy && <p className="mt-1 text-xs text-text-muted">Restarting proxy…</p>}
+              {(extrasActionLoading || removingExtra) && installLog && (
+                <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-md border border-border-subtle bg-surface p-2 font-mono text-[10px] leading-tight text-text-muted">
+                  {installLog}
+                </pre>
               )}
+              <p className="mt-2 text-xs leading-relaxed text-text-muted">
+                Installing adds the package; the on/off switch activates it and restarts the proxy.
+                The default install is <code className="font-mono">[proxy]</code> only (SmartCrusher for
+                JSON). <code className="font-mono">[code]</code> adds AST compression
+                (Python/JS/TS/Go/Rust/Java/C/C++/Perl). <code className="font-mono">[ml]</code> adds the
+                Kompress-v2 model for prose and agentic traces but costs about 1 GB (torch +
+                huggingface-hub).
+              </p>
             </div>
-            {extrasActionError && (
-              <p className="text-xs text-error mt-1">{extrasActionError}</p>
-            )}
-            {restartingProxy && (
-              <p className="text-xs text-text-muted mt-1">Restarting proxy…</p>
-            )}
-            {(extrasActionLoading || removingExtra) && installLog && (
-              <pre className="mt-2 max-h-32 overflow-auto rounded bg-surface-2 p-2 text-[10px] leading-tight text-text-muted whitespace-pre-wrap">
-                {installLog}
-              </pre>
-            )}
-            <p className="text-xs text-text-muted mt-1">
-              Installing adds the package; use <code>on</code>/<code>off</code>{" "}
-              to activate it (restarts the proxy). Default install is{" "}
-              <code>[proxy]</code> only (SmartCrusher for JSON). Adding{" "}
-              <code>[code]</code> enables AST compression
-              (Python/JS/TS/Go/Rust/Java/C/C++/Perl). Adding <code>[ml]</code>{" "}
-              enables the Kompress-v2 HF model for prose/agentic traces but
-              adds ~1 GB (torch + huggingface-hub).
-            </p>
-          </div>
-        )}
-        <div className="flex items-center justify-between pt-4 border-t border-border gap-4 flex-wrap" id="caveman-control">
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">
-              Compress LLM output{" "}
+          )}
+        </ConfigRow>
+
+        <ConfigRow
+          id="caveman-control"
+          label={
+            <>
+              Compress output style{" "}
               <a
                 href="https://github.com/JuliusBrussee/caveman"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-normal text-primary underline hover:opacity-80"
+                className="text-xs font-normal text-primary hover:underline"
               >
                 (Caveman)
               </a>
-            </p>
-            <p className="text-sm text-text-muted">
-              Terse-style system prompt for shorter technical responses
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {cavemanEnabled && (
-              <div className="flex flex-col items-end gap-1">
+            </>
+          }
+          help="Injects a terse-style system prompt so technical answers come back shorter."
+          control={
+            <>
+              {cavemanEnabled && (
                 <div className="flex items-center gap-1.5">
                   {visibleCavemanLevels.map((lvl) => (
-                    <button
+                    <Button
                       key={lvl.id}
+                      variant={cavemanLevel === lvl.id ? "primary" : "secondary"}
+                      size="sm"
                       onClick={() => handleCavemanLevel(lvl.id)}
-                      className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
-                        cavemanLevel === lvl.id
-                          ? "bg-primary text-white border-primary"
-                          : "bg-transparent border-border text-text-muted hover:bg-surface-2"
-                      }`}
                       title={lvl.desc}
                     >
                       {lvl.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
-                <p className="text-xs text-primary">
-                  {
-                    CAVEMAN_LEVELS.find((lvl) => lvl.id === cavemanLevel)
-                      ?.desc
-                  }
-                </p>
-              </div>
-            )}
-            <Toggle
-              checked={cavemanEnabled}
-              onChange={() => handleCavemanEnabled(!cavemanEnabled)}
-            />
-          </div>
-        </div>
-        <div className="flex items-center justify-between pt-4 mt-4 border-t border-border gap-4 flex-wrap" id="ponytail-control">
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">
-              Lazy senior dev{" "}
+              )}
+              <Toggle
+                checked={cavemanEnabled}
+                onChange={() => handleCavemanEnabled(!cavemanEnabled)}
+                ariaLabel="Compress output style with Caveman"
+              />
+            </>
+          }
+        >
+          {cavemanEnabled && CAVEMAN_LEVELS.find((lvl) => lvl.id === cavemanLevel)?.desc && (
+            <p className="mt-1.5 text-xs text-primary">
+              {CAVEMAN_LEVELS.find((lvl) => lvl.id === cavemanLevel)?.desc}
+            </p>
+          )}
+        </ConfigRow>
+
+        <ConfigRow
+          id="ponytail-control"
+          label={
+            <>
+              Bias toward minimal code{" "}
               <a
                 href="https://github.com/DietrichGebert/ponytail"
                 target="_blank"
                 rel="noreferrer"
-                className="text-xs font-normal text-primary underline hover:opacity-80"
+                className="text-xs font-normal text-primary hover:underline"
               >
                 (Ponytail)
               </a>
-            </p>
-            <p className="text-sm text-text-muted">
-              Bias the model toward minimal code: YAGNI, reuse stdlib,
-              deletion over addition
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {ponytailEnabled && (
-              <div className="flex flex-col items-end gap-1">
+            </>
+          }
+          help="Bias the model toward YAGNI: reuse the standard library, delete instead of adding."
+          control={
+            <>
+              {ponytailEnabled && (
                 <div className="flex items-center gap-1.5">
                   {PONYTAIL_LEVELS.map((lvl) => (
-                    <button
+                    <Button
                       key={lvl.id}
+                      variant={ponytailLevel === lvl.id ? "primary" : "secondary"}
+                      size="sm"
                       onClick={() => handlePonytailLevel(lvl.id)}
-                      className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
-                        ponytailLevel === lvl.id
-                          ? "bg-primary text-white border-primary"
-                          : "bg-transparent border-border text-text-muted hover:bg-surface-2"
-                      }`}
                       title={lvl.desc}
                     >
                       {lvl.label}
-                    </button>
+                    </Button>
                   ))}
                 </div>
-                <p className="text-xs text-primary">
-                  {
-                    PONYTAIL_LEVELS.find((lvl) => lvl.id === ponytailLevel)
-                      ?.desc
-                  }
-                </p>
-              </div>
-            )}
-            <Toggle
-              checked={ponytailEnabled}
-              onChange={() => handlePonytailEnabled(!ponytailEnabled)}
-            />
-          </div>
-        </div>
-        <div className="flex items-center justify-between pt-4 mt-4 border-t border-border gap-4 flex-wrap">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <p className="font-medium">
-                Compress prompts as images{" "}
-                <a
-                  href="https://github.com/teamchong/pxpipe"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-normal text-primary underline hover:opacity-80"
-                >
-                  (PXPIPE)
-                </a>
-              </p>
-              <span className={`text-xs px-2 py-0.5 rounded ${pxpipeChipClass}`}>
-                {pxpipeStatusLabel}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowPxpipeModal(true)}
-                className="text-xs text-primary underline hover:opacity-80"
+              )}
+              <Toggle
+                checked={ponytailEnabled}
+                onChange={() => handlePonytailEnabled(!ponytailEnabled)}
+                ariaLabel="Bias toward minimal code with Ponytail"
+              />
+            </>
+          }
+        >
+          {ponytailEnabled && PONYTAIL_LEVELS.find((lvl) => lvl.id === ponytailLevel)?.desc && (
+            <p className="mt-1.5 text-xs text-primary">
+              {PONYTAIL_LEVELS.find((lvl) => lvl.id === ponytailLevel)?.desc}
+            </p>
+          )}
+        </ConfigRow>
+
+        <ConfigRow
+          label={
+            <>
+              Compress prompts as images{" "}
+              <a
+                href="https://github.com/teamchong/pxpipe"
+                target="_blank"
+                rel="noreferrer"
+                className="text-xs font-normal text-primary hover:underline"
               >
-                {pxpipeStatus.installed ? "Manage" : "Setup"}
-              </button>
+                (PXPIPE)
+              </a>
+            </>
+          }
+          help="Renders large text context as images before sending it. Suited to huge prompts and long conversations."
+          badge={<span className={chipCls(pxpipeOk ? "success" : "muted")}>{pxpipeStatusLabel}</span>}
+          control={
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowPxpipeModal(true)}
+              >
+                {pxpipeStatus.installed ? "Manage" : "Set up"}
+              </Button>
               <a
                 href="/dashboard/pxpipe"
-                className="text-xs text-primary underline hover:opacity-80"
+                className="text-xs text-primary hover:underline"
               >
                 Dashboard
               </a>
-            </div>
-            <p className="text-sm text-text-muted mt-1">
-              Transforms large textual context into optimized images before
-              sending to the LLM. Ideal for huge prompts, tool outputs and long
-              conversations.
-            </p>
-          </div>
-          <Toggle
-            checked={!pxpipeOff}
-            disabled={!pxpipeStatus.installed}
-            onChange={() => handlePxpipeEnabled(!pxpipeEnabled)}
-          />
-        </div>
-      </Card>
+              <Toggle
+                checked={!pxpipeOff}
+                disabled={!pxpipeStatus.installed}
+                onChange={() => handlePxpipeEnabled(!pxpipeEnabled)}
+                ariaLabel="Compress prompts as images with PXPIPE"
+              />
+            </>
+          }
+        />
+      </ConfigSection>
 
-      <Card id="token-saver-catalog">
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
-              category
-            </span>
-            Token Saver Catalog
-          </h2>
-          <span className="text-xs px-2.5 py-1 rounded bg-surface-2 border border-border text-text-muted font-mono">
+      {/* Engine catalog */}
+      <Card
+        id="token-saver-catalog"
+        title="Engine catalog"
+        icon="category"
+        subtitle="Every engine this build knows about, grouped by tier. Entries with no runtime are never wired to a fake toggle."
+        action={
+          <span className="font-mono text-xs text-text-muted">
             {totalEngines - unavailableCount} covered · {unavailableCount} unavailable
           </span>
+        }
+      >
+        <div className="overflow-x-auto rounded-[10px] border border-border-subtle">
+          <table className="w-full min-w-[60rem] border-collapse text-left" aria-label="Token saver engine catalog">
+            <thead>
+              <tr className="border-b border-border text-[13px] text-text-muted">
+                <th scope="col" className="px-3 py-2 font-medium">Engine</th>
+                <th scope="col" className="px-3 py-2 font-medium">Runtime</th>
+                <th scope="col" className="px-3 py-2 font-medium">Status</th>
+                <th scope="col" className="px-3 py-2 font-medium">Control</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((group) => (
+                <Fragment key={group.id}>
+                  <tr className="border-b border-border-subtle bg-surface-2/60">
+                    <th scope="colgroup" colSpan={4} className="px-3 py-2 text-left">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className="text-[13px] font-medium text-text-main">{group.label}</span>
+                        <span className="text-xs text-text-muted">
+                          {group.entries.length} engine{group.entries.length === 1 ? "" : "s"}
+                        </span>
+                        {group.heuristic && <span className={chipCls("warning")}>heuristic availability</span>}
+                      </span>
+                    </th>
+                  </tr>
+                  {group.entries.map(renderCatalogRow)}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <p className="text-sm text-text-muted pb-3 border-b border-border">
-          Engines grouped by tier. Entries marked Unavailable have no runtime
-          in this build and are never toggleable; covered entries link to or
-          toggle their real settings.
-        </p>
-        <details className="group mt-2">
-          <summary className="cursor-pointer text-xs font-medium text-primary hover:underline flex items-center gap-1.5 select-none py-2">
-            <span className="material-symbols-outlined text-base transition-transform group-open:rotate-90">
-              chevron_right
-            </span>
-            Inspect engine catalog ({totalEngines} engines across {groups.length} tiers)
-          </summary>
-          <div className="pt-2 divide-y divide-border">
-            {groups.map((group) => (
-              <div key={group.id} className="py-4 first:pt-2 last:pb-0">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-sm">{group.label}</h3>
-                  {group.heuristic && (
-                    <span className={chipCls("warning")}>heuristic availability</span>
-                  )}
-                </div>
-                {group.entries.map(renderCatalogEntry)}
-              </div>
-            ))}
-          </div>
-        </details>
       </Card>
 
-      <Card id="token-saver-general">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
-              tune
-            </span>
-            General Settings
-          </h2>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">Auto-Trigger Threshold</p>
-              <p className="text-sm text-text-muted">
-                {TOKEN_SAVER_GENERAL_SETTINGS.autoTrigger.detail}
-              </p>
-            </div>
-            <div className="w-36 shrink-0">
-              <Input
-                type="number"
-                min="0"
-                step="100"
-                value={autoTriggerTokens}
-                onChange={(e) => setAutoTriggerTokens(e.target.value)}
-                onBlur={handleAutoTriggerBlur}
-                aria-label="Auto-trigger threshold in tokens"
-                className="font-mono text-sm"
-              />
-            </div>
-          </div>
-          <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">Response Focus</p>
-              <p className="text-sm text-text-muted">
-                Choose code-first or explanation-first answers. Balanced adds no extra focus instruction.
-              </p>
-            </div>
-            <select
+      {/* Preferences */}
+      <ConfigSection
+        id="token-saver-general"
+        title="Preferences"
+        icon="tune"
+        subtitle="Global behavior shared by every compression engine."
+      >
+        <ConfigRow
+          label="Auto-trigger threshold"
+          help={TOKEN_SAVER_GENERAL_SETTINGS.autoTrigger.detail}
+          control={
+            <Input
+              type="number"
+              min="0"
+              step="100"
+              value={autoTriggerTokens}
+              onChange={(e) => setAutoTriggerTokens(e.target.value)}
+              onBlur={handleAutoTriggerBlur}
+              aria-label="Auto-trigger threshold in tokens"
+              className="w-36"
+              inputClassName="font-mono text-sm"
+            />
+          }
+        />
+        <ConfigRow
+          label="Response focus"
+          help="Code-first or explanation-first answers. Balanced adds no extra focus instruction."
+          control={
+            <Select
+              options={RESPONSE_FOCUS_OPTIONS}
               value={responseFocus}
               onChange={(event) => handleResponseFocus(event.target.value)}
-              className="h-9 min-w-40 rounded-lg border border-border bg-bg px-3 text-sm text-text-primary outline-none transition-colors focus:border-primary"
               aria-label="Response focus"
-            >
-              <option value="balanced">Balanced</option>
-              <option value="code">Code-first</option>
-              <option value="explanation">Explanation-first</option>
-            </select>
-          </div>
-          <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">Preserve System Prompt</p>
-              <p className="text-sm text-text-muted">
-                {TOKEN_SAVER_GENERAL_SETTINGS.preserveSystem.detail}
-              </p>
-            </div>
-            <span className={chipCls("success")}>Always</span>
-          </div>
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div className="min-w-0 flex-1">
-              <p className="font-medium">Cache-aligned Live Zone</p>
-              <p className="text-sm text-text-muted">
-                {TOKEN_SAVER_GENERAL_SETTINGS.liveZone.detail}
-              </p>
-            </div>
-            <span className={chipCls("success")}>Enabled · fixed</span>
-          </div>
-        </div>
-      </Card>
+              className="w-44"
+            />
+          }
+        />
+        <ConfigRow
+          label="Preserve system prompt"
+          help={TOKEN_SAVER_GENERAL_SETTINGS.preserveSystem.detail}
+          control={<span className={chipCls("success")}>Always</span>}
+        />
+        <ConfigRow
+          label="Cache-aligned live zone"
+          help={TOKEN_SAVER_GENERAL_SETTINGS.liveZone.detail}
+          control={<span className={chipCls("success")}>Enabled · fixed</span>}
+        />
+      </ConfigSection>
 
       <Modal
         isOpen={showHeadroomInstallModal}
-        title={headroomRunning ? "Headroom" : "Setup Headroom"}
+        title={headroomRunning ? "Headroom" : "Set up Headroom"}
         onClose={() => setShowHeadroomInstallModal(false)}
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-text-muted">RTK works inside MiawRouter without Python. Headroom is an optional compression proxy. Setup creates a private Python environment and leaves system packages unchanged.</p>
-          <p className="text-xs text-text-muted">Setup runs in the background and allows up to 45 minutes per step. Large downloads can take longer on a slow connection. You can close this panel and reopen it to check progress; keep MiawRouter running.</p>
-          <div className="space-y-2 rounded border border-border p-3 text-sm">
-            <p>Python 3.10+: {headroomStatus.loading ? "Checking…" : headroomStatus.python || "Not detected"}</p>
-            <p>uv: {headroomStatus.uv ? "Available" : "Not detected"} · pip: {headroomStatus.pip ? "Available" : "Not detected"}</p>
-            <label className="block space-y-1">
-              <span>Package installer</span>
-              <select aria-label="Headroom package installer" value={headroomInstaller} onChange={(event) => setHeadroomInstaller(event.target.value)} disabled={headroomActionLoading || extrasActionLoading} className="w-full rounded border border-border bg-surface-2 p-2">
-                <option value="auto">Auto (prefer uv, otherwise pip)</option>
-                <option value="uv">uv</option>
-                <option value="pip">pip</option>
-              </select>
-            </label>
-            <p className="text-xs text-text-muted">If Python is missing, uv can download Python 3.12 during setup. With pip, install Python 3.10+ with pip and venv first. PXPIPE uses Node.js/npm and does not need Python.</p>
+          <p className="text-[13px] text-text-muted">
+            RTK works inside MiawRouter without Python. Headroom is an optional compression proxy.
+            Setup creates a private Python environment and leaves system packages unchanged.
+          </p>
+          <p className="text-xs text-text-muted">
+            Setup runs in the background and allows up to 45 minutes per step; large downloads can
+            take longer on a slow connection. You can close this panel and reopen it to check
+            progress — keep MiawRouter running.
+          </p>
+          <div className="flex flex-col gap-2 rounded-md border border-border-subtle bg-surface-2/40 p-3 text-[13px]">
+            <p className="font-mono">
+              Python 3.10+: {headroomStatus.loading ? "checking…" : headroomStatus.python || "not detected"}
+            </p>
+            <p className="font-mono">
+              uv: {headroomStatus.uv ? "available" : "not detected"} · pip: {headroomStatus.pip ? "available" : "not detected"}
+            </p>
+            <Select
+              label="Package installer"
+              value={headroomInstaller}
+              onChange={(event) => setHeadroomInstaller(event.target.value)}
+              disabled={headroomActionLoading || extrasActionLoading}
+              options={[
+                { value: "auto", label: "Auto (prefer uv, otherwise pip)" },
+                { value: "uv", label: "uv" },
+                { value: "pip", label: "pip" },
+              ]}
+              aria-label="Headroom package installer"
+            />
+            <p className="text-xs text-text-muted">
+              If Python is missing, uv can download Python 3.12 during setup. With pip, install
+              Python 3.10+ with pip and venv first. PXPIPE uses Node.js/npm and does not need Python.
+            </p>
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span>Status</span>
-            <span
-              className={headroomRunning ? "text-success" : "text-warning"}
-            >
-              {headroomStatusLabel}
-            </span>
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-text-muted">Status</span>
+            <span className={headroomRunning ? "text-success" : "text-warning"}>{headroomStatusLabel}</span>
           </div>
           {headroomRunning && (
             <a
               href="/api/headroom/proxy/dashboard"
               target="_blank"
               rel="noreferrer"
-              className="w-full rounded border border-border px-4 py-2 text-center text-sm hover:bg-surface-2"
+              className="w-full rounded-md border border-border px-4 py-2 text-center text-[13px] text-text-main transition-colors hover:bg-surface-2"
             >
-              Open Headroom Dashboard
+              Open Headroom dashboard
             </a>
           )}
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">Proxy URL</p>
-            <Input
-              value={headroomUrl}
-              onChange={(e) => setHeadroomUrl(e.target.value)}
-              onBlur={handleHeadroomUrlBlur}
-              placeholder="http://localhost:8787"
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-text-muted">
-              Use a local proxy for Start/Stop, or an external Docker sidecar
-              like http://headroom:8787.
-            </p>
-          </div>
+          <Input
+            label="Proxy URL"
+            value={headroomUrl}
+            onChange={(e) => setHeadroomUrl(e.target.value)}
+            onBlur={handleHeadroomUrlBlur}
+            placeholder="http://localhost:8787"
+            inputClassName="font-mono text-sm"
+            hint="A local proxy enables Start/Stop here; an external sidecar such as http://headroom:8787 works too."
+          />
           {headroomManaged ? (
             <Button
               onClick={handleHeadroomStop}
@@ -1402,8 +1383,8 @@ export default function TokenSaverClient() {
               {headroomActionLoading ? "Stopping…" : "Stop Headroom"}
             </Button>
           ) : headroomRunning ? (
-            <p className="text-sm text-success">
-              Headroom proxy is reachable. You can enable the token saver.
+            <p className="text-[13px] text-success">
+              The Headroom proxy is reachable. You can enable the token saver.
             </p>
           ) : headroomCanStart ? (
             <Button
@@ -1414,7 +1395,7 @@ export default function TokenSaverClient() {
               {headroomActionLoading ? "Starting…" : "Start Headroom"}
             </Button>
           ) : !headroomLocalUrl ? (
-            <p className="text-sm text-warning">
+            <p className="text-[13px] text-warning">
               Start Headroom separately at the configured URL, then recheck.
             </p>
           ) : (
@@ -1422,25 +1403,32 @@ export default function TokenSaverClient() {
               <Button fullWidth onClick={handleHeadroomInstall} disabled={headroomActionLoading || !headroomStatus.canInstall}>
                 {headroomActionLoading ? "Installing…" : "Install Headroom"}
               </Button>
-              {!headroomStatus.loading && !headroomStatus.canInstall && <p className="text-xs text-text-muted">Install <a href="https://docs.astral.sh/uv/getting-started/installation/" target="_blank" rel="noreferrer" className="text-primary underline">uv</a> or <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer" className="text-primary underline">Python</a>, then click Recheck.</p>}
+              {!headroomStatus.loading && !headroomStatus.canInstall && (
+                <p className="text-xs text-text-muted">
+                  Install{" "}
+                  <a href="https://docs.astral.sh/uv/getting-started/installation/" target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    uv
+                  </a>{" "}
+                  or{" "}
+                  <a href="https://www.python.org/downloads/" target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                    Python
+                  </a>
+                  , then click Recheck.
+                </p>
+              )}
             </div>
           )}
-          {headroomActionError && (
-            <p className="text-sm text-warning">{headroomActionError}</p>
+          {headroomActionError && <p className="text-[13px] text-danger">{headroomActionError}</p>}
+          {installLog && (
+            <pre className="max-h-44 overflow-auto whitespace-pre-wrap rounded-md border border-border-subtle bg-surface-2/40 p-3 font-mono text-xs">
+              {installLog}
+            </pre>
           )}
-          {installLog && <pre className="max-h-44 overflow-auto rounded bg-surface-2 p-3 text-xs whitespace-pre-wrap">{installLog}</pre>}
           <div className="flex gap-2">
-            <Button
-              onClick={() => refreshHeadroomStatus()}
-              variant="ghost"
-              fullWidth
-            >
+            <Button onClick={() => refreshHeadroomStatus()} variant="ghost" fullWidth>
               Recheck
             </Button>
-            <Button
-              onClick={() => setShowHeadroomInstallModal(false)}
-              fullWidth
-            >
+            <Button onClick={() => setShowHeadroomInstallModal(false)} fullWidth>
               Done
             </Button>
           </div>
@@ -1449,42 +1437,41 @@ export default function TokenSaverClient() {
 
       <Modal
         isOpen={showPxpipeModal}
-        title={pxpipeStatus.installed ? "PXPIPE" : "Setup PXPIPE"}
+        title={pxpipeStatus.installed ? "PXPIPE" : "Set up PXPIPE"}
         onClose={() => setShowPxpipeModal(false)}
       >
         <div className="flex flex-col gap-4">
-          <p className="text-sm text-text-muted">
-            Compress prompts using multimodal encoding. Runs in-process — no
-            extra server or environment variables required.
+          <p className="text-[13px] text-text-muted">
+            Compresses prompts with multimodal encoding and runs in-process — no extra server or
+            environment variables.
           </p>
-          <div className="flex items-center justify-between text-sm">
-            <span>Status</span>
-            <span className={pxpipeHealthy || pxpipeStatus.running ? "text-success" : "text-warning"}>
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-text-muted">Status</span>
+            <span className={pxpipeOk ? "text-success" : "text-warning"}>
               {pxpipeStatusLabel}
               {pxpipeStatus.version ? ` · v${pxpipeStatus.version}` : ""}
             </span>
           </div>
           {pxpipeHealth?.checks?.length > 0 && (
-            <div className="flex flex-col gap-1 rounded border border-border p-3">
-              <p className="text-sm font-medium mb-1">Health check</p>
+            <div className="flex flex-col gap-1.5 rounded-md border border-border-subtle bg-surface-2/40 p-3">
+              <p className="text-[13px] font-medium text-text-main">Health check</p>
               {pxpipeHealth.checks.map((check) => (
-                <div key={check.id} className="flex items-center justify-between text-xs">
-                  <span className={check.ok ? "text-success" : "text-warning"}>
-                    {check.ok ? "●" : "○"} {check.label}
+                <div key={check.id} className="flex items-center justify-between gap-3 text-xs">
+                  <span className={`flex items-center gap-1.5 ${check.ok ? "text-success" : "text-warning"}`}>
+                    <Icon name={check.ok ? "check_circle" : "radio_button_unchecked"} className="text-[13px]" />
+                    {check.label}
                   </span>
                   {check.detail && (
-                    <span className="text-text-muted font-mono truncate max-w-[50%]">{check.detail}</span>
+                    <span className="max-w-[50%] truncate font-mono text-text-muted">{check.detail}</span>
                   )}
                 </div>
               ))}
-              {pxpipeHealth.error && (
-                <p className="text-xs text-warning mt-1">{pxpipeHealth.error}</p>
-              )}
+              {pxpipeHealth.error && <p className="mt-1 text-xs text-warning">{pxpipeHealth.error}</p>}
             </div>
           )}
           {!pxpipeStatus.installed ? (
             <div className="flex flex-col gap-2">
-              <p className="text-sm text-warning">PXPIPE is not installed.</p>
+              <p className="text-[13px] text-warning">PXPIPE is not installed.</p>
               <Button
                 onClick={() => pxpipeAction("install")}
                 fullWidth
@@ -1493,18 +1480,18 @@ export default function TokenSaverClient() {
                 {pxpipeActionLoading || pxpipeStatus.installing ? "Installing…" : "Install"}
               </Button>
               <p className="text-xs text-text-muted">
-                Installs the npm package <code className="font-mono">pxpipe-proxy</code> into
-                the MiawRouter data directory. May take a few minutes.
+                Installs the npm package <code className="font-mono">pxpipe-proxy</code> into the
+                MiawRouter data directory. This can take a few minutes.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {pxpipeStatus.running ? (
                 <>
-                  <Button onClick={() => pxpipeAction("restart")} variant="ghost" disabled={pxpipeActionLoading}>
+                  <Button onClick={() => pxpipeAction("restart")} variant="secondary" disabled={pxpipeActionLoading}>
                     Restart
                   </Button>
-                  <Button onClick={() => pxpipeAction("stop")} variant="ghost" disabled={pxpipeActionLoading}>
+                  <Button onClick={() => pxpipeAction("stop")} variant="secondary" disabled={pxpipeActionLoading}>
                     Stop
                   </Button>
                 </>
@@ -1513,33 +1500,27 @@ export default function TokenSaverClient() {
                   {pxpipeActionLoading ? "Starting…" : "Start"}
                 </Button>
               )}
-              <Button onClick={() => pxpipeAction("install")} variant="ghost" disabled={pxpipeActionLoading}>
+              <Button onClick={() => pxpipeAction("install")} variant="secondary" disabled={pxpipeActionLoading}>
                 Repair
               </Button>
               <a
                 href="/dashboard/pxpipe#logs"
-                className="col-span-2 rounded border border-border px-4 py-2 text-center text-sm hover:bg-surface-2"
+                className="col-span-2 rounded-md border border-border px-4 py-2 text-center text-[13px] text-text-main transition-colors hover:bg-surface-2"
               >
-                Open Logs
+                Open logs
               </a>
             </div>
           )}
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-medium">Minimum prompt size (chars)</p>
-            <Input
-              value={String(pxpipeMinChars)}
-              onChange={(e) => setPxpipeMinChars(e.target.value)}
-              onBlur={handlePxpipeMinCharsBlur}
-              placeholder="25000"
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-text-muted">
-              Requests smaller than this bypass PXPIPE and are sent as-is.
-            </p>
-          </div>
-          {pxpipeActionError && (
-            <p className="text-sm text-warning">{pxpipeActionError}</p>
-          )}
+          <Input
+            label="Minimum prompt size (characters)"
+            value={String(pxpipeMinChars)}
+            onChange={(e) => setPxpipeMinChars(e.target.value)}
+            onBlur={handlePxpipeMinCharsBlur}
+            placeholder="25000"
+            inputClassName="font-mono text-sm"
+            hint="Requests smaller than this bypass PXPIPE and are sent as-is."
+          />
+          {pxpipeActionError && <p className="text-[13px] text-danger">{pxpipeActionError}</p>}
           <div className="flex gap-2">
             <Button
               onClick={() => refreshPxpipeStatus().then(runPxpipeHealth)}

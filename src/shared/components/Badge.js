@@ -1,20 +1,24 @@
 "use client";
 
 import { cn } from "@/shared/utils/cn";
+import { Icon } from "@/shared/components/Icon";
 
 const variants = {
-  default: "bg-surface-2 text-text-muted",
-  primary: "bg-brand-500/10 text-brand-600 dark:text-brand-300",
-  success: "bg-green-500/10 text-green-600 dark:text-green-400",
-  warning: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
-  error: "bg-red-500/10 text-red-600 dark:text-red-400",
-  info: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  default: "bg-surface-2 text-text-muted border border-border-subtle",
+  neutral: "bg-surface-2 text-text-muted border border-border-subtle",
+  primary: "bg-primary/10 text-primary border border-primary/20",
+  success: "bg-success/10 text-success border border-success/20",
+  warning: "bg-warning/10 text-warning border border-warning/25",
+  danger: "bg-danger/10 text-danger border border-danger/20",
+  error: "bg-danger/10 text-danger border border-danger/20",
+  info: "bg-primary/10 text-primary border border-primary/20",
 };
 
 const sizes = {
-  sm: "px-2 py-0.5 text-[10px]",
-  md: "px-2.5 py-1 text-xs",
-  lg: "px-3 py-1.5 text-sm",
+  xs: "px-2 py-0.5 text-[11px]",
+  sm: "px-2.5 py-0.5 text-xs",
+  md: "px-2.5 py-0.5 text-xs",
+  lg: "px-3 py-1 text-sm",
 };
 
 export default function Badge({
@@ -28,26 +32,28 @@ export default function Badge({
   return (
     <span
       className={cn(
+        "ui-badge",
         "inline-flex items-center gap-1.5 rounded-full font-semibold",
-        variants[variant],
-        sizes[size],
+        variants[variant] || variants.default,
+        sizes[size] || sizes.md,
         className
       )}
+      data-variant={variant}
     >
       {dot && (
         <span
           className={cn(
-            "size-1.5 rounded-full",
-            variant === "success" && "bg-green-500",
-            variant === "warning" && "bg-yellow-500",
-            variant === "error" && "bg-red-500",
-            variant === "info" && "bg-blue-500",
-            variant === "primary" && "bg-brand-500",
-            variant === "default" && "bg-gray-500"
+            "size-1.5 rounded-full shrink-0",
+            variant === "success" && "bg-success",
+            variant === "warning" && "bg-warning",
+            (variant === "danger" || variant === "error") && "bg-danger",
+            variant === "info" && "bg-primary",
+            variant === "primary" && "bg-primary",
+            (variant === "default" || variant === "neutral") && "bg-text-subtle"
           )}
         />
       )}
-      {icon && <span className="material-symbols-outlined text-[14px]">{icon}</span>}
+      {icon && <Icon name={icon} className="text-[13.5px] shrink-0" />}
       {children}
     </span>
   );

@@ -1,18 +1,19 @@
 "use client";
+import { Fragment } from "react";
 
 import { useState, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
 import Link from "next/link";
 import {
   FREE_TIER_PROVIDERS,
-  FREE_TIER_MODEL_RECORDS,
   FREE_TIER_MODELS_BY_PROVIDER,
   FREE_TIER_CATALOG_SOURCE,
 } from "open-sse/config/freeTierCatalog.js";
-import { Card, Badge } from "@/shared/components";
+import { Badge } from "@/shared/components";
 import ProviderIcon from "@/shared/components/ProviderIcon";
 import { useHeaderSearchStore } from "@/store/headerSearchStore";
 
+import { Icon } from "@/shared/components/Icon";
 // ToS severity sort order — "ok" first, "avoid" last
 const TOS_ORDER = { ok: 0, caution: 1, ambiguous: 2, unknown: 3, avoid: 4 };
 
@@ -101,112 +102,9 @@ ModelChip.propTypes = {
   }).isRequired,
 };
 
-function ProviderSection({ provider, models, expanded, onToggle }) {
-  const worstTos = models.reduce((worst, m) => {
-    return (TOS_ORDER[m.tos] || 0) > (TOS_ORDER[worst] || 0) ? m.tos : worst;
-  }, null);
-
-  return (
-    <Card padding="sm" className="overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="flex w-full items-center gap-3 text-left cursor-pointer"
-      >
-        <div
-          className="size-10 shrink-0 rounded-lg flex items-center justify-center"
-          style={{
-            backgroundColor: provider.color?.length > 7
-              ? provider.color
-              : (provider.color || "#888") + "15",
-          }}
-        >
-          <ProviderIcon
-            providerId={provider.id}
-            alt={provider.name}
-            size={36}
-            className="object-contain rounded-lg max-w-[36px] max-h-[36px]"
-            fallbackIcon={provider.icon}
-            fallbackText={provider.textIcon || provider.id.slice(0, 2).toUpperCase()}
-            fallbackColor={provider.color}
-          />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold truncate">{provider.name}</h3>
-            {provider.noAuth && (
-              <Badge variant="success" size="sm">No Key</Badge>
-            )}
-            <Badge variant="default" size="sm">
-              {models.length} model{models.length !== 1 ? "s" : ""}
-            </Badge>
-            {worstTos && worstTos !== "ok" && <TosBadge tos={worstTos} />}
-          </div>
-          {provider.freeNote && (
-            <p className="text-xs text-text-muted mt-0.5 line-clamp-2">
-              {provider.freeNote}
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {provider.website && (
-            <a
-              href={provider.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="p-1.5 rounded-md hover:bg-bg text-text-muted hover:text-text-main transition-colors"
-              title={`Visit ${provider.name} website`}
-            >
-              <span className="material-symbols-outlined text-[16px]">open_in_new</span>
-            </a>
-          )}
-          <span
-            className="material-symbols-outlined text-[18px] text-text-muted transition-transform"
-            style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}
-          >
-            expand_more
-          </span>
-        </div>
-      </button>
-
-      {expanded && (
-        <div className="mt-3 pt-3 border-t border-border-subtle space-y-2">
-          {/* Auth hint */}
-          {provider.authHint && (
-            <div className="flex items-start gap-2 text-xs text-text-muted bg-bg rounded-md p-2">
-              <span className="material-symbols-outlined text-[14px] mt-0.5 shrink-0">key</span>
-              <span>{provider.authHint}</span>
-            </div>
-          )}
-
-          {/* Notice */}
-          {provider.notice?.text && (
-            <div className="flex items-start gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-500/5 rounded-md p-2">
-              <span className="material-symbols-outlined text-[14px] mt-0.5 shrink-0">info</span>
-              <span>{provider.notice.text}</span>
-            </div>
-          )}
-
-          {/* Models grid */}
-          <div className="flex flex-wrap gap-1.5">
-            {models.map((m) => (
-              <ModelChip key={m.modelId} model={m} />
-            ))}
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-ProviderSection.propTypes = {
-  provider: PropTypes.object.isRequired,
-  models: PropTypes.array.isRequired,
-  expanded: PropTypes.bool.isRequired,
-  onToggle: PropTypes.func.isRequired,
-};
 
 export default function FreeTiersPage() {
+  const [sort, setSort] = useState({ key: "models", direction: "desc" });
   const [expandedId, setExpandedId] = useState(null);
   const searchQuery = useHeaderSearchStore((s) => s.query);
   const registerSearch = useHeaderSearchStore((s) => s.register);
@@ -271,13 +169,27 @@ export default function FreeTiersPage() {
   }, [searchQuery]);
 
   const totalModels = availableProviders.reduce((sum, p) => sum + p.models.length, 0);
+  const sortedProviders = useMemo(() => {
+    const valueFor = ({ provider, models }, key) => {
+      if (key === "name") return provider.name.toLowerCase();
+      if (key === "models") return models.length;
+      if (key === "daily") return models.reduce((sum, model) => sum + (model.monthlyTokens || 0), 0);
+      if (key === "credit") return models.reduce((sum, model) => sum + (model.creditTokens || 0), 0);
+      return Math.max(...models.map((model) => TOS_ORDER[model.tos] ?? 3));
+    };
+    return [...availableProviders].sort((a, b) => {
+      const av = valueFor(a, sort.key);
+      const bv = valueFor(b, sort.key);
+      return (av > bv ? 1 : av < bv ? -1 : 0) * (sort.direction === "asc" ? 1 : -1);
+    });
+  }, [availableProviders, sort]);
 
   return (
     <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
       {/* Header */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl sm:text-2xl font-bold">Free Tier Providers</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight text-text-main">Free Tier Providers</h1>
           <Badge variant="success" size="md">
             {availableProviders.length} provider{availableProviders.length !== 1 ? "s" : ""}
           </Badge>
@@ -303,35 +215,95 @@ export default function FreeTiersPage() {
         href="/dashboard/free-provider-rankings"
         className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
       >
-        <span className="material-symbols-outlined text-[16px]">emoji_events</span>
+        <Icon name={"emoji_events"} className=" text-[16px]" />
         View Provider Rankings
       </Link>
 
-      {/* Provider list */}
+      {/* Provider catalog */}
       {availableProviders.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-border rounded-xl">
-          <span className="material-symbols-outlined text-[40px] text-text-muted mb-2 block">
-            inventory_2
-          </span>
-          <p className="text-text-muted text-sm">
-            {searchQuery.trim()
-              ? "No free providers match your search"
-              : "No available free tier providers found"}
+        <div className="rounded-[10px] border border-dashed border-border py-12 text-center">
+          <Icon name={"inventory_2"} className="text-[40px] text-text-muted mb-2 block" />
+          <p className="text-sm text-text-muted">
+            {searchQuery.trim() ? "No free providers match your search" : "No available free tier providers found"}
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {availableProviders.map(({ provider, models }) => (
-            <ProviderSection
-              key={provider.id}
-              provider={provider}
-              models={models}
-              expanded={expandedId === provider.id}
-              onToggle={() =>
-                setExpandedId((prev) => (prev === provider.id ? null : provider.id))
-              }
-            />
-          ))}
+        <div className="overflow-x-auto rounded-[10px] border border-border bg-surface">
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+            <thead className="border-b border-border bg-surface-2 text-xs text-text-muted">
+              <tr>
+                {[
+                  ["name", "Provider"],
+                  ["models", "Models"],
+                  ["daily", "Daily allowance"],
+                  ["credit", "Signup credit"],
+                  ["tos", "Terms"],
+                ].map(([key, title]) => (
+                  <th key={key} className="px-4 py-3 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => setSort((current) => ({
+                        key,
+                        direction: current.key === key && current.direction === "desc" ? "asc" : "desc",
+                      }))}
+                      className="inline-flex items-center gap-1.5 hover:text-text-main"
+                    >
+                      {title}
+                      {sort.key === key && <Icon name={sort.direction === "asc" ? "arrow_upward" : "arrow_downward"} className="text-[13px]" />}
+                    </button>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-subtle">
+              {sortedProviders.map(({ provider, models }) => {
+                const daily = models.reduce((sum, model) => sum + (model.monthlyTokens || 0), 0);
+                const credit = models.reduce((sum, model) => sum + (model.creditTokens || 0), 0);
+                const worstTos = models.reduce((worst, model) => (
+                  TOS_ORDER[model.tos] > TOS_ORDER[worst] ? model.tos : worst
+                ), "ok");
+                const expanded = expandedId === provider.id;
+                return (
+                  <Fragment key={provider.id}>
+                    <tr className="hover:bg-surface-2/70">
+                      <td className="px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <button type="button" onClick={() => setExpandedId(expanded ? null : provider.id)} aria-expanded={expanded} className="flex min-w-0 items-center gap-3 text-left">
+                            <ProviderIcon providerId={provider.id} alt={provider.name} size={28} className="shrink-0 object-contain" fallbackIcon={provider.icon} fallbackText={provider.textIcon || provider.id.slice(0, 2).toUpperCase()} fallbackColor={provider.color} />
+                            <span className="min-w-0">
+                              <span className="flex items-center gap-2">
+                                <span className="block truncate font-medium text-text-main">{provider.name}</span>
+                                {provider.noAuth && <Badge variant="success" size="sm">No key</Badge>}
+                              </span>
+                              {provider.freeNote && <span className="block max-w-[360px] truncate text-xs text-text-muted">{provider.freeNote}</span>}
+                            </span>
+                          </button>
+                          {provider.website && (
+                            <a href={provider.website} target="_blank" rel="noopener noreferrer" title={`Visit ${provider.name}`} className="shrink-0 rounded-md p-1 text-text-muted hover:bg-surface-2 hover:text-text-main">
+                              <Icon name="open_in_new" className="text-[14px]" />
+                            </a>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">{models.length}</td>
+                      <td className="px-4 py-3 font-mono tabular-nums">{formatTokens(daily) || "Not listed"}</td>
+                      <td className="px-4 py-3 font-mono tabular-nums">{formatTokens(credit) || "Not listed"}</td>
+                      <td className="px-4 py-3"><TosBadge tos={worstTos} /></td>
+                    </tr>
+                    {expanded && (
+                      <tr>
+                        <td colSpan={5} className="bg-surface-2/50 px-4 py-3">
+                          {provider.authHint && <p className="mb-2 text-xs text-text-muted">{provider.authHint}</p>}
+                          {provider.notice?.text && <p className="mb-2 text-xs text-warning">{provider.notice.text}</p>}
+                          <div className="flex flex-wrap gap-1.5">{models.map((model) => <ModelChip key={model.modelId} model={model} />)}</div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

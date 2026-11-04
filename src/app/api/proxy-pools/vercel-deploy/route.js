@@ -82,7 +82,7 @@ export async function POST(request) {
           },
           {
             file: "package.json",
-            data: JSON.stringify({ name: projectName, version: "1.2.2" }),
+            data: JSON.stringify({ name: projectName, version: "1.2.5" }),
           },
           {
             file: "vercel.json",

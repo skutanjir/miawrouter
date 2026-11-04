@@ -5,6 +5,7 @@ import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 import { useCopyToClipboard } from "@/shared/hooks/useCopyToClipboard";
 
+import { Icon } from "@/shared/components/Icon";
 /**
  * Kiro Social OAuth Modal (Google/GitHub)
  * Handles manual callback URL flow for social login
@@ -60,7 +61,7 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
   const handleManualSubmit = async () => {
     try {
       setError(null);
-      
+
       // Parse callback URL - can be either kiro:// or http://localhost format
       let url;
       try {
@@ -108,100 +109,106 @@ export default function KiroSocialOAuthModal({ isOpen, provider, onSuccess, onCl
 
   return (
     <Modal isOpen={isOpen} title={`Connect Kiro via ${providerName}`} onClose={onClose} size="lg">
-      <div className="flex flex-col gap-4">
-        {/* Loading */}
-        {step === "loading" && (
-          <div className="text-center py-6">
-            <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="material-symbols-outlined text-3xl text-primary animate-spin">
-                progress_activity
+      {step === "loading" && (
+        <div className="flex items-center gap-2.5 py-6 text-sm text-text-muted">
+          <Icon name="progress_activity" className="animate-spin text-[18px] text-primary" />
+          Requesting a {providerName} authorization URL from Kiro…
+        </div>
+      )}
+
+      {step === "input" && (
+        <div className="flex flex-col gap-4">
+          <p className="text-[13px] text-text-muted">
+            Kiro hands back the authorization code on a callback URL, so the browser tab that opens can stay
+            open while you copy its address.
+          </p>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="flex items-center gap-2 text-sm font-medium text-text-main">
+              <span className="flex size-5 items-center justify-center rounded-md bg-surface-2 text-xs font-semibold tabular-nums text-text-muted">
+                1
               </span>
+              Open this URL and authorize
+            </span>
+            <div className="flex items-stretch gap-2">
+              <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-md border border-border bg-surface-2 px-2.5 py-2 font-mono text-xs text-text-main">
+                {authUrl}
+              </code>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={copied === "auth_url" ? "check" : "content_copy"}
+                onClick={() => copy(authUrl, "auth_url")}
+                aria-label="Copy authorization URL"
+              />
             </div>
-            <h3 className="text-lg font-semibold mb-2">Initializing...</h3>
-            <p className="text-sm text-text-muted">
-              Setting up {providerName} authentication
-            </p>
           </div>
-        )}
 
-        {/* Manual Input Step */}
-        {step === "input" && (
-          <>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-2">Step 1: Open this URL in your browser</p>
-                <div className="flex gap-2">
-                  <Input value={authUrl} readOnly className="flex-1 font-mono text-xs" />
-                  <Button 
-                    variant="secondary" 
-                    icon={copied === "auth_url" ? "check" : "content_copy"} 
-                    onClick={() => copy(authUrl, "auth_url")}
-                  >
-                    Copy
-                  </Button>
-                </div>
-              </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="flex items-center gap-2 text-sm font-medium text-text-main">
+              <span className="flex size-5 items-center justify-center rounded-md bg-surface-2 text-xs font-semibold tabular-nums text-text-muted">
+                2
+              </span>
+              Paste the callback URL
+            </span>
+            <Input
+              value={callbackUrl}
+              onChange={(e) => setCallbackUrl(e.target.value)}
+              placeholder="kiro://kiro.kiroAgent/authenticate-success?code=..."
+              inputClassName="font-mono text-xs"
+              hint="Copy the whole address from the browser tab that finished the login."
+            />
+          </div>
 
-              <div>
-                <p className="text-sm font-medium mb-2">Step 2: Paste the callback URL here</p>
-                <p className="text-xs text-text-muted mb-2">
-                  After authorization, copy the full URL from your browser address bar.
-                </p>
-                <Input
-                  value={callbackUrl}
-                  onChange={(e) => setCallbackUrl(e.target.value)}
-                  placeholder="kiro://kiro.kiroAgent/authenticate-success?code=..."
-                  className="font-mono text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleManualSubmit} fullWidth disabled={!callbackUrl}>
-                Connect
-              </Button>
-              <Button onClick={onClose} variant="ghost" fullWidth>
-                Cancel
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* Success */}
-        {step === "success" && (
-          <div className="text-center py-6">
-            <div className="size-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-              <span className="material-symbols-outlined text-3xl text-green-600">check_circle</span>
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Connected Successfully!</h3>
-            <p className="text-sm text-text-muted mb-4">
-              Your Kiro account via {providerName} has been connected.
-            </p>
-            <Button onClick={onClose} fullWidth>
-              Done
+          <div className="flex gap-2">
+            <Button onClick={handleManualSubmit} fullWidth disabled={!callbackUrl}>
+              Connect
+            </Button>
+            <Button onClick={onClose} variant="ghost" fullWidth>
+              Cancel
             </Button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Error */}
-        {step === "error" && (
-          <div className="text-center py-6">
-            <div className="size-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-              <span className="material-symbols-outlined text-3xl text-red-600">error</span>
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Connection Failed</h3>
-            <p className="text-sm text-red-600 mb-4">{error}</p>
-            <div className="flex gap-2">
-              <Button onClick={() => setStep("input")} variant="secondary" fullWidth>
-                Try Again
-              </Button>
-              <Button onClick={onClose} variant="ghost" fullWidth>
-                Cancel
-              </Button>
+      {step === "success" && (
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <span className="flex size-10 items-center justify-center rounded-md bg-success/10">
+            <Icon name="check_circle" weight="fill" className="text-[22px] text-success" />
+          </span>
+          <p className="text-[15px] font-semibold text-text-main">Kiro connected via {providerName}</p>
+          <p className="text-sm text-text-muted">
+            The account is active now. Its models appear in the model picker.
+          </p>
+          <Button onClick={onClose} fullWidth className="mt-2">
+            Done
+          </Button>
+        </div>
+      )}
+
+      {step === "error" && (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger/10 p-3">
+            <Icon name="error" className="mt-0.5 text-[18px] text-danger shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-text-main">The {providerName} connection failed</p>
+              <p className="mt-1 text-text-muted">{error}</p>
+              <p className="mt-1 text-text-muted">
+                Start the flow again and make sure the callback URL still holds a fresh{" "}
+                <span className="font-mono text-xs">code</span> parameter.
+              </p>
             </div>
           </div>
-        )}
-      </div>
+          <div className="flex gap-2">
+            <Button onClick={() => setStep("input")} variant="secondary" fullWidth>
+              Back to the URL
+            </Button>
+            <Button onClick={onClose} variant="ghost" fullWidth>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 }

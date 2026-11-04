@@ -72,7 +72,7 @@ const LEGACY_CHAT_MODELS = [
   "ox-alpha-free",
 ];
 const RESPONSES_MODELS = [...LEGACY_CHAT_MODELS.filter((id) => /^(gpt-|grok-)/.test(id)), "gpt-6-luna"];
-const CHAT_MODELS = [...LEGACY_CHAT_MODELS.filter((id) => !/^(gpt-|grok-)/.test(id)), "deepseek-flash", "space-bunny-free", "longcat-2.5-preview-free"];
+const CHAT_MODELS = [...LEGACY_CHAT_MODELS.filter((id) => !/^(gpt-|grok-)/.test(id)), "space-bunny", "step-5-preview", "longcat-2.5-preview-free", "cat-jam-free"];
 
 const MESSAGES_MODELS = [
   "minimax-m3",
@@ -93,6 +93,7 @@ const MESSAGES_MODELS = [
   "qwen3.8-flash-low",
   "qwen3.8-flash-medium",
   "qwen3.8-flash-xhigh",
+  "claude-haiku-5-5",
 ];
 
 describe("OpenCode Go official model catalog", () => {

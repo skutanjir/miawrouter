@@ -1,6 +1,7 @@
 // L1 exact-match response cache: in-memory TTL + bounded LRU keyed by a
 // SHA-256 canonical hash of the normalized final request. Only deterministic
-// (temperature=0 or seed-pinned) non-streaming, tool-free requests are cached.
+// (temperature=0) non-streaming, tool-free requests are cached. A seed alone
+// does not guarantee deterministic output across providers or model updates.
 // Fail-open: every function here returns without throwing.
 
 import crypto from "crypto";
@@ -77,8 +78,7 @@ export function isCacheable(body, { stream = false } = {}) {
   const req = body.request && typeof body.request === "object" ? body.request : body;
   const rawTemp = req.generationConfig?.temperature ?? body.temperature;
   const temperature = Number(rawTemp);
-  const seed = req.generationConfig?.seed ?? req.seed ?? body.seed;
-  if (seed == null && (rawTemp == null || temperature !== 0)) return false;
+  if (rawTemp == null || temperature !== 0) return false;
 
   const tools = req.tools ?? body.tools;
   if (Array.isArray(tools) && tools.length > 0) return false;

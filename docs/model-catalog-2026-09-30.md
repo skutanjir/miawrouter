@@ -18,7 +18,7 @@ is enabled for every account or third-party provider.
 | Claude Fable 5.1 / Opus 5.5 / Sonnet 5.5 | low, medium, high, xhigh, max |
 | Claude Opus / Sonnet 4.6 | low, medium, high, max |
 | Claude Opus 4.5 | low, medium, high; extended thinking uses a token budget |
-| Claude Haiku 4.5 | no effort parameter; extended thinking uses a token budget |
+| Claude Haiku 5.5 | low, medium, high, xhigh, max |
 
 `auto` is a router setting: omit effort and use the provider's default. Claude
 Opus 5.5 defaults to medium; Fable 5.1 and Sonnet 5.5 default to high.

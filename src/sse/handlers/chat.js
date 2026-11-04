@@ -355,6 +355,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       modelInfo: { provider, model },
       credentials: refreshedCredentials,
       log,
+      requestSignal: request?.signal,
       clientRawRequest,
       connectionId: credentials.connectionId,
       userAgent,
@@ -417,6 +418,8 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     });
 
     if (result.success) return result.response;
+
+    if (result.status === 499 || request?.signal?.aborted) return result.response;
 
     // Mark account unavailable (auto-calculates cooldown with exponential backoff, or precise resetsAtMs)
     const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model, result.resetsAtMs);

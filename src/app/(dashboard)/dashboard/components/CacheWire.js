@@ -21,27 +21,37 @@ function LayerCard({ layer, status, active, kind }) {
   const isOff = !status.enabled;
   return (
     <div
-      className={`cw-layer-card flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border bg-surface px-2.5 py-2 ${isOff ? "opacity-60" : ""} ${active ? "cw-layer-act" : "border-border-subtle"}`}
+      className={`cw-layer-card flex min-w-0 flex-col gap-2 rounded-xl border bg-surface-2/50 px-3 py-2.5 ${isOff ? "opacity-60" : ""} ${active ? "cw-layer-act" : "border-border"}`}
       data-kind={active ? kind : ""}
       title={`${layer.name} · ${layer.role} · ${status.statusLabel}${status.subDetail ? ` · ${status.subDetail}` : ""}`}
     >
-      <div className="flex min-w-0 items-baseline justify-between gap-2">
-        <div className="flex min-w-0 items-baseline gap-1.5">
-          <span className="font-mono text-[11px] font-semibold text-muted">{layer.id}</span>
-          <span className="truncate text-xs font-medium text-ink">{layer.name}</span>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="inline-flex items-center justify-center rounded-md border border-border bg-surface px-1.5 py-0.5 font-mono text-[10.5px] font-bold text-primary">
+            {layer.id}
+          </span>
+          <span className="truncate text-xs font-semibold text-text-main">{layer.name}</span>
         </div>
-        <span className={`shrink-0 font-mono text-[10px] ${isOff ? "text-muted" : status.hasHits ? "text-signal" : "text-ink"}`}>
+        <span
+          className={`shrink-0 rounded-full px-2 py-0.5 font-mono text-[10px] font-semibold border ${
+            isOff
+              ? "border-border-subtle bg-surface text-text-muted"
+              : status.hasHits
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-border bg-surface text-text-main"
+          }`}
+        >
           {status.badgeText || status.statusLabel}
         </span>
       </div>
       <div className="flex min-w-0 items-baseline justify-between gap-2 text-[11px]">
-        <span className="truncate text-muted" title={status.reason || layer.role}>
+        <span className="truncate text-text-muted" title={status.reason || layer.role}>
           {status.reason ? `Off · ${status.reason}` : layer.role}
         </span>
         {status.subDetail ? (
-          <span className="shrink-0 font-mono tabular-nums text-ink">{status.subDetail}</span>
+          <span className="shrink-0 font-mono tabular-nums font-medium text-text-main">{status.subDetail}</span>
         ) : status.notice ? (
-          <span className="shrink-0 text-muted">{status.notice}</span>
+          <span className="shrink-0 text-text-muted">{status.notice}</span>
         ) : null}
       </div>
     </div>
@@ -205,7 +215,7 @@ export default function CacheWire() {
         } else if (ev.action === "miss") {
           recordEvent({ layer: "L1", miss: true, log: line([`${t} L1 miss`, who]) });
         } else {
-          bump(line([`${t} L1 ${ev.action ?? "event"}`, who]));
+          recordEvent({ log: line([`${t} L1 ${ev.action ?? "event"}`, who]) });
         }
       } else if (ev.type === "cache_l2") {
         if (ev.action === "hit") {
@@ -217,7 +227,7 @@ export default function CacheWire() {
         } else if (ev.action === "miss") {
           recordEvent({ layer: "L2", miss: true, log: line([`${t} L2 miss`, who]) });
         } else {
-          bump(line([`${t} L2 ${ev.action ?? "event"}`, who]));
+          recordEvent({ log: line([`${t} L2 ${ev.action ?? "event"}`, who]) });
         }
       } else if (ev.type === "cache_l3") {
         const refs = parsed ? parsed.refs : Math.max(0, Number(ev.refs) || 0);
@@ -232,7 +242,7 @@ export default function CacheWire() {
           latest: line([`${t} L3 dedup`, who, `${refs} refs`, fmtBytes(bytes)]),
         }));
       } else {
-        bump(line([`${t} cache ${ev.type}`, who]));
+        recordEvent({ log: line([`${t} cache ${ev.type}`, who]) });
       }
     };
 
@@ -243,9 +253,9 @@ export default function CacheWire() {
   }, []);
 
   const connMeta = {
-    connecting: { text: "Connecting…", cls: "text-warn", dot: "bg-warn" },
-    live: { text: "Live", cls: "text-ink", dot: "bg-signal" },
-    disconnected: { text: "Disconnected — reconnecting", cls: "text-fail", dot: "bg-fail" },
+    connecting: { text: "Connecting…", cls: "text-warning", dot: "bg-warning" },
+    live: { text: "Live", cls: "text-text-main", dot: "bg-success" },
+    disconnected: { text: "Disconnected — reconnecting", cls: "text-danger", dot: "bg-danger" },
   }[conn];
 
   const totalHits = (state.hits?.L0 || 0) + (state.hits?.L1 || 0) + (state.hits?.L2 || 0);
@@ -261,7 +271,14 @@ export default function CacheWire() {
       subtitle="L0 prompt, L1 exact, L2 semantic, L3 dedup"
       padding="sm"
       elev
-      className="panel-lift flex h-full flex-col self-stretch"
+      className="panel-lift flex h-full flex-col self-stretch border border-border"
+      action={
+        <span className={`inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-0.5 font-mono text-[10.5px] font-semibold ${connMeta.cls}`}>
+          <span className={`size-1.5 rounded-full ${connMeta.dot}`} aria-hidden="true" />
+          <span className="sr-only">Cache stream: </span>
+          {connMeta.text}
+        </span>
+      }
     >
       <style>{`.cw-layer-card{transition:border-color .15s ease,background-color .15s ease}
 .cw-layer-act{border-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 45%,var(--color-border-subtle))!important;background-color:color-mix(in srgb,var(--cw-glow,var(--color-signal)) 8%,var(--color-surface))!important}
@@ -270,16 +287,21 @@ export default function CacheWire() {
 .cw-layer-act[data-kind="dedup"]{--cw-glow:var(--color-ink)}
 @media (prefers-reduced-motion: reduce){.cw-layer-card,.cw-layer-act{transition:none!important}}`}</style>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <p className="font-mono text-xs tabular-nums text-ink">
-            {overallHitRate !== null ? `${overallHitRate}% hit` : "No lookups yet"}
-            <span className="text-muted"> · {fmt(totalHits)} hit · {fmt(totalMisses)} miss · {fmt(state.events)} events</span>
-          </p>
-          <span className={`inline-flex items-center gap-1.5 text-xs ${connMeta.cls}`}>
-            <span className={`size-1.5 rounded-full ${connMeta.dot}`} aria-hidden="true" />
-            <span className="sr-only">Cache stream: </span>
-            {connMeta.text}
-          </span>
+        <div className="rounded-lg border border-border-subtle bg-surface-2/60 px-3 py-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="font-mono text-xs font-semibold tabular-nums text-text-main">
+              {overallHitRate !== null ? `${overallHitRate}% overall hit rate` : "No lookups yet"}
+            </span>
+            <span className="font-mono text-[11px] tabular-nums text-text-muted">
+              {fmt(totalHits)} hit · {fmt(totalMisses)} miss · {fmt(state.events)} events
+            </span>
+          </div>
+          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface border border-border-subtle">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${overallHitRate || 0}%` }}
+            />
+          </div>
         </div>
 
         <div
@@ -302,21 +324,21 @@ export default function CacheWire() {
           })}
         </div>
 
-        <dl className="grid grid-cols-3 gap-2 border-t border-border-subtle pt-2.5 text-[11px]">
+        <dl className="grid grid-cols-3 gap-2 rounded-lg border border-border-subtle bg-surface-2/40 p-2.5 text-[11px]">
           <div>
-            <dt className="text-muted">Restored</dt>
-            <dd className="font-mono tabular-nums text-ink">{fmt(state.interlock.restored)}</dd>
+            <dt className="text-text-muted">Restored</dt>
+            <dd className="font-mono font-semibold tabular-nums text-text-main">{fmt(state.interlock.restored)}</dd>
           </div>
           <div>
-            <dt className="text-muted">Stable</dt>
-            <dd className="font-mono tabular-nums text-ink">{fmt(state.interlock.stable)}</dd>
+            <dt className="text-text-muted">Stable</dt>
+            <dd className="font-mono font-semibold tabular-nums text-text-main">{fmt(state.interlock.stable)}</dd>
           </div>
           <div>
-            <dt className="text-muted">Breakpoints</dt>
-            <dd className="font-mono tabular-nums text-ink">{state.interlock.breakpoints === null ? "—" : String(state.interlock.breakpoints)}</dd>
+            <dt className="text-text-muted">Breakpoints</dt>
+            <dd className="font-mono font-semibold tabular-nums text-text-main">{state.interlock.breakpoints === null ? "—" : String(state.interlock.breakpoints)}</dd>
           </div>
         </dl>
-        <p className="text-[11px] text-muted">
+        <p className="text-[11px] text-text-muted">
           Dedup {fmt(state.savings.refs)} refs · {fmtBytes(state.savings.bytes)} saved. Unbilled telemetry.
         </p>
 
@@ -324,9 +346,10 @@ export default function CacheWire() {
           key={state.latest}
           role="status"
           aria-live="polite"
-          className="truncate border-t border-border-subtle pt-2 font-mono text-[11px] text-muted"
+          className="mt-auto truncate rounded-md border border-border-subtle bg-surface-2 px-2.5 py-1.5 font-mono text-[11px] text-text-muted"
           title={state.latest}
         >
+          <span className="text-primary mr-1.5">›</span>
           {state.latest || "No cache events yet. Send a request to see hits, misses, and dedup."}
         </p>
       </div>

@@ -26,6 +26,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  global._dbAdapter?.instance?.close?.();
+  delete global._dbAdapter;
   restoreEnv(ENV_KEYS);
   vi.restoreAllMocks();
   if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
@@ -56,7 +58,7 @@ describe("dashboardSession secret via loadOrCreateSecretFile", () => {
     const secretFile = path.join(tempDir, "jwt-secret");
     expect(fs.existsSync(secretFile)).toBe(true);
     const stat = fs.statSync(secretFile);
-    expect(stat.mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(stat.mode & 0o777).toBe(0o600);
     // verify works with same module
     expect(await m1.verifyDashboardAuthToken(token)).toBe(true);
     const payload = await m1.getDashboardAuthSession(token);
@@ -71,7 +73,7 @@ describe("dashboardSession secret via loadOrCreateSecretFile", () => {
     const m = await loadSession();
     const token = await m.createDashboardAuthToken();
     expect(await m.verifyDashboardAuthToken(token)).toBe(true);
-    expect(fs.statSync(secretFile).mode & 0o777).toBe(0o600);
+    if (process.platform !== "win32") expect(fs.statSync(secretFile).mode & 0o777).toBe(0o600);
   });
 
   it("persisted-session: token created with first load survives module reload", async () => {

@@ -3,90 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, Button, Badge, Toggle, ConfirmModal, CardSkeleton } from "@/shared/components";
 import { useNotificationStore } from "@/store/notificationStore";
-import { cn } from "@/shared/utils/cn";
 import WebhookFormModal from "./WebhookFormModal";
 import DeliveryPanel from "./DeliveryPanel";
 import SecretManager from "./SecretManager";
 
-/* ── Helpers ──────────────────────────────────────────────────────── */
+import { Icon } from "@/shared/components/Icon";
+/* ── Webhook row ──────────────────────────────────────────────────── */
 
-function timeAgo(ts) {
-  if (!ts) return "never";
-  const sec = Math.floor((Date.now() - ts) / 1000);
-  if (sec < 5) return "just now";
-  if (sec < 60) return `${sec}s ago`;
-  if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
-  if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
-  return `${Math.floor(sec / 86400)}d ago`;
-}
-
-/* ── Summary Stats ────────────────────────────────────────────────── */
-
-function SummaryStats({ webhooks, loading }) {
-  const active = webhooks.filter((w) => w.isActive).length;
-  const withSecret = webhooks.filter((w) => w.secretConfigured).length;
-
-  const items = [
-    {
-      title: "Webhooks",
-      value: loading ? "—" : webhooks.length,
-      icon: "webhook",
-      sub: loading ? "" : `${active} active`,
-    },
-    {
-      title: "Active",
-      value: loading ? "—" : active,
-      icon: "check_circle",
-      accent: active > 0 ? "text-green-600" : "text-text-muted",
-      sub: loading ? "" : `of ${webhooks.length} total`,
-    },
-    {
-      title: "Signed",
-      value: loading ? "—" : withSecret,
-      icon: "key",
-      sub: "with signing secret",
-    },
-    {
-      title: "Event Types",
-      value: loading ? "—" : "4",
-      icon: "bolt",
-      sub: "available events",
-    },
-  ];
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((item) => (
-        <Card key={item.title} padding="sm">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-1.5 rounded-md bg-bg text-text-muted">
-              <span className="material-symbols-outlined text-[18px]">
-                {item.icon}
-              </span>
-            </div>
-            <span className="text-xs text-text-muted">{item.title}</span>
-          </div>
-          <p
-            className={cn(
-              "text-2xl font-semibold",
-              item.accent || "text-text-main"
-            )}
-          >
-            {item.value}
-          </p>
-          {item.sub && (
-            <p className="text-[11px] text-text-muted mt-0.5">{item.sub}</p>
-          )}
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-/* ── Webhook Card ─────────────────────────────────────────────────── */
-
-function WebhookCard({
+function WebhookRow({
   webhook,
+  busy,
   onEdit,
   onDelete,
   onToggle,
@@ -94,143 +20,108 @@ function WebhookCard({
   onManageSecret,
 }) {
   return (
-    <Card
-      padding="sm"
-      className={cn(
-        "transition-opacity",
-        !webhook.isActive && "opacity-60"
-      )}
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        {/* Left: icon + info */}
-        <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div
-            className={cn(
-              "size-9 rounded-lg flex items-center justify-center shrink-0",
-              webhook.isActive
-                ? "bg-brand-500/10 text-brand-600"
-                : "bg-surface-3 text-text-muted"
-            )}
-          >
-            <span className="material-symbols-outlined text-[18px]">
-              webhook
+    <tr className="border-b border-border-subtle last:border-b-0 hover:bg-surface-2/50 transition-colors">
+      {/* Name + endpoint */}
+      <td className="px-3 py-3 align-top">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-sm font-medium text-text-main">{webhook.name}</span>
+          <span className="truncate font-mono text-xs text-text-muted">{webhook.url}</span>
+        </div>
+      </td>
+
+      {/* Events */}
+      <td className="px-3 py-3 align-top">
+        <div className="flex max-w-[22rem] flex-wrap gap-1">
+          {webhook.events.map((evt) => (
+            <span
+              key={evt}
+              className="inline-flex items-center rounded-md border border-border-subtle bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-text-muted"
+            >
+              {evt}
             </span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-sm text-text-main truncate">
-                {webhook.name}
-              </h3>
-              <Badge
-                variant={webhook.isActive ? "success" : "default"}
-                size="sm"
-                dot
-              >
-                {webhook.isActive ? "Active" : "Disabled"}
-              </Badge>
-              {webhook.secretConfigured && (
-                <Badge variant="info" size="sm" icon="key">
-                  Signed
-                </Badge>
-              )}
-            </div>
-            <p className="text-xs text-text-muted mt-0.5 font-mono truncate">
-              {webhook.url}
-            </p>
-            <div className="flex flex-wrap gap-1 mt-1.5">
-              {webhook.events.map((evt) => (
-                <span
-                  key={evt}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-2 text-text-muted border border-border-subtle"
-                >
-                  {evt}
-                </span>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
+      </td>
 
-        {/* Right: toggle + actions */}
-        <div className="flex items-center gap-2 sm:flex-col sm:items-end shrink-0">
-          <Toggle
-            checked={webhook.isActive}
-            onChange={() => onToggle(webhook)}
+      {/* State */}
+      <td className="px-3 py-3 align-top">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Badge variant={webhook.isActive ? "success" : "default"} size="sm" dot>
+            {webhook.isActive ? "Active" : "Disabled"}
+          </Badge>
+          {webhook.secretConfigured && (
+            <Badge variant="info" size="sm" icon="key">
+              Signed
+            </Badge>
+          )}
+        </div>
+      </td>
+
+      {/* Enable/disable */}
+      <td className="px-3 py-3 align-top">
+        <Toggle
+          checked={webhook.isActive}
+          size="sm"
+          disabled={busy}
+          onChange={() => onToggle(webhook)}
+          ariaLabel={`${webhook.isActive ? "Disable" : "Enable"} ${webhook.name}`}
+        />
+      </td>
+
+      {/* Actions */}
+      <td className="px-3 py-3 align-top">
+        <div className="flex items-center justify-end gap-0.5">
+          <Button
+            variant="ghost"
             size="sm"
-            ariaLabel={`${webhook.isActive ? "Disable" : "Enable"} ${webhook.name}`}
-          />
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => onViewDeliveries(webhook)}
-              className="p-1.5 rounded text-text-muted hover:text-blue-600 hover:bg-blue-500/10 transition-colors"
-              title="View deliveries"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                history
-              </span>
-            </button>
-            <button
-              onClick={() => onManageSecret(webhook)}
-              className="p-1.5 rounded text-text-muted hover:text-amber-600 hover:bg-amber-500/10 transition-colors"
-              title="Manage signing secret"
-            >
-              <span className="material-symbols-outlined text-[16px]">key</span>
-            </button>
-            <button
-              onClick={() => onEdit(webhook)}
-              className="p-1.5 rounded text-text-muted hover:text-text-main hover:bg-surface-2 transition-colors"
-              title="Edit"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                edit
-              </span>
-            </button>
-            <button
-              onClick={() => onDelete(webhook)}
-              className="p-1.5 rounded text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors"
-              title="Delete"
-            >
-              <span className="material-symbols-outlined text-[16px]">
-                delete
-              </span>
-            </button>
-          </div>
+            onClick={() => onViewDeliveries(webhook)}
+            title="View delivery history"
+            aria-label={`View deliveries for ${webhook.name}`}
+          >
+            <Icon name="history" className="text-[16px]" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onManageSecret(webhook)}
+            title="Signing secret"
+            aria-label={`Manage signing secret for ${webhook.name}`}
+          >
+            <Icon name="key" className="text-[16px]" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(webhook)}
+            title="Edit webhook"
+            aria-label={`Edit ${webhook.name}`}
+          >
+            <Icon name="edit" className="text-[16px]" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-text-muted hover:text-danger"
+            onClick={() => onDelete(webhook)}
+            title="Delete webhook"
+            aria-label={`Delete ${webhook.name}`}
+          >
+            <Icon name="delete" className="text-[16px]" />
+          </Button>
         </div>
-      </div>
-    </Card>
+      </td>
+    </tr>
   );
 }
 
-/* ── Empty State ──────────────────────────────────────────────────── */
-
-function EmptyState({ onCreate }) {
-  return (
-    <Card padding="lg">
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
-          <span className="material-symbols-outlined text-[32px]">
-            webhook
-          </span>
-        </div>
-        <p className="text-text-main font-medium mb-1">No webhooks yet</p>
-        <p className="text-sm text-text-muted mb-4 max-w-sm">
-          Get notified when things happen in your router — request failures,
-          provider outages, and quota events.
-        </p>
-        <Button icon="add" onClick={onCreate} className="w-full sm:w-auto">
-          Create Webhook
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-/* ── Main Page Component ──────────────────────────────────────────── */
+/* ── Main page component ──────────────────────────────────────────── */
 
 export default function WebhooksPageClient() {
   const [webhooks, setWebhooks] = useState([]);
   const [supportedEvents, setSupportedEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [busyId, setBusyId] = useState(null);
 
   // Modal state
   const [showFormModal, setShowFormModal] = useState(false);
@@ -300,6 +191,7 @@ export default function WebhooksPageClient() {
   };
 
   const handleToggle = async (webhook) => {
+    setBusyId(webhook.id);
     const res = await fetch(`/api/webhooks/${webhook.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -308,7 +200,10 @@ export default function WebhooksPageClient() {
     if (res.ok) {
       notify.info(webhook.isActive ? "Webhook disabled" : "Webhook enabled");
       await load();
+    } else {
+      notify.error("Failed to update webhook");
     }
+    setBusyId(null);
   };
 
   const handleDelete = (webhook) => {
@@ -323,107 +218,127 @@ export default function WebhooksPageClient() {
         if (res.ok) {
           notify.success("Webhook deleted");
           await load();
+        } else {
+          notify.error("Failed to delete webhook");
         }
       },
     });
   };
 
+  const activeCount = webhooks.filter((w) => w.isActive).length;
+  const signedCount = webhooks.filter((w) => w.secretConfigured).length;
+
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-1 sm:px-0">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-6">
+      <div className="workspace-heading">
         <div>
-          <h1 className="text-2xl font-semibold">Webhooks</h1>
-          <p className="text-sm text-text-muted">
-            Push event notifications to external services when things happen in
-            your router.
-          </p>
+          <h1>Webhooks</h1>
+          <p>Push router events to external services. Each delivery carries a signed payload and retries on failure.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={load}
-            disabled={loading}
-            icon="refresh"
-          >
+          <Button variant="secondary" size="sm" onClick={load} disabled={loading} icon="refresh">
             {loading ? "Loading…" : "Refresh"}
           </Button>
-          <Button
-            icon="add"
-            size="sm"
-            onClick={() => setShowFormModal(true)}
-          >
-            Create Webhook
+          <Button icon="add" size="sm" onClick={() => setShowFormModal(true)}>
+            Create webhook
           </Button>
         </div>
       </div>
 
-      {/* Error */}
       {error && (
-        <Card className="border-red-500/30 text-sm text-red-500" padding="sm">
-          {error}
+        <Card className="border-danger/35" padding="sm">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-2 text-sm text-danger">
+              <Icon name="error" className="mt-0.5 text-[16px]" />
+              <span>Could not load webhooks — {error}</span>
+            </div>
+            <Button variant="secondary" size="sm" onClick={load}>
+              Retry
+            </Button>
+          </div>
         </Card>
       )}
 
-      {/* Summary */}
-      <SummaryStats webhooks={webhooks} loading={loading} />
-
-      {/* Webhook List */}
       {loading ? (
         <div className="flex flex-col gap-3">
           <CardSkeleton />
           <CardSkeleton />
         </div>
       ) : webhooks.length === 0 ? (
-        <EmptyState onCreate={() => setShowFormModal(true)} />
+        <Card padding="lg">
+          <div className="flex flex-col items-center gap-2 px-4 py-10 text-center">
+            <Icon name="webhook" weight="duotone" className="text-[28px] text-text-muted" />
+            <p className="text-sm font-medium text-text-main">No webhooks configured</p>
+            <p className="max-w-md text-[13px] text-text-muted">
+              Create one to get notified about request failures, provider outages, and quota events.
+            </p>
+            <Button icon="add" size="sm" className="mt-2" onClick={() => setShowFormModal(true)}>
+              Create webhook
+            </Button>
+          </div>
+        </Card>
       ) : (
-        <div className="flex flex-col gap-3">
-          {webhooks.map((wh) => (
-            <WebhookCard
-              key={wh.id}
-              webhook={wh}
-              onEdit={() => setEditingWebhook(wh)}
-              onDelete={() => handleDelete(wh)}
-              onToggle={() => handleToggle(wh)}
-              onViewDeliveries={() => setDeliveryWebhook(wh)}
-              onManageSecret={() => setSecretWebhook(wh)}
-            />
-          ))}
-        </div>
+        <Card padding="none">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-4 py-3">
+            <p className="text-[13px] text-text-muted tabular-nums">
+              {webhooks.length} webhook{webhooks.length === 1 ? "" : "s"} · {activeCount} active · {signedCount} signed
+            </p>
+            <p className="text-[13px] text-text-muted tabular-nums">
+              {supportedEvents.length} event types available
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[52rem] border-collapse text-left" aria-label="Configured webhooks">
+              <thead>
+                <tr className="border-b border-border text-[13px] text-text-muted">
+                  <th scope="col" className="px-3 py-2 font-medium">Webhook</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Events</th>
+                  <th scope="col" className="px-3 py-2 font-medium">State</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Enabled</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {webhooks.map((wh) => (
+                  <WebhookRow
+                    key={wh.id}
+                    webhook={wh}
+                    busy={busyId === wh.id}
+                    onEdit={() => setEditingWebhook(wh)}
+                    onDelete={() => handleDelete(wh)}
+                    onToggle={() => handleToggle(wh)}
+                    onViewDeliveries={() => setDeliveryWebhook(wh)}
+                    onManageSecret={() => setSecretWebhook(wh)}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
-      {/* Info footer */}
-      <Card padding="sm" className="border-border-subtle/50">
+      <Card padding="sm">
         <div className="flex items-start gap-3">
-          <span className="material-symbols-outlined text-[16px] text-text-muted mt-0.5">
-            info
-          </span>
-          <div className="text-xs text-text-muted space-y-1">
+          <Icon name="info" className="mt-0.5 text-[16px] text-text-muted" />
+          <div className="space-y-1 text-[13px] text-text-muted">
             <p>
-              <strong className="text-text-main">Signing secrets</strong> let
-              your endpoint verify that deliveries came from your router.
-              Each delivery includes an{" "}
-              <code className="bg-surface-2 px-1 rounded text-[11px]">
-                x-miaw-signature
-              </code>{" "}
-              header containing the HMAC-SHA256 digest.
+              <strong className="font-medium text-text-main">Signing secrets</strong> let the receiving
+              endpoint verify a delivery came from this router. Each request carries an{" "}
+              <code className="font-mono text-xs">x-miaw-signature</code> header with the HMAC-SHA256 digest.
             </p>
             <p>
-              <strong className="text-text-main">Retries</strong> are attempted
-              up to 3 times with exponential backoff for server errors and
-              timeouts.
+              <strong className="font-medium text-text-main">Retries</strong> run up to 3 times with
+              exponential backoff for server errors and timeouts.
             </p>
             <p>
-              <strong className="text-text-main">URL validation</strong>{" "}
-               allows HTTP or HTTPS and blocks private/reserved IP ranges to prevent
-              SSRF.
+              <strong className="font-medium text-text-main">URL validation</strong> allows HTTP and HTTPS and
+              blocks private/reserved IP ranges to prevent SSRF.
             </p>
           </div>
         </div>
       </Card>
 
-      {/* Modals & Panels */}
+      {/* Modals & panels */}
       {showFormModal && (
         <WebhookFormModal
           key="create"

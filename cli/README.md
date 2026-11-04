@@ -1,6 +1,18 @@
 # miawrouter
 
 CLI launcher for the MiawRouter local AI routing gateway and dashboard.
+Requires Node.js 20.18.1 or newer.
+
+The CLI listens on `127.0.0.1` by default. To allow other devices on your
+network to connect, start it with `miawrouter --host 0.0.0.0` and configure
+dashboard and API authentication. This changes the previous CLI default.
+
+OpenCode Free Bridge is retained for compatibility with existing installations,
+but the CLI no longer starts or registers it automatically. The bridge describes
+itself as reproducing OpenCode client identity to access the free tier, so its
+availability and use are subject to upstream restrictions. Existing provider
+configuration is not deleted. For supported access, use OpenCode directly or a
+provider account and API key where available.
 
 `miawrouter` installs, starts, and manages the MiawRouter server locally. The server exposes one OpenAI-compatible endpoint (`/v1`) and a dashboard, and routes requests across 40+ upstream providers with format translation, fallback, credential management, quota tracking, and token refresh.
 

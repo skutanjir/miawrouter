@@ -3,6 +3,7 @@
 const fs = require("fs");
 
 const IS_DEV = process.env.NODE_ENV === "development";
+const ENABLE_FILE_LOG = IS_DEV && process.env.MITM_DEBUG_CAPTURE === "1";
 
 // Resolve lsof absolute path — packaged apps / sudo secure_path may strip /usr/sbin from PATH
 const LSOF_BIN = (() => {
@@ -44,6 +45,7 @@ const URL_PATTERNS = {
 // Synonym map: rawModel from request → canonical alias key in mitmAlias DB
 const MODEL_SYNONYMS = {
   antigravity: {
+    "gemini-4-argon": "gemini-4-argon-high",
     "gemini-default": "gemini-3.8-flash-medium",
     "gemini-3.8-flash": "gemini-3.8-flash-high",
     "gemini-3.8-flash-high": "gemini-3.8-flash-high",
@@ -165,4 +167,4 @@ function extractModel(url, body) {
   }
 }
 
-module.exports = { IS_DEV, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, LOG_BLACKLIST_URL_PARTS, getToolForHost, extractModel };
+module.exports = { IS_DEV, ENABLE_FILE_LOG, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, LOG_BLACKLIST_URL_PARTS, getToolForHost, extractModel };

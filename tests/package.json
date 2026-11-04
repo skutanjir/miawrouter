@@ -1,6 +1,6 @@
 {
   "name": "miawrouter-tests",
-  "version": "1.2.2",
+  "version": "1.2.5",
   "private": true,
   "type": "module",
   "description": "Unit tests for miawrouter embeddings endpoint",
@@ -12,6 +12,6 @@
     "vitest": "^4.0.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": "^20.0.0 || ^22.0.0 || >=24.0.0"
   }
 }

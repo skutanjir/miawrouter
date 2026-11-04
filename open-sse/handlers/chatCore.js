@@ -78,7 +78,7 @@ export function canAttemptTokenRefresh(provider, credentials, executor) {
   return false;
 }
 
-export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, responseFocus, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, antiSlopEnabled, antiSlopLevel, hermesAutonomyEnabled, hermesAutonomyMode, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled, aiMemoryCapture, aiMemoryRecall, aiMemoryMaxTokens }) {
+export async function handleChatCore({ body, modelInfo, credentials, log, onCredentialsRefreshed, onRequestSuccess, onDisconnect, clientRawRequest, requestSignal, connectionId, userAgent, apiKey, ccFilterNaming, rtkEnabled, rtkMode, tokenSaverAutoTriggerTokens, responseFocus, headroomEnabled, headroomUrl, headroomCompressUserMessages, cavemanEnabled, cavemanLevel, ponytailEnabled, ponytailLevel, antiSlopEnabled, antiSlopLevel, hermesAutonomyEnabled, hermesAutonomyMode, pxpipeEnabled, pxpipeMinChars, pxpipeTimeoutMs, pxpipeTransform, onPxpipeEvent, onCacheEvent, onTokenSaverEvent, sourceFormatOverride, providerThinking, cacheL1Enabled, cacheL2Enabled, cacheL3Enabled, semanticCacheModel, semanticCacheThreshold, semanticCacheTtl, semanticCacheMaxEntries, cacheL3MinChars, semanticEmbed, bodyLoggingEnabled, aiMemoryCapture, aiMemoryRecall, aiMemoryMaxTokens }) {
   const { provider, model } = modelInfo;
   const requestStartTime = Date.now();
   // Per-request usage id. Usage stats can be written more than once for one
@@ -501,7 +501,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   appendRequestLog({ model, provider, connectionId, status: "PENDING" }).catch(() => { });
 
   // --- L1/L2 response cache: lookup before provider dispatch ---
-  // Only deterministic (temperature=0 / seed-pinned) non-streaming, tool-free
+  // Only temperature=0, non-streaming, tool-free
   // requests are cacheable. X-Miaw-Bypass: cache-l1,cache-l2,cache-l3.
   const cacheBypass = new Set(
     (clientRawRequest?.headers?.["x-miaw-bypass"] || "")
@@ -623,6 +623,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
     onError: () => trackPendingRequest(model, provider, connectionId, false),
     log, provider, model, reqTag
   });
+  const upstreamSignal = requestSignal ? AbortSignal.any([requestSignal, streamController.signal]) : streamController.signal;
 
   const proxyOptions = {
     connectionProxyEnabled: credentials?.providerSpecificData?.connectionProxyEnabled === true,
@@ -665,7 +666,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   // exception: it is decoded by the executor into OpenAI-compatible output.
   let providerResponseFormat = targetFormat;
   try {
-    const result = await executor.execute({ model, body: translatedBody, stream, credentials, signal: streamController.signal, log, proxyOptions });
+    const result = await executor.execute({ model, body: translatedBody, stream, credentials, signal: upstreamSignal, log, proxyOptions });
     providerResponse = result.response;
     providerUrl = result.url;
     providerHeaders = result.headers;
@@ -740,7 +741,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
             try { await onCredentialsRefreshed(newCredentials); } catch (e) { log?.warn?.("TOKEN", `onCredentialsRefreshed failed: ${e.message}`); }
           }
           try {
-            const retryResult = await executor.execute({ model, body: translatedBody, stream, credentials, signal: streamController.signal, log, proxyOptions });
+            const retryResult = await executor.execute({ model, body: translatedBody, stream, credentials, signal: upstreamSignal, log, proxyOptions });
             if (retryResult.response.ok) {
               providerResponse = retryResult.response;
               providerUrl = retryResult.url;
@@ -813,7 +814,7 @@ export async function handleChatCore({ body, modelInfo, credentials, log, onCred
   }
 
   // Streaming response
-  const { onStreamComplete, streamDetailId } = buildOnStreamComplete({ ...sharedCtx });
+  const { onStreamComplete, streamDetailId } = buildOnStreamComplete({ ...sharedCtx, targetFormat: providerResponseFormat });
   return handleStreamingResponse({ ...sharedCtx, providerResponse, sourceFormat, targetFormat: providerResponseFormat, userAgent, reqLogger, toolNameMap, customToolNames, streamController, onStreamComplete, streamDetailId });
 }
 

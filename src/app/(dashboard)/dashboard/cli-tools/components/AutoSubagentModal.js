@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { Modal, Button } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
+import { ActionsBar } from "./ToolCardSections";
 export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -79,7 +81,7 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
 
         {loading ? (
           <div className="flex items-center gap-2 py-6 justify-center text-text-muted text-xs">
-            <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+            <Icon name={"progress_activity"} className=" animate-spin text-[18px]" />
             <span>Scanning installed tools & active providers...</span>
           </div>
         ) : (
@@ -92,17 +94,17 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
                   installedToolsList.map((tool) => (
                     <span
                       key={tool}
-                      className="px-2 py-0.5 rounded text-[11px] font-medium bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 flex items-center gap-1"
+                      className="flex items-center gap-1 rounded-md border border-success/20 bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success"
                     >
-                      <span className="material-symbols-outlined text-[12px]">check</span>
+                      <Icon name={"check"} className=" text-[12px]" />
                       {tool}
                     </span>
                   ))
                 ) : (
                   <span className="text-xs text-text-muted italic">No tools detected locally; configs will be initialized safely.</span>
                 )}
-                <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px]">desktop_windows</span>
+                <span className="flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                  <Icon name={"desktop_windows"} className=" text-[12px]" />
                   Hermes Desktop (Native)
                 </span>
               </div>
@@ -116,7 +118,7 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
               <div className="flex flex-col gap-1 p-2.5 rounded-lg border border-border bg-surface/30">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-text-main flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-blue-500">search</span>
+                    <Icon name={"search"} className="text-[16px] text-primary" />
                     Explorer / Search
                   </span>
                   <span className="text-[10px] text-text-muted">Fast codebase grep, symbols, file outlines</span>
@@ -134,7 +136,7 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
               <div className="flex flex-col gap-1 p-2.5 rounded-lg border border-border bg-surface/30">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-text-main flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-amber-500">verified</span>
+                    <Icon name={"verified"} className="text-[16px] text-warning" />
                     Reviewer & Auditor
                   </span>
                   <span className="text-[10px] text-text-muted">Adversarial audit, logic bugs, verification</span>
@@ -152,7 +154,7 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
               <div className="flex flex-col gap-1 p-2.5 rounded-lg border border-border bg-surface/30">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-text-main flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-emerald-500">account_tree</span>
+                    <Icon name={"account_tree"} className="text-[16px] text-primary" />
                     Planner / Architect
                   </span>
                   <span className="text-[10px] text-text-muted">Task decomposition, architectural boundary specs</span>
@@ -170,7 +172,7 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
               <div className="flex flex-col gap-1 p-2.5 rounded-lg border border-border bg-surface/30">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-text-main flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-cyan-500">bolt</span>
+                    <Icon name={"bolt"} className="text-[16px] text-primary" />
                     Fast Helper
                   </span>
                   <span className="text-[10px] text-text-muted">Minimal-latency rapid edits and diffs</span>
@@ -190,14 +192,12 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
               <div
                 className={`p-3 rounded-lg text-xs border ${
                   result.success
-                    ? "bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-300"
-                    : "bg-red-500/10 border-red-500/20 text-red-600"
+                    ? "bg-success/10 border-success/20 text-success"
+                    : "bg-danger/10 border-danger/20 text-danger"
                 }`}
               >
                 <div className="font-semibold mb-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">
-                    {result.success ? "check_circle" : "error"}
-                  </span>
+                  <Icon name={result.success ? "check_circle" : "error"} className=" text-[16px]" />
                   {result.message || (result.success ? "Configuration successful!" : "Failed to apply settings")}
                 </div>
                 {result.configured?.length > 0 && (
@@ -210,15 +210,15 @@ export default function AutoSubagentModal({ isOpen, onClose, onConfigured }) {
             )}
 
             {/* Action buttons */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+            <ActionsBar className="items-center justify-end pt-2">
               <Button variant="ghost" size="sm" onClick={onClose} disabled={applying}>
                 Cancel
               </Button>
               <Button variant="primary" size="sm" onClick={handleApply} loading={applying}>
-                <span className="material-symbols-outlined text-[16px] mr-1">auto_awesome</span>
+                <Icon name={"auto_awesome"} className=" text-[16px] mr-1" />
                 Apply to All Tools
               </Button>
-            </div>
+</ActionsBar>
           </>
         )}
       </div>

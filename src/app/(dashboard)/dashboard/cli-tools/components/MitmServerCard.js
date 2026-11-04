@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, Button, Badge, Input } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
+import { StatusRow, ActionsBar } from "./ToolCardSections";
 const DEFAULT_MITM_ROUTER_BASE = "http://localhost:21128";
 
 /**
@@ -136,9 +138,9 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
       <Card padding="sm" className="border-primary/20 bg-primary/5">
         <div className="flex flex-col gap-3">
           {/* Header */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <StatusRow className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-[20px]">security</span>
+              <Icon name={"security"} className=" text-primary text-[20px]" />
               <span className="font-semibold text-sm text-text-main">MITM Server</span>
               {isRunning ? (
                 <Badge variant="success" size="sm">Running</Badge>
@@ -152,15 +154,13 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
                 { label: "Trusted", ok: status?.certTrusted },
                 { label: "Server", ok: isRunning },
               ].map(({ label, ok }) => (
-                <span key={label} className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded ${ok ? "text-green-600" : "text-text-muted"}`}>
-                  <span className="material-symbols-outlined text-[12px]">
-                    {ok ? "check_circle" : "cancel"}
-                  </span>
+                <span key={label} className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded ${ok ? "text-success" : "text-text-muted"}`}>
+                  <Icon name={ok ? "check_circle" : "cancel"} className=" text-[12px]" />
                   {label}
                 </span>
               ))}
             </div>
-          </div>
+</StatusRow>
 
           {/* Purpose & How it works */}
           <div className="px-2 py-2 rounded-lg bg-surface/50 border border-border/50 flex flex-col gap-2">
@@ -176,7 +176,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
           <div className="flex flex-col gap-2">
             <div className="grid gap-1 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
               <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">MiawRouter Base URL</span>
-              <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
+              <Icon name={"arrow_forward"} className=" hidden text-text-muted text-[14px] sm:inline" />
               <input
                 type="text"
                 value={mitmRouterBaseUrl}
@@ -189,7 +189,7 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
             {!isRunning && (
               <div className="grid gap-1 sm:grid-cols-[8rem_auto_1fr] sm:items-center sm:gap-2">
                 <span className="text-xs font-semibold text-text-main sm:text-right sm:text-sm">API Key</span>
-                <span className="material-symbols-outlined hidden text-text-muted text-[14px] sm:inline">arrow_forward</span>
+                <Icon name={"arrow_forward"} className=" hidden text-text-muted text-[14px] sm:inline" />
                 <input
                   type="text"
                   list="mitm-api-keys"
@@ -210,14 +210,14 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center" data-i18n-skip="true">
+          <ActionsBar className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             {status?.certExists && !status?.certTrusted && (
               <button
                 onClick={() => handleAction("trust-cert")}
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-medium text-yellow-600 transition-colors hover:bg-yellow-500/20 disabled:opacity-50 sm:w-auto sm:py-1.5"
+                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-warning/20 bg-warning/10 px-4 py-2 text-xs font-medium text-warning transition-colors hover:bg-warning/20 disabled:opacity-50 sm:w-auto sm:py-1.5"
               >
-                <span className="material-symbols-outlined text-[16px]">verified_user</span>
+                <Icon name={"verified_user"} className=" text-[16px]" />
                 Trust Cert
               </button>
             )}
@@ -225,9 +225,9 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
               <button
                 onClick={() => handleAction("stop")}
                 disabled={loading}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-medium text-red-500 transition-colors hover:bg-red-500/20 disabled:opacity-50 sm:w-auto sm:py-1.5"
+                className="flex w-full items-center justify-center gap-1.5 rounded-md border border-danger/20 bg-danger/10 px-4 py-2 text-xs font-medium text-danger transition-colors hover:bg-danger/20 disabled:opacity-50 sm:w-auto sm:py-1.5"
               >
-                <span className="material-symbols-outlined text-[16px]">stop_circle</span>
+                <Icon name={"stop_circle"} className=" text-[16px]" />
                 Stop Server
               </button>
             ) : (
@@ -237,27 +237,27 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
                 title={serverIsWindows && !isAdmin ? "Administrator required" : undefined}
                 className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-50 sm:w-auto sm:py-1.5"
               >
-                <span className="material-symbols-outlined text-[16px]">play_circle</span>
+                <Icon name={"play_circle"} className=" text-[16px]" />
                 Start Server
               </button>
             )}
             {isRunning && (
               <p className="text-xs text-text-muted">Enable DNS per tool below to activate interception</p>
             )}
-          </div>
+</ActionsBar>
 
           {/* Action error */}
           {actionError && (
-            <div className="flex items-start gap-2 px-2 py-1.5 rounded text-xs bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
-              <span className="material-symbols-outlined text-[14px] mt-0.5 shrink-0">error</span>
+            <div className="flex items-start gap-2 rounded-md border border-danger/20 bg-danger/10 px-2 py-1.5 text-xs text-danger">
+              <Icon name={"error"} className=" text-[14px] mt-0.5 shrink-0" />
               <span>{actionError}</span>
             </div>
           )}
 
           {/* Windows admin warning */}
           {serverIsWindows && !isAdmin && (
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded text-xs bg-red-500/10 text-red-600 border border-red-500/20">
-              <span className="material-symbols-outlined text-[14px]">shield_lock</span>
+            <div className="flex items-center gap-2 rounded-md border border-danger/20 bg-danger/10 px-2 py-1.5 text-xs text-danger">
+              <Icon name={"shield_lock"} className=" text-[14px]" />
               <span>Administrator required — restart MiawRouter as Administrator to use MITM</span>
             </div>
           )}
@@ -266,11 +266,11 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
 
       {/* Password Modal */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-xl sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-text-main/50 backdrop-blur-sm">
+          <div className="mx-4 flex w-full max-w-sm flex-col gap-4 rounded-[14px] border border-border bg-surface p-5 shadow-elevated sm:p-6">
             <h3 className="font-semibold text-text-main">Sudo Password Required</h3>
-            <div className="flex items-start gap-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <span className="material-symbols-outlined text-yellow-500 text-[20px]">warning</span>
+            <div className="flex items-start gap-3 rounded-md border border-warning/20 bg-warning/10 p-3">
+              <Icon name={"warning"} className="text-warning text-[20px]" />
               <p className="text-xs text-text-muted">Required for SSL certificate and server startup</p>
             </div>
             <Input
@@ -281,8 +281,8 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
               onKeyDown={(e) => { if (e.key === "Enter" && !loading) handleConfirmPassword(); }}
             />
             {modalError && (
-              <div className="flex items-center gap-2 px-2 py-1.5 rounded text-xs bg-red-500/10 text-red-600">
-                <span className="material-symbols-outlined text-[14px]">error</span>
+              <div className="flex items-center gap-2 rounded-md bg-danger/10 px-2 py-1.5 text-xs text-danger">
+                <Icon name={"error"} className=" text-[14px]" />
                 <span>{modalError}</span>
               </div>
             )}
@@ -300,11 +300,11 @@ export default function MitmServerCard({ apiKeys, cloudEnabled, onStatusChange }
 
       {/* Port 443 Conflict Modal */}
       {port443Conflict && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-xl border border-border bg-surface p-5 shadow-xl sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-text-main/50 backdrop-blur-sm">
+          <div className="mx-4 flex w-full max-w-md flex-col gap-4 rounded-[14px] border border-border bg-surface p-5 shadow-elevated sm:p-6">
             <h3 className="font-semibold text-text-main">Port 443 Already In Use</h3>
-            <div className="flex items-start gap-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-              <span className="material-symbols-outlined text-yellow-500 text-[20px]">warning</span>
+            <div className="flex items-start gap-3 rounded-md border border-warning/20 bg-warning/10 p-3">
+              <Icon name={"warning"} className="text-warning text-[20px]" />
               <div className="flex flex-col gap-1 text-xs text-text-muted">
                 <p>Port 443 is currently used by another process:</p>
                 <p className="font-mono text-text-main" data-i18n-skip="true">

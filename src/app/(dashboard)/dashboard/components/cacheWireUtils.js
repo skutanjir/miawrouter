@@ -7,9 +7,9 @@ export const STORAGE_KEY = "miawrouter.cacheWire.v3";
 export const ACT_MS = 1200;
 
 export const KIND_META = {
-  hit: { glyph: "●", word: "hit", cls: "text-signal" },
-  activity: { glyph: "›", word: "activity", cls: "text-warn" },
-  dedup: { glyph: "◆", word: "dedup", cls: "text-ink" },
+  hit: { glyph: "●", word: "hit", cls: "text-primary" },
+  activity: { glyph: "›", word: "activity", cls: "text-warning" },
+  dedup: { glyph: "◆", word: "dedup", cls: "text-text-main" },
 };
 
 export const LAYERS = [

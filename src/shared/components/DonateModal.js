@@ -1,18 +1,18 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { GITHUB_CONFIG } from "@/shared/constants/config";
+import Modal from "./Modal";
+import Button from "./Button";
 
+import { Icon } from "@/shared/components/Icon";
 export default function DonateModal({ isOpen, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const modalRef = useRef(null);
 
-  useEffect(() => {
-    if (!isOpen || data) return;
+  const loadDonateInfo = useCallback(() => {
     setLoading(true);
     setError("");
     fetch(GITHUB_CONFIG.donateUrl, { cache: "no-store" })
@@ -23,109 +23,105 @@ export default function DonateModal({ isOpen, onClose }) {
       .then((json) => setData(json))
       .catch((err) => setError(err.message || "Failed to load"))
       .finally(() => setLoading(false));
-  }, [isOpen, data]);
+  }, []);
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
-    };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [isOpen, onClose]);
+    if (!isOpen || data) return;
+    loadDonateInfo();
+  }, [isOpen, data, loadDonateInfo]);
 
-  if (!isOpen || typeof document === "undefined") return null;
+  const channels = data?.channels || [];
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
-      <div
-        ref={modalRef}
-        className="relative w-full bg-surface border border-black/10 dark:border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-w-3xl flex flex-col max-h-[85vh]"
-      >
-        <div className="flex items-center justify-between p-3 border-b border-black/5 dark:border-white/5">
-          <h2 className="text-lg font-semibold text-text-main flex items-center gap-2">
-            <span className="material-symbols-outlined text-pink-500">volunteer_activism</span>
-            {data?.title || "Support MiawRouter"}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-text-muted hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-            aria-label="Close"
-          >
-            <span className="material-symbols-outlined text-[20px]">close</span>
-          </button>
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={data?.title || "Support MiawRouter"} size="full">
+      {loading && (
+        <div className="flex items-center gap-2 py-10 text-sm text-text-muted">
+          <Icon name="progress_activity" className="animate-spin text-[18px]" />
+          Loading donation channels…
         </div>
+      )}
 
-        <div className="p-6 overflow-y-auto flex-1">
-          {loading && (
-            <div className="flex items-center justify-center py-10 text-text-muted">
-              <span className="material-symbols-outlined animate-spin mr-2">progress_activity</span>
-              Loading...
+      {!loading && error && (
+        <div className="flex flex-col gap-3 rounded-[10px] border border-danger/20 bg-danger/10 p-4">
+          <div className="flex items-start gap-2.5">
+            <Icon name="error" className="mt-0.5 text-[18px] text-danger shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium text-text-main">Couldn&apos;t load the donation channels</p>
+              <p className="mt-1 text-text-muted">
+                {GITHUB_CONFIG.donateUrl} responded with {error}. Check your network connection, then try
+                again.
+              </p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" icon="refresh" onClick={loadDonateInfo} className="self-start">
+            Try again
+          </Button>
+        </div>
+      )}
+
+      {!loading && !error && data && (
+        <div className="flex flex-col gap-5">
+          {data.message && <p className="text-sm text-text-muted">{data.message}</p>}
+
+          {channels.length === 0 ? (
+            <div className="flex items-start gap-3 rounded-[10px] border border-border bg-surface-2 p-4">
+              <Icon name="info" className="mt-0.5 text-[20px] text-text-muted shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-text-main">No donation channels available</p>
+                <p className="mt-1 text-text-muted">
+                  The donation list returned nothing. Try again later or open the project on GitHub.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {channels.map((ch) => (
+                <DonateChannelCard key={ch.id} channel={ch} />
+              ))}
             </div>
           )}
-          {error && (
-            <div className="text-red-500 py-4">Failed to load donate info: {error}</div>
-          )}
-          {!loading && !error && data && (
-            <>
-              {data.message && (
-                <p className="text-text-muted text-sm mb-6 text-center">{data.message}</p>
-              )}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {data.channels?.map((ch) => (
-                  <DonateChannelCard key={ch.id} channel={ch} />
-                ))}
-              </div>
-            </>
-          )}
         </div>
-      </div>
-    </div>,
-    document.body
+      )}
+    </Modal>
   );
 }
 
 function DonateChannelCard({ channel }) {
   const { label, description, icon, color, url, qr } = channel;
-  const content = (
-    <>
-      <div
-        className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
-        style={{ backgroundColor: `${color}20`, color }}
-      >
-        <span className="material-symbols-outlined text-[26px]">{icon}</span>
+
+  return (
+    <div className="flex flex-col rounded-[10px] border border-border bg-surface p-4">
+      <div className="flex items-center gap-2.5">
+        <span
+          className="flex size-8 items-center justify-center rounded-md bg-surface-2"
+          style={{ color }}
+        >
+          <Icon name={icon} className="text-[18px]" />
+        </span>
+        <span className="text-sm font-semibold text-text-main">{label}</span>
       </div>
-      <div className="font-semibold text-text-main mb-1">{label}</div>
-      {description && (
-        <div className="text-xs text-text-muted mb-3 text-center">{description}</div>
-      )}
+
+      {description && <p className="mt-2 text-[13px] leading-relaxed text-text-muted">{description}</p>}
+
       {qr && (
         <img
           src={qr}
-          alt={`${label} QR`}
-          className="w-full max-w-[180px] aspect-square object-contain rounded-lg bg-white p-1"
-        loading="lazy"
-        decoding="async"
+          alt={`${label} QR code`}
+          className="mt-3 w-full max-w-[180px] self-center rounded-md border border-border bg-white p-1"
+          loading="lazy"
+          decoding="async"
         />
       )}
-    </>
-  );
 
-  return (
-    <div className="flex flex-col items-center p-4 rounded-xl border border-black/10 dark:border-white/10 bg-surface/50 hover:border-pink-500/40 transition-colors">
-      {content}
       {url && (
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-white hover:opacity-90 transition-opacity"
-          style={{ backgroundColor: color }}
+          className="mt-3 inline-flex h-8 items-center gap-1.5 self-start rounded-md border border-border bg-surface-2 px-3 text-xs font-medium text-text-main transition-colors duration-150 hover:bg-surface-3"
         >
-          Open
-          <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+          Open {label}
+          <Icon name="open_in_new" className="text-[16px]" />
         </a>
       )}
     </div>

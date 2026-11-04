@@ -15,6 +15,8 @@ import Card from "@/shared/components/Card";
 import SegmentedControl from "@/shared/components/SegmentedControl";
 import { num, fmt, fmtBytes, pctOf, mergeServerStats } from "./cacheStatsUtils";
 
+import { Icon } from "@/shared/components/Icon";
+
 const PERIODS = [
   { value: "today", label: "Today" },
   { value: "24h", label: "24h" },
@@ -27,10 +29,10 @@ const POLL_MS = 30_000; // background poll to keep stats fresh
 const STORAGE_KEY = "miawrouter.cacheStatsPanel.v1";
 
 const LAYER_META = {
-  L0: { name: "Provider L0", note: "prompt cache · provider-confirmed" },
-  L1: { name: "Exact L1", note: "local response cache" },
-  L2: { name: "Semantic L2", note: "local semantic cache" },
-  L3: { name: "Dedup L3", note: "content-address · not a provider hit" },
+  L0: { name: "Provider prompt cache", note: "reported by the provider" },
+  L1: { name: "Local exact match", note: "in-memory response cache" },
+  L2: { name: "Local semantic", note: "embedding-based reuse" },
+  L3: { name: "Content dedup", note: "references, not a cache hit" },
 };
 
 function storageKey(period) {
@@ -59,31 +61,36 @@ function persistStats(period, stats) {
   }
 }
 
-function LayerCard({ layer, meta, hits, total, sub, rateLabel, title }) {
+function RateBar({ pct, tone = "primary" }) {
+  return (
+    <div
+      className="flex h-1.5 w-full overflow-hidden rounded-full bg-surface-2"
+      role="img"
+      aria-label={pct === null ? "no data" : `${pct}% of recorded attempts`}
+    >
+      {pct !== null && (
+        <span className={tone === "primary" ? "bg-primary" : "bg-warning"} style={{ width: `${pct}%` }} aria-hidden="true" />
+      )}
+    </div>
+  );
+}
+
+function LayerCard({ meta, hits, total, sub, rateLabel, title }) {
   const pct = pctOf(hits, total);
   return (
     <div
-      className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-surface border-border-subtle shadow-soft"
+      className="flex min-w-0 flex-col gap-1.5 rounded-[10px] border border-border-subtle bg-surface-2/40 p-3"
       title={title}
     >
-      <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{meta.name}</span>
-      <span className="text-[10px] leading-tight text-muted">{meta.note}</span>
-      <div className="flex items-baseline gap-1">
-        <span className={`font-mono tabular-nums text-lg font-semibold ${pct === null ? "text-ink" : "text-signal"}`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="truncate text-[13px] font-medium text-text-main">{meta.name}</span>
+        <span className="shrink-0 font-mono text-lg font-semibold tabular-nums text-text-main">
           {pct === null ? "—" : `${pct}%`}
         </span>
-        <span className="font-mono tabular-nums text-[10px] text-muted">{rateLabel}</span>
       </div>
-      <div
-        className="flex h-1.5 w-full overflow-hidden rounded-full bg-surface-3"
-        role="img"
-        aria-label={pct === null ? `${meta.name}: no data` : `${meta.name} hit rate ${pct}%`}
-      >
-        {pct !== null && (
-          <span className="bg-signal" style={{ width: `${pct}%` }} aria-hidden="true" />
-        )}
-      </div>
-      <span className="font-mono tabular-nums text-[10px] text-muted truncate">{sub}</span>
+      <span className="text-xs text-text-muted">{meta.note} · {rateLabel}</span>
+      <RateBar pct={pct} />
+      <span className="truncate font-mono text-xs tabular-nums text-text-muted">{sub}</span>
     </div>
   );
 }
@@ -230,7 +237,8 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
   return (
     <Card
       title="Cache stats"
-      subtitle={`Hit/miss rates and timeline · ${activePeriod}`}
+      subtitle={`Hit rates and provider cache reads · ${activePeriod}`}
+      icon="database"
       padding="sm"
       action={
         <div className="flex items-center gap-2">
@@ -245,39 +253,34 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
             type="button"
             onClick={handleManualRefresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs font-medium text-ink transition-colors hover:bg-surface-2 disabled:opacity-50"
-            style={{ borderColor: "var(--color-rule)" }}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs font-medium text-text-main transition-colors hover:bg-surface-2 disabled:opacity-50"
             aria-label="Refresh cache stats"
             title="Refresh now"
           >
-            <span
-              className={`material-symbols-outlined text-[14px] ${refreshing ? "animate-spin" : ""}`}
-              aria-hidden="true"
-            >
-              {refreshing ? "progress_activity" : "refresh"}
-            </span>
+            <Icon name={refreshing ? "progress_activity" : "refresh"} className={`text-[14px] ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
             <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       }
     >
       {status === "loading" && (
-        <div className="flex h-40 items-center justify-center text-sm text-muted" role="status" aria-live="polite">
+        <div className="flex h-40 items-center justify-center text-sm text-text-muted" role="status" aria-live="polite">
           Loading cache stats…
         </div>
       )}
       {status === "error" && (
         <div
           role="alert"
-          className="flex flex-col items-center gap-2 rounded-[var(--radius-brand)] border p-6 text-sm text-fail"
-          style={{ borderColor: "var(--color-rule)" }}
+          className="flex flex-col items-center gap-2 rounded-[10px] border border-danger/35 bg-danger/5 p-6 text-sm text-danger"
         >
           <span>{error}</span>
+          <span className="text-xs text-text-muted">
+            The endpoint /api/cache/stats did not answer. Retry, or check that the router is running.
+          </span>
           <button
             type="button"
             onClick={() => setRetryKey((k) => k + 1)}
-            className="rounded-md border px-3 py-1 text-xs font-medium text-ink transition-colors hover:bg-surface-2"
-            style={{ borderColor: "var(--color-rule)" }}
+            className="rounded-md border border-border px-3 py-1 text-xs font-medium text-text-main transition-colors hover:bg-surface-2"
           >
             Retry
           </button>
@@ -285,19 +288,17 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
       )}
       {status === "ready" && !hasAny && (
         <div
-          className="flex h-24 items-center justify-center rounded-[var(--radius-brand)] border p-4 text-sm text-muted"
-          style={{ borderColor: "var(--color-rule)" }}
+          className="flex h-24 items-center justify-center rounded-[10px] border border-border-subtle bg-surface-2/40 p-4 text-center text-sm text-text-muted"
           role="status"
         >
-          No cache events recorded for this period.
+          No cache activity recorded in this period. Numbers appear after the first cached request.
         </div>
       )}
       {status === "ready" && hasAny && (
-        <div className="flex flex-col gap-4" role="group" aria-label="Cache hit/miss stats">
+        <div className="flex flex-col gap-5" role="group" aria-label="Cache hit/miss stats">
           {/* Layer hit rates */}
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <LayerCard
-              layer="L0"
               meta={LAYER_META.L0}
               hits={l0Hits ?? 0}
               total={l0Probes ?? 0}
@@ -306,7 +307,6 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
               sub={`${fmt(l0Hits ?? 0)} hits / ${fmt(l0Probes ?? 0)} probes · ${fmtBytes(num(l0.readTokens) ?? 0)} read`}
             />
             <LayerCard
-              layer="L1"
               meta={LAYER_META.L1}
               hits={l1Hits ?? 0}
               total={l1Attempts ?? 0}
@@ -315,7 +315,6 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
               sub={`${fmt(l1Hits ?? 0)} / ${fmt(l1Attempts ?? 0)} attempts`}
             />
             <LayerCard
-              layer="L2"
               meta={LAYER_META.L2}
               hits={l2Hits ?? 0}
               total={l2Attempts ?? 0}
@@ -324,17 +323,18 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
               sub={`${fmt(l2Hits ?? 0)} / ${fmt(l2Attempts ?? 0)} attempts`}
             />
             <div
-              className="flex min-w-0 flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-surface border-border-subtle shadow-soft"
+              className="flex min-w-0 flex-col gap-1.5 rounded-[10px] border border-border-subtle bg-surface-2/40 p-3"
               title="L3 content-address dedup — activity and bytes saved, not a provider cache hit"
             >
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{LAYER_META.L3.name}</span>
-              <span className="text-[10px] leading-tight text-muted">{LAYER_META.L3.note}</span>
-              <div className="flex items-baseline gap-1">
-                <span className="font-mono tabular-nums text-lg font-semibold text-ink">{fmt(l3Refs ?? 0)}</span>
-                <span className="font-mono tabular-nums text-[10px] text-muted">refs</span>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="truncate text-[13px] font-medium text-text-main">{LAYER_META.L3.name}</span>
+                <span className="shrink-0 font-mono text-lg font-semibold tabular-nums text-text-main">
+                  {fmt(l3Refs ?? 0)}
+                </span>
               </div>
-              <div className="flex h-1.5 w-full rounded-full bg-surface-3" aria-hidden="true" />
-              <span className="font-mono tabular-nums text-[10px] text-muted truncate">
+              <span className="text-xs text-text-muted">{LAYER_META.L3.note} · references</span>
+              <div className="flex h-1.5 w-full rounded-full bg-surface-2" aria-hidden="true" />
+              <span className="truncate font-mono text-xs tabular-nums text-text-muted">
                 {fmtBytes(l3Bytes ?? 0)} saved
               </span>
             </div>
@@ -342,29 +342,29 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
 
           {/* Context / bypass */}
           <div
-            className="flex flex-col gap-1.5 rounded-[var(--radius-brand)] border p-3 bg-surface-2 border-border-subtle"
+            className="flex flex-col gap-1.5 rounded-[10px] border border-border-subtle bg-surface-2/40 p-3"
             role="group"
             aria-label="Cache bypass and dispatch context"
           >
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Context</span>
+            <span className="text-[13px] font-medium text-text-main">Request context</span>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-              <span className="font-mono tabular-nums text-[11px] text-muted">
-                evaluated <span className="text-ink font-medium">{fmt(requests ?? 0)}</span>
+              <span className="font-mono text-xs tabular-nums text-text-muted">
+                evaluated <span className="font-medium text-text-main">{fmt(requests ?? 0)}</span>
               </span>
-              <span className="font-mono tabular-nums text-[11px] text-muted">
-                bypassed <span className="text-warn font-medium">{fmt(bypassed ?? 0)}</span>
+              <span className="font-mono text-xs tabular-nums text-text-muted">
+                bypassed <span className="font-medium text-warning">{fmt(bypassed ?? 0)}</span>
               </span>
-              <span className="font-mono tabular-nums text-[11px] text-muted">
-                dispatched <span className="text-signal font-medium">{fmt(dispatched ?? 0)}</span>
+              <span className="font-mono text-xs tabular-nums text-text-muted">
+                dispatched <span className="font-medium text-primary">{fmt(dispatched ?? 0)}</span>
               </span>
             </div>
             {Object.keys(reasons).length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="text-[10px] text-muted">bypass reasons:</span>
+                <span className="text-xs text-text-muted">Bypass reasons:</span>
                 {Object.entries(reasons).map(([reason, count]) => (
                   <span
                     key={reason}
-                    className="inline-flex items-center gap-1 rounded-full border border-border-subtle bg-surface px-2 py-0.5 font-mono tabular-nums text-[10px] text-muted"
+                    className="inline-flex items-center gap-1 rounded-md border border-border-subtle bg-surface px-1.5 py-0.5 font-mono text-xs tabular-nums text-text-muted"
                   >
                     {reason} · {fmt(num(count) ?? 0)}
                   </span>
@@ -375,9 +375,9 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
 
           {/* Timeline */}
           <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Timeline</span>
+            <span className="text-[13px] font-medium text-text-main">Hits, misses and provider cache reads over time</span>
             {!hasTimeline ? (
-              <p className="rounded-[var(--radius-brand)] border p-3 text-xs text-muted" style={{ borderColor: "var(--color-rule)" }} role="status">
+              <p className="rounded-[10px] border border-border-subtle bg-surface-2/40 p-3 text-xs text-text-muted" role="status">
                 No per-bucket timeline recorded for this period.
               </p>
             ) : (
@@ -400,28 +400,28 @@ export default function CacheStatsPanel({ period: periodProp, setPeriod: setPeri
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "var(--color-panel, var(--color-surface))",
-                      border: "1px solid var(--color-rule, var(--color-border))",
-                      borderRadius: "var(--radius-brand, 8px)",
-                      color: "var(--color-ink, var(--color-text-main))",
+                      backgroundColor: "var(--color-surface)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "10px",
+                      color: "var(--color-text-main)",
                       fontSize: "12px",
                       boxShadow: "var(--shadow-elevated)",
                     }}
                     formatter={(value, name) => [fmt(Number(value) || 0), name]}
                   />
                   <Legend wrapperStyle={{ fontSize: "11px" }} />
-                  <Bar dataKey="Local hits" stackId="a" fill="var(--color-signal)" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="Misses" stackId="a" fill="var(--color-border)" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="Provider reads" stackId="a" fill="var(--color-warn)" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="Local hits" stackId="a" fill="var(--color-primary)" />
+                  <Bar dataKey="Misses" stackId="a" fill="var(--color-border)" />
+                  <Bar dataKey="Provider reads" stackId="a" fill="var(--color-warning)" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          <p className="text-[10px] text-muted" style={{ opacity: 0.85 }}>
-            L1/L2 are local response-cache hits. L0 is provider-confirmed cache_read usage — token savings at the
-            provider level. L3 dedup is activity, not a provider cache hit. Hit rates are computed from recorded
-            attempts; no values are estimated.
+          <p className="text-xs text-text-muted">
+            L1/L2 are local response-cache hits; L0 is provider-confirmed cache_read usage — token
+            savings at the provider level; L3 dedup is activity, not a cache hit. Hit rates are
+            computed from recorded attempts only.
           </p>
         </div>
       )}

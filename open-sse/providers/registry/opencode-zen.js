@@ -38,10 +38,10 @@ export default {
   models: [
     // 100% Free models
     {
-      id: "deepseek-v4-flash-free",
-      name: "DeepSeek V4 Flash (Free)",
+      id: "deepseek-v4.1-flash-free",
+      name: "DeepSeek V4.1 Flash Free",
       supportsReasoning: true,
-      contextLength: 131072,
+      contextLength: 1000000,
       isFreeTier: true
     },
     {
@@ -53,9 +53,23 @@ export default {
       isFreeTier: true
     },
     {
-      id: "muse-spark-1.2-contributor-free",
-      name: "Muse Spark 1.2 Contributor (Free)",
-      contextLength: 1048576,
+      id: "space-bunny-free",
+      name: "Space Bunny Free",
+      isFreeTier: true
+    },
+    {
+      id: "cat-jam-free",
+      name: "Cat Jam Free",
+      isFreeTier: true
+    },
+    {
+      id: "longcat-2.5-preview-free",
+      name: "LongCat 2.5 Preview Free",
+      isFreeTier: true
+    },
+    {
+      id: "jev-1.13-free",
+      name: "Jev 1.13 (Free)",
       isFreeTier: true
     },
     {
@@ -65,27 +79,22 @@ export default {
       isFreeTier: true
     },
     {
-      id: "mimo-v2.5-free",
-      name: "MiMo V2.5 (Free)",
-      contextLength: 131072,
-      isFreeTier: true
-    },
-    {
-      id: "ling-3.0-flash-fin-free",
-      name: "Ling 3.0 Flash Fin (Free)",
-      contextLength: 131072,
-      isFreeTier: true
-    },
-    {
-      id: "nemotron-3-ultra-free",
-      name: "Nemotron 3 Ultra (Free)",
-      contextLength: 1000000,
-      isFreeTier: true
-    },
-    {
       id: "nemotron-3.5-lightning-free",
       name: "Nemotron 3.5 Lightning (Free)",
       contextLength: 1000000,
+      isFreeTier: true
+    },
+    {
+      id: "nemotron-3.5-super-vl-free",
+      name: "Nemotron 3.5 Super VL Free",
+      contextLength: 1000000,
+      supportsVision: true,
+      isFreeTier: true
+    },
+    {
+      id: "muse-spark-1.2-contributor-free",
+      name: "Muse Spark 1.2 Contributor (Free)",
+      contextLength: 1048576,
       isFreeTier: true
     },
     {
@@ -107,7 +116,9 @@ export default {
     { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6", contextLength: 1000000 },
     { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", contextLength: 1000000 },
     { id: "claude-sonnet-4", name: "Claude Sonnet 4", contextLength: 1000000 },
+    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5", contextLength: 1000000, maxOutputTokens: 128000 },
     { id: "claude-haiku-4-5", name: "Claude Haiku 4.5", contextLength: 200000 },
+    { id: "gemini-4-argon", name: "Gemini 4 Argon", contextLength: 1048576 },
     { id: "gemini-3.8-flash", name: "Gemini 3.8 Flash", contextLength: 1048576 },
     { id: "gemini-3.7-flash", name: "Gemini 3.7 Flash", contextLength: 1048576 },
     { id: "gemini-3.6-flash", name: "Gemini 3.6 Flash", contextLength: 1048576 },
@@ -115,6 +126,7 @@ export default {
     { id: "gemini-3.5-flash-lite", name: "Gemini 3.5 Flash Lite", contextLength: 1048576 },
     { id: "gemini-3.1-pro", name: "Gemini 3.1 Pro", contextLength: 1048576 },
     { id: "gemini-3-flash", name: "Gemini 3 Flash", contextLength: 1048576 },
+    { id: "gpt-6.1-sol", name: "GPT-6.1 Sol", contextLength: 1050000 },
     { id: "gpt-6-sol", name: "GPT-6 Sol", contextLength: 1050000 },
     { id: "gpt-6-luna", name: "GPT-6 Luna", contextLength: 1050000 },
     { id: "gpt-6-astra", name: "GPT-6 Astra", contextLength: 1050000 },
@@ -163,13 +175,7 @@ export default {
     { id: "qwen3.8-flash", name: "Qwen 3.8 Flash", contextLength: 1000000 },
     { id: "qwen3.6-plus", name: "Qwen 3.6 Plus", contextLength: 1000000 },
     { id: "qwen3.5-plus", name: "Qwen 3.5 Plus", contextLength: 1000000 },
-    // Added from the live catalog on 2026-09-30.
-    {"id":"claude-sonnet-5-5","name":"claude-sonnet-5-5"},
-    {"id":"gpt-6.1-sol","name":"GPT 6.1 Sol"},
     {"id":"jev-1.13","name":"jev-1.13"},
-    {"id":"jev-1.13-free","name":"jev-1.13-free"},
-    {"id":"space-bunny-free","name":"space-bunny-free"},
-    {"id":"longcat-2.5-preview-free","name":"longcat-2.5-preview-free"},
     {"id":"qwen3.8-max","name":"Qwen 3.8 Max"}
   ],
 };

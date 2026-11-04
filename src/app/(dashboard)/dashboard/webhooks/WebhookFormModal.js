@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Modal, Button, Input } from "@/shared/components";
 import { cn } from "@/shared/utils/cn";
 
+import { Icon } from "@/shared/components/Icon";
+
 export default function WebhookFormModal({
   isOpen,
   webhook,
@@ -78,7 +80,7 @@ export default function WebhookFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEdit ? "Edit Webhook" : "Create Webhook"}
+      title={isEdit ? "Edit webhook" : "Create webhook"}
       size="md"
       footer={
         <>
@@ -90,20 +92,21 @@ export default function WebhookFormModal({
             loading={saving}
             disabled={!name.trim() || !url.trim() || events.length === 0}
           >
-            {isEdit ? "Save Changes" : "Create Webhook"}
+            {isEdit ? "Save changes" : "Create webhook"}
           </Button>
         </>
       }
     >
       <div className="flex flex-col gap-4">
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
+          <div className="flex items-center gap-2 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-[13px] text-danger">
+            <Icon name="error" className="text-[15px]" />
             {error}
           </div>
         )}
 
         <Input
-          label="Webhook Name"
+          label="Webhook name"
           value={name}
           onChange={(e) => {
             setName(e.target.value);
@@ -123,26 +126,26 @@ export default function WebhookFormModal({
           }}
           placeholder="https://example.com/webhook"
           error={urlError}
-          hint="HTTP and HTTPS are supported. Private/reserved IPs are blocked."
+          hint="HTTP and HTTPS are supported. Private and reserved IPs are blocked."
           required
         />
 
         {/* Event selector */}
         <div>
-          <label className="text-sm font-medium text-text-main mb-2 block">
-            Events <span className="text-red-500">*</span>
-          </label>
-          <p className="text-xs text-text-muted mb-3">
-            Choose which events trigger this webhook.
-          </p>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <label className="text-[13px] font-medium text-text-main">
+              Events <span className="text-danger">*</span>
+            </label>
+            <span className="text-xs text-text-muted tabular-nums">
+              {events.length} selected
+            </span>
+          </div>
 
           {Object.keys(groups).length > 0 ? (
-            <div className="space-y-3">
+            <div className="flex flex-col gap-3">
               {Object.entries(groups).map(([prefix, evts]) => (
-                <div key={prefix}>
-                  <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5">
-                    {prefix}
-                  </h4>
+                <div key={prefix} className="rounded-md border border-border-subtle bg-surface-2/40 p-3">
+                  <h4 className="mb-2 text-[13px] font-medium text-text-main">{prefix}</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {evts.map((evt) => {
                       const selected = events.includes(evt);
@@ -150,19 +153,16 @@ export default function WebhookFormModal({
                         <button
                           key={evt}
                           type="button"
+                          aria-pressed={selected}
                           onClick={() => toggleEvent(evt)}
                           className={cn(
-                            "inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono transition-all cursor-pointer border",
+                            "inline-flex items-center gap-1 rounded-md border px-2 py-1 font-mono text-xs transition-colors cursor-pointer",
                             selected
-                              ? "bg-brand-500/10 text-brand-600 border-brand-500/30 dark:text-brand-300"
-                              : "bg-surface-2 text-text-muted border-transparent hover:border-border"
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-surface text-text-muted hover:text-text-main"
                           )}
                         >
-                          {selected && (
-                            <span className="material-symbols-outlined text-[12px]">
-                              check
-                            </span>
-                          )}
+                          {selected && <Icon name="check" className="text-[12px]" />}
                           {evt}
                         </button>
                       );
@@ -173,16 +173,14 @@ export default function WebhookFormModal({
             </div>
           ) : (
             <p className="text-xs text-text-muted">
-              Loading event types…
+              No event types reported by the router yet. Reload the page to retry.
             </p>
           )}
 
           {events.length === 0 && (
-            <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
-              <span className="material-symbols-outlined text-[14px]">
-                warning
-              </span>
-              Select at least one event
+            <p className="mt-2 flex items-center gap-1 text-xs text-warning">
+              <Icon name="warning" className="text-[14px]" />
+              Select at least one event to save this webhook.
             </p>
           )}
         </div>

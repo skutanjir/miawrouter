@@ -23,41 +23,60 @@ export default {
     format: "vertex",
   },
   models: [{
-  id: "gemini-3.1-pro-preview",
-  name: "Gemini 3.1 Pro Preview"
-}, {
-  id: "gemini-3.1-flash-lite-preview",
-  name: "Gemini 3.1 Flash Lite Preview"
-}, {
-  id: "gemini-3-flash-preview",
-  name: "Gemini 3 Flash Preview"
-}, {
-  id: "gemini-2.5-flash",
-  name: "Gemini 2.5 Flash"
-}, {
-  "id": "gemini-3.1-flash-lite",
-  "name": "Gemini 3.1 Flash Lite (Vertex)"
-}, {
-  "id": "gemma-4-31b-it",
-  "name": "Gemma 4 31B (Vertex)"
-}, {
-  "id": "DeepSeek-V4-Flash",
-  "name": "DeepSeek V4 Flash (Vertex Partner)"
-}, {
-  "id": "DeepSeek-V4-Pro",
-  "name": "DeepSeek V4 Pro (Vertex Partner)"
-}, {
-  "id": "Qwen3.6-35B-A3B",
-  "name": "Qwen3.6 35B A3B (Vertex Partner)"
-}, {
-  "id": "GLM-5.1-FP8",
-  "name": "GLM-5.1 (Vertex Partner)"
-}, {
-  "id": "claude-opus-4-7",
-  "name": "Claude Opus 4.7 (Vertex)"
-}, {
-  "id": "claude-sonnet-4-6",
-  "name": "Claude Sonnet 4.6 (Vertex)"
-}],
+    id: "gemini-4-argon",
+    name: "Gemini 4 Argon",
+    contextLength: 1048576,
+    maxOutputTokens: 1048576,
+    toolCalling: true,
+    supportsVision: true
+  }, {
+    id: "gemini-3.8-flash",
+    name: "Gemini 3.8 Flash"
+  }, {
+    id: "gemini-3.7-flash",
+    name: "Gemini 3.7 Flash"
+  }, {
+    id: "gemini-3.6-flash",
+    name: "Gemini 3.6 Flash"
+  }, {
+    id: "gemini-3.5-flash",
+    name: "Gemini 3.5 Flash"
+  }, {
+    id: "gemini-3.5-flash-lite",
+    name: "Gemini 3.5 Flash-Lite"
+  }, {
+    id: "gemini-3.1-pro-preview",
+    name: "Gemini 3.1 Pro Preview"
+  }, {
+    id: "gemini-3-flash-preview",
+    name: "Gemini 3 Flash Preview"
+  }, {
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash"
+  }, {
+    id: "gemini-3.1-flash-lite",
+    name: "Gemini 3.1 Flash Lite (Vertex)"
+  }, {
+    id: "gemma-4-31b-it",
+    name: "Gemma 4 31B (Vertex)"
+  }, {
+    id: "DeepSeek-V4-Flash",
+    name: "DeepSeek V4 Flash (Vertex Partner)"
+  }, {
+    id: "DeepSeek-V4-Pro",
+    name: "DeepSeek V4 Pro (Vertex Partner)"
+  }, {
+    id: "Qwen3.6-35B-A3B",
+    name: "Qwen3.6 35B A3B (Vertex Partner)"
+  }, {
+    id: "GLM-5.1-FP8",
+    name: "GLM-5.1 (Vertex Partner)"
+  }, {
+    id: "claude-opus-4-7",
+    name: "Claude Opus 4.7 (Vertex)"
+  }, {
+    id: "claude-sonnet-4-6",
+    name: "Claude Sonnet 4.6 (Vertex)"
+  }],
   serviceKinds: ["llm","imageToText"],
 };

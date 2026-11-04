@@ -7,8 +7,10 @@ import LanguageSwitcher from "@/shared/components/LanguageSwitcher";
 import { useTheme } from "@/shared/hooks/useTheme";
 import { cn } from "@/shared/utils/cn";
 import { APP_CONFIG } from "@/shared/constants/config";
-import { LOCALE_COOKIE, normalizeLocale } from "@/i18n/config";
-import { LOCALE_FLAGS } from "@/shared/constants/locales";
+import { LOCALE_COOKIE, LOCALE_NAMES, normalizeLocale } from "@/i18n/config";
+import { ConfigSection, ConfigRow } from "../components/ConfigSection";
+
+import { Icon } from "@/shared/components/Icon";
 
 function getLocaleFromCookie() {
   if (typeof document === "undefined") return "en";
@@ -19,8 +21,14 @@ function getLocaleFromCookie() {
   return normalizeLocale(value);
 }
 
+const THEME_OPTIONS = [
+  { value: "light", label: "Light", icon: "light_mode" },
+  { value: "dark", label: "Dark", icon: "dark_mode" },
+  { value: "system", label: "System", icon: "contrast" },
+];
+
 export default function ProfilePage() {
-  const { theme, setTheme, isDark } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [locale, setLocale] = useState("en");
   const [langOpen, setLangOpen] = useState(false);
   const [shutdownOpen, setShutdownOpen] = useState(false);
@@ -578,67 +586,512 @@ export default function ProfilePage() {
     }
   };
 
+  const oidcActiveLabel =
+    settings.authMode === "oidc"
+      ? "OIDC only"
+      : settings.authMode === "both"
+        ? "Password + OIDC"
+        : "Password only";
+
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-0">
-      <div className="flex flex-col gap-6">
-        {/* Local Mode Info */}
-        <Card>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="size-10 sm:size-12 rounded-lg bg-green-500/10 text-green-500 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-xl sm:text-2xl">computer</span>
-              </div>
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold">Local Mode</h2>
-                <p className="text-sm text-text-muted">Running on your machine</p>
-              </div>
-            </div>
-            <div className="inline-flex p-1 rounded-lg bg-black/5 dark:bg-white/5 w-full sm:w-auto">
-              {["light", "dark", "system"].map((option) => (
+    <div className="flex flex-col gap-6">
+      <div className="workspace-heading">
+        <div>
+          <h1>Profile</h1>
+          <p>
+            This instance runs in local mode: the account, settings and usage live on this machine.
+            Nothing here is synced to an external service.
+          </p>
+        </div>
+        <span className="font-mono text-xs text-text-muted">
+          {APP_CONFIG.name} v{APP_CONFIG.version}
+        </span>
+      </div>
+
+      {/* Account */}
+      <ConfigSection
+        title="Account"
+        icon="person"
+        subtitle="Local account and how this dashboard looks for you."
+      >
+        <ConfigRow
+          label="Local mode"
+          help="There is no remote account. Your data stays in the local database below."
+          control={<span className="text-[13px] font-medium text-success">Active</span>}
+        />
+        <ConfigRow
+          label="Database location"
+          help="SQLite file holding settings, connections, and usage history."
+          control={
+            <code className="font-mono text-xs text-text-muted">~/.miawrouter/db/data.sqlite</code>
+          }
+        />
+        <ConfigRow
+          label="Theme"
+          help="Applies to this browser only."
+          control={
+            <div className="inline-flex rounded-md border border-border bg-surface-2 p-1">
+              {THEME_OPTIONS.map((option) => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
-                  onClick={() => setTheme(option)}
+                  onClick={() => setTheme(option.value)}
+                  aria-pressed={theme === option.value}
                   className={cn(
-                    "flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-md font-medium transition-all flex-1 sm:flex-initial",
-                    theme === option
-                      ? "bg-white dark:bg-white/10 text-text-main shadow-sm"
+                    "inline-flex items-center gap-1.5 rounded-[4px] px-2.5 py-1 text-xs font-medium transition-colors",
+                    theme === option.value
+                      ? "bg-surface text-text-main"
                       : "text-text-muted hover:text-text-main"
                   )}
                 >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {option === "light" ? "light_mode" : option === "dark" ? "dark_mode" : "contrast"}
-                  </span>
-                  <span className="capitalize text-xs sm:text-sm">{option}</span>
+                  <Icon name={option.icon} className="text-[16px]" />
+                  {option.label}
                 </button>
               ))}
             </div>
-          </div>
-          <div className="flex flex-col gap-3 pt-4 border-t border-border">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-lg bg-bg border border-border gap-2">
-              <div>
-                <p className="font-medium text-sm sm:text-base">Database Location</p>
-                <p className="text-xs sm:text-sm text-text-muted font-mono break-all">~/.miawrouter/db/data.sqlite</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+          }
+        />
+        <ConfigRow
+          label="Language"
+          help="Dashboard language. English is the default; additional locales appear as their translations are maintained."
+          control={
+            <>
+              <span className="text-[13px] text-text-main">{LOCALE_NAMES[locale] || locale}</span>
               <Button
                 variant="secondary"
-                icon="download"
-                onClick={() => setDbAuth({ open: true, mode: "export", password: "" })}
-                loading={dbLoading}
-                className="w-full sm:w-auto"
+                size="sm"
+                icon="language"
+                onClick={() => setLangOpen(true)}
+                data-i18n-skip="true"
               >
-                Download Backup
+                Change
               </Button>
+            </>
+          }
+        />
+      </ConfigSection>
+
+      {/* Password & sign-in */}
+      <ConfigSection
+        title="Password & sign-in"
+        icon="shield"
+        subtitle="How the dashboard authenticates. Model API access uses API keys and is unaffected."
+        action={<span className="text-[13px] text-text-muted">{oidcActiveLabel}</span>}
+      >
+        <ConfigRow
+          label="Require login"
+          help="On: the dashboard requires a password. Off: it opens without authentication — only safe on a machine nobody else can reach."
+          control={
+            <Toggle
+              checked={settings.requireLogin === true}
+              onChange={() => updateRequireLogin(!settings.requireLogin)}
+              disabled={loading}
+              ariaLabel="Require dashboard login"
+            />
+          }
+        />
+
+        {settings.requireLogin === true && (
+          <ConfigRow
+            label={settings.hasPassword ? "Change password" : "Set password"}
+            help="At least 8 characters. Your current password is required to change it."
+          >
+            <form onSubmit={handlePasswordChange} className="mt-3 flex flex-col gap-4">
+              {settings.hasPassword && (
+                <Input
+                  id="current-password"
+                  type="password"
+                  label="Current password"
+                  placeholder="Enter current password"
+                  autoComplete="current-password"
+                  value={passwords.current}
+                  onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                  required
+                />
+              )}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  id="new-password"
+                  type="password"
+                  label="New password"
+                  placeholder="Enter new password"
+                  autoComplete="new-password"
+                  value={passwords.new}
+                  onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                  required
+                />
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  label="Confirm new password"
+                  placeholder="Confirm new password"
+                  autoComplete="new-password"
+                  value={passwords.confirm}
+                  onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                  required
+                />
+              </div>
+
+              {passStatus.message && (
+                <p
+                  role="status"
+                  className={`text-[13px] ${passStatus.type === "error" ? "text-danger" : "text-success"}`}
+                >
+                  {passStatus.message}
+                </p>
+              )}
+
+              <div>
+                <Button type="submit" variant="primary" size="sm" loading={passLoading}>
+                  {settings.hasPassword ? "Update password" : "Set password"}
+                </Button>
+              </div>
+            </form>
+          </ConfigRow>
+        )}
+
+        <ConfigRow
+          label="SSO via OIDC"
+          help="Sign in through an OIDC provider such as Authentik, Keycloak or Google. Optional — password login keeps working unless you switch to OIDC only."
+          badge={
+            settings.authMode === "oidc" || settings.authMode === "both" ? (
+              <span className="text-xs font-medium text-success">Configured</span>
+            ) : null
+          }
+          control={
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={oidcExpanded ? "expand_less" : "expand_more"}
+              onClick={() => setOidcExpanded((v) => !v)}
+              aria-expanded={oidcExpanded}
+            >
+              {oidcExpanded ? "Hide" : "Configure"}
+            </Button>
+          }
+        >
+          {oidcExpanded && (
+            <div className="mt-3 flex flex-col gap-4">
+              <div>
+                <p className="mb-2 text-[13px] font-medium text-text-main">Auth mode</p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  {[
+                    { value: "password", title: "Password only", desc: "Keep the legacy password login." },
+                    { value: "oidc", title: "OIDC only", desc: "Require OIDC for dashboard access." },
+                    { value: "both", title: "Both", desc: "Allow either password or OIDC." },
+                  ].map((option) => {
+                    const active = oidcForm.authMode === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => updateOidcForm("authMode", option.value)}
+                        disabled={loading || oidcLoading}
+                        aria-pressed={active}
+                        className={cn(
+                          "rounded-md border p-3 text-left transition-colors",
+                          active
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-surface hover:bg-surface-2"
+                        )}
+                      >
+                        <p className="text-[13px] font-medium text-text-main">{option.title}</p>
+                        <p className="mt-0.5 text-xs text-text-muted">{option.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <Input
+                  label="Issuer URL"
+                  placeholder="https://auth.example.com/application/o/miawrouter/"
+                  value={oidcForm.oidcIssuerUrl}
+                  onChange={(e) => updateOidcForm("oidcIssuerUrl", e.target.value)}
+                  disabled={loading || oidcLoading}
+                />
+                <Input
+                  label="Client ID"
+                  placeholder="miawrouter-dashboard"
+                  value={oidcForm.oidcClientId}
+                  onChange={(e) => updateOidcForm("oidcClientId", e.target.value)}
+                  disabled={loading || oidcLoading}
+                />
+                <Input
+                  label="Client secret"
+                  type="password"
+                  placeholder="Leave blank to keep existing secret"
+                  value={oidcClientSecret}
+                  onChange={(e) => setOidcClientSecret(e.target.value)}
+                  disabled={loading || oidcLoading}
+                  hint="Write-only after saving — the stored value is never returned."
+                />
+                <Input
+                  label="Scopes"
+                  placeholder="openid profile email"
+                  value={oidcForm.oidcScopes}
+                  onChange={(e) => updateOidcForm("oidcScopes", e.target.value)}
+                  disabled={loading || oidcLoading}
+                />
+                <Input
+                  label="Login button label"
+                  placeholder="Sign in with OIDC"
+                  value={oidcForm.oidcLoginLabel}
+                  onChange={(e) => updateOidcForm("oidcLoginLabel", e.target.value)}
+                  disabled={loading || oidcLoading}
+                />
+              </div>
+
+              <div className="rounded-md border border-border-subtle bg-surface-2/40 p-3">
+                <p className="text-[13px] font-medium text-text-main">Redirect URI</p>
+                <code className="mt-0.5 block break-all font-mono text-xs text-text-muted">
+                  {oidcRedirectUri}
+                </code>
+                <p className="mt-1 text-xs text-text-muted">
+                  Register this exact URI on the OIDC client before testing the connection.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 border-t border-border-subtle pt-4 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  loading={oidcLoading}
+                  onClick={() => saveOidcSettings()}
+                >
+                  Save auth mode
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={oidcTestLoading}
+                  onClick={testOidcConnection}
+                >
+                  Test connection
+                </Button>
+              </div>
+
+              {oidcTestStatus.message && (
+                <p className={`text-[13px] ${oidcTestStatus.type === "error" ? "text-danger" : "text-success"}`}>
+                  {oidcTestStatus.message}
+                </p>
+              )}
+              {oidcStatus.message && (
+                <p className={`text-[13px] ${oidcStatus.type === "error" ? "text-danger" : "text-success"}`}>
+                  {oidcStatus.message}
+                </p>
+              )}
+              {settings.authMode === "oidc" && (
+                <p className="text-[13px] text-warning">
+                  OIDC login is active: password login is disabled until you switch the mode back.
+                </p>
+              )}
+              {settings.authMode === "both" && (
+                <p className="text-[13px] text-warning">
+                  Password and OIDC login are both active.
+                </p>
+              )}
+            </div>
+          )}
+        </ConfigRow>
+      </ConfigSection>
+
+      {/* Routing preferences */}
+      <ConfigSection
+        title="Routing preferences"
+        icon="route"
+        subtitle="How the router picks between the accounts and models you configured."
+      >
+        <ConfigRow
+          label="Round robin accounts"
+          help="Cycle through accounts to spread load instead of always starting with the first."
+          control={
+            <Toggle
+              checked={settings.fallbackStrategy === "round-robin"}
+              onChange={() => updateFallbackStrategy(settings.fallbackStrategy === "round-robin" ? "fill-first" : "round-robin")}
+              disabled={loading}
+              ariaLabel="Round robin accounts"
+            />
+          }
+        />
+        {settings.fallbackStrategy === "round-robin" && (
+          <ConfigRow
+            label="Account sticky limit"
+            help="Calls sent to one account before the router switches to the next."
+            control={
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={settings.stickyRoundRobinLimit || 3}
+                onChange={(e) => updateStickyLimit(e.target.value)}
+                disabled={loading}
+                aria-label="Account sticky limit"
+                className="w-20"
+                inputClassName="text-center"
+              />
+            }
+          />
+        )}
+        <ConfigRow
+          label="Round robin combo models"
+          help="Cycle through the models inside a combo instead of always starting with the first."
+          control={
+            <Toggle
+              checked={settings.comboStrategy === "round-robin"}
+              onChange={() => updateComboStrategy(settings.comboStrategy === "round-robin" ? "fallback" : "round-robin")}
+              disabled={loading}
+              ariaLabel="Round robin combo models"
+            />
+          }
+        />
+        {settings.comboStrategy === "round-robin" && (
+          <ConfigRow
+            label="Combo sticky limit"
+            help="Calls sent to one combo model before rotating to the next."
+            control={
+              <Input
+                type="number"
+                min="1"
+                max="100"
+                value={settings.comboStickyRoundRobinLimit || 1}
+                onChange={(e) => updateComboStickyLimit(e.target.value)}
+                disabled={loading}
+                aria-label="Combo sticky limit"
+                className="w-20"
+                inputClassName="text-center"
+              />
+            }
+          />
+        )}
+        <ConfigRow
+          label="Record request details"
+          help="Stores request and response detail for inspection in Logs. Turning it off reduces local retention."
+          control={
+            <Toggle
+              checked={observabilityEnabled}
+              onChange={updateObservabilityEnabled}
+              disabled={loading}
+              ariaLabel="Enable observability"
+            />
+          }
+        />
+        <p className="pt-4 text-xs leading-relaxed text-text-muted">
+          {settings.fallbackStrategy === "round-robin"
+            ? `Distributing requests across all available accounts, ${settings.stickyRoundRobinLimit || 3} calls per account.`
+            : "Using accounts in priority order (fill first)."}
+          {settings.comboStrategy === "round-robin"
+            ? ` Combos rotate after ${settings.comboStickyRoundRobinLimit || 1} call${(settings.comboStickyRoundRobinLimit || 1) === 1 ? "" : "s"} per model.`
+            : " Combos always start with their first model."}
+        </p>
+      </ConfigSection>
+
+      {/* Network */}
+      <ConfigSection
+        title="Network"
+        icon="wifi"
+        subtitle="Outbound egress for OAuth handshakes and provider requests."
+      >
+        <ConfigRow
+          label="Outbound proxy"
+          help="Route OAuth and provider requests through a proxy. Per-connection proxy pools are configured on the Proxy pools page."
+          control={
+            <Toggle
+              checked={settings.outboundProxyEnabled === true}
+              onChange={() => updateOutboundProxyEnabled(!(settings.outboundProxyEnabled === true))}
+              disabled={loading || proxyLoading}
+              ariaLabel="Enable outbound proxy"
+            />
+          }
+        />
+
+        {settings.outboundProxyEnabled === true && (
+          <ConfigRow
+            label="Proxy details"
+            help="Leave the URL empty to inherit an existing environment proxy."
+          >
+            <form onSubmit={updateOutboundProxy} className="mt-3 flex flex-col gap-4">
+              <Input
+                label="Proxy URL"
+                placeholder="http://127.0.0.1:7897"
+                value={proxyForm.outboundProxyUrl}
+                onChange={(e) => setProxyForm((prev) => ({ ...prev, outboundProxyUrl: e.target.value }))}
+                disabled={loading || proxyLoading}
+                inputClassName="font-mono text-sm"
+              />
+              <Input
+                label="No proxy"
+                placeholder="localhost,127.0.0.1"
+                value={proxyForm.outboundNoProxy}
+                onChange={(e) => setProxyForm((prev) => ({ ...prev, outboundNoProxy: e.target.value }))}
+                disabled={loading || proxyLoading}
+                hint="Comma-separated hostnames and domains that bypass the proxy."
+              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={proxyTestLoading}
+                  disabled={loading || proxyLoading}
+                  onClick={testOutboundProxy}
+                >
+                  Test proxy URL
+                </Button>
+                <Button type="submit" variant="primary" size="sm" loading={proxyLoading}>
+                  Apply
+                </Button>
+              </div>
+            </form>
+          </ConfigRow>
+        )}
+
+        {proxyStatus.message && (
+          <p
+            className={`pt-4 text-[13px] ${proxyStatus.type === "error" ? "text-danger" : "text-success"}`}
+          >
+            {proxyStatus.message}
+          </p>
+        )}
+      </ConfigSection>
+
+      {/* Backup & restore */}
+      <ConfigSection
+        title="Backup & restore"
+        icon="database"
+        subtitle="The whole local database as one JSON file. Both directions ask for your dashboard password first."
+      >
+        <ConfigRow
+          label="Download backup"
+          help="Writes a timestamped JSON snapshot of settings, connections and usage to your downloads folder."
+          control={
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="download"
+              onClick={() => setDbAuth({ open: true, mode: "export", password: "" })}
+              loading={dbLoading}
+            >
+              Download
+            </Button>
+          }
+        />
+        <ConfigRow
+          label="Restore from backup"
+          help="Replaces the current database with the contents of a backup file. This cannot be undone."
+          control={
+            <>
               <Button
-                variant="outline"
+                variant="secondary"
+                size="sm"
                 icon="upload"
                 onClick={() => importFileRef.current?.click()}
                 disabled={dbLoading}
-                className="w-full sm:w-auto"
               >
-                Import Backup
+                Choose file
               </Button>
               <input
                 ref={importFileRef}
@@ -647,490 +1100,36 @@ export default function ProfilePage() {
                 className="hidden"
                 onChange={handleImportDatabase}
               />
-            </div>
-            {dbStatus.message && (
-              <p className={`text-sm ${dbStatus.type === "error" ? "text-red-500" : "text-green-600 dark:text-green-400"}`}>
-                {dbStatus.message}
-              </p>
-            )}
-          </div>
-        </Card>
+            </>
+          }
+        />
+        {dbStatus.message && (
+          <p className={`pt-4 text-[13px] ${dbStatus.type === "error" ? "text-danger" : "text-success"}`}>
+            {dbStatus.message}
+          </p>
+        )}
+      </ConfigSection>
 
-        {/* Language */}
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="size-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[20px]">language</span>
-            </div>
-            <h3 className="text-base sm:text-lg font-semibold">Language</h3>
-          </div>
-          <button
-            onClick={() => setLangOpen(true)}
-            className="flex items-center justify-between w-full p-3 rounded-lg bg-bg border border-border hover:border-primary/50 transition-colors"
-            data-i18n-skip="true"
-          >
-            <span className="text-sm text-text-muted">Display language</span>
-            <span className="text-2xl">{LOCALE_FLAGS[locale] || "🌐"}</span>
-          </button>
-        </Card>
-
-        {/* Security */}
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-              <span className="material-symbols-outlined text-[20px]">shield</span>
-            </div>
-            <h3 className="text-base sm:text-lg font-semibold">Security</h3>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start sm:items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm sm:text-base">Require login</p>
-                <p className="text-xs sm:text-sm text-text-muted">
-                  When ON, dashboard requires password. When OFF, access without login.
-                </p>
-              </div>
-              <Toggle
-                checked={settings.requireLogin === true}
-                onChange={() => updateRequireLogin(!settings.requireLogin)}
-                disabled={loading}
-              />
-            </div>
-            {settings.requireLogin === true && (
-              <form onSubmit={handlePasswordChange} className="flex flex-col gap-4 pt-4 border-t border-border/50">
-                {settings.hasPassword && (
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="current-password" className="text-xs sm:text-sm font-medium">Current Password</label>
-                    <Input
-                      id="current-password"
-                      type="password"
-                      placeholder="Enter current password"
-                      autoComplete="current-password"
-                      value={passwords.current}
-                      onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                      required
-                    />
-                  </div>
-                )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="new-password" className="text-xs sm:text-sm font-medium">New Password</label>
-                    <Input
-                      id="new-password"
-                      type="password"
-                      placeholder="Enter new password"
-                      autoComplete="new-password"
-                      value={passwords.new}
-                      onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="confirm-password" className="text-xs sm:text-sm font-medium">Confirm New Password</label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="Confirm new password"
-                      autoComplete="new-password"
-                      value={passwords.confirm}
-                      onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-
-                {passStatus.message && (
-                  <p role="status" className={`text-xs sm:text-sm ${passStatus.type === "error" ? "text-red-500" : "text-green-500"}`}>
-                    {passStatus.message}
-                  </p>
-                )}
-
-                <div className="pt-2">
-                  <Button type="submit" variant="primary" loading={passLoading} className="w-full sm:w-auto">
-                    {settings.hasPassword ? "Update Password" : "Set Password"}
-                  </Button>
-                </div>
-              </form>
-            )}
-          </div>
-        </Card>
-
-        {/* OIDC */}
-        <Card>
-          <button
-            type="button"
-            onClick={() => setOidcExpanded((v) => !v)}
-            className="w-full flex items-center gap-3 text-left"
-          >
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
-              <span className="material-symbols-outlined text-[20px]">lock_open</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-base sm:text-lg font-semibold">OIDC Dashboard Login</h3>
-              <p className="text-xs text-text-muted">
-                {settings.authMode === "oidc" ? "OIDC active" : settings.authMode === "both" ? "Password + OIDC active" : "Optional SSO via Authentik/Keycloak/Google"}
-              </p>
-            </div>
-            <span className="material-symbols-outlined text-text-muted shrink-0">
-              {oidcExpanded ? "expand_less" : "expand_more"}
-            </span>
-          </button>
-          {oidcExpanded && (
-          <div className="flex flex-col gap-4 mt-4">
-            <p className="text-xs sm:text-sm text-text-muted">
-              Use Authentik or any OIDC provider to sign in to the dashboard. You can enable password-only, OIDC-only, or both for the dashboard; model API access still uses API keys.
-            </p>
-
-            <div className="flex flex-col gap-2">
-              <label className="font-medium text-sm sm:text-base">Auth Mode</label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {[
-                  {
-                    value: "password",
-                    title: "Password only",
-                    desc: "Keep the legacy password login.",
-                  },
-                  {
-                    value: "oidc",
-                    title: "OIDC only",
-                    desc: "Require OIDC for dashboard access.",
-                  },
-                  {
-                    value: "both",
-                    title: "Both",
-                    desc: "Allow either password or OIDC.",
-                  },
-                ].map((option) => {
-                  const active = oidcForm.authMode === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => updateOidcForm("authMode", option.value)}
-                      className={cn(
-                        "text-left rounded-lg border p-3 transition-colors",
-                        active
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-bg hover:bg-black/5 dark:hover:bg-white/5"
-                      )}
-                      disabled={loading || oidcLoading}
-                    >
-                      <p className="font-medium text-sm sm:text-base">{option.title}</p>
-                      <p className="text-xs sm:text-sm text-text-muted mt-1">{option.desc}</p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-sm sm:text-base">Issuer URL</label>
-                <Input
-                  placeholder="https://auth.example.com/application/o/miawrouter/"
-                  value={oidcForm.oidcIssuerUrl}
-                  onChange={(e) => updateOidcForm("oidcIssuerUrl", e.target.value)}
-                  disabled={loading || oidcLoading}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-sm sm:text-base">Client ID</label>
-                <Input
-                  placeholder="miawrouter-dashboard"
-                  value={oidcForm.oidcClientId}
-                  onChange={(e) => updateOidcForm("oidcClientId", e.target.value)}
-                  disabled={loading || oidcLoading}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-sm sm:text-base">Client Secret</label>
-                <Input
-                  type="password"
-                  placeholder="Leave blank to keep existing secret"
-                  value={oidcClientSecret}
-                  onChange={(e) => setOidcClientSecret(e.target.value)}
-                  disabled={loading || oidcLoading}
-                />
-                <p className="text-xs sm:text-sm text-text-muted">This value is write-only after saving.</p>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-sm sm:text-base">Scopes</label>
-                <Input
-                  placeholder="openid profile email"
-                  value={oidcForm.oidcScopes}
-                  onChange={(e) => updateOidcForm("oidcScopes", e.target.value)}
-                  disabled={loading || oidcLoading}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-sm sm:text-base">Login Button Label</label>
-                <Input
-                  placeholder="Sign in with OIDC"
-                  value={oidcForm.oidcLoginLabel}
-                  onChange={(e) => updateOidcForm("oidcLoginLabel", e.target.value)}
-                  disabled={loading || oidcLoading}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-border bg-bg p-3 text-xs sm:text-sm text-text-muted">
-              <p className="font-medium text-text-main mb-1">Redirect URI</p>
-              <code className="block break-all font-mono">{oidcRedirectUri}</code>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-border/50">
-              <Button type="button" variant="primary" loading={oidcLoading} onClick={() => saveOidcSettings()} className="w-full sm:w-auto">
-                Save auth mode
-              </Button>
-              <Button type="button" variant="outline" loading={oidcTestLoading} onClick={testOidcConnection} className="w-full sm:w-auto">
-                Test connection
-              </Button>
-            </div>
-
-            {oidcTestStatus.message && (
-              <p className={`text-xs sm:text-sm ${oidcTestStatus.type === "error" ? "text-red-500" : "text-green-500"}`}>
-                {oidcTestStatus.message}
-              </p>
-            )}
-
-            {oidcStatus.message && (
-              <p className={`text-xs sm:text-sm ${oidcStatus.type === "error" ? "text-red-500" : "text-green-500"}`}>
-                {oidcStatus.message}
-              </p>
-            )}
-
-            {settings.authMode === "oidc" && (
-              <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400">
-                OIDC login is currently active. Password login is disabled until you switch back.
-              </p>
-            )}
-
-            {settings.authMode === "both" && (
-              <p className="text-xs sm:text-sm text-amber-600 dark:text-amber-400">
-                Password and OIDC login are both active.
-              </p>
-            )}
-          </div>
-          )}
-        </Card>
-
-        {/* Routing Preferences */}
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
-              <span className="material-symbols-outlined text-[20px]">route</span>
-            </div>
-            <h3 className="text-base sm:text-lg font-semibold">Routing Strategy</h3>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start sm:items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm sm:text-base">Round Robin</p>
-                <p className="text-xs sm:text-sm text-text-muted">
-                  Cycle through accounts to distribute load
-                </p>
-              </div>
-              <Toggle
-                checked={settings.fallbackStrategy === "round-robin"}
-                onChange={() => updateFallbackStrategy(settings.fallbackStrategy === "round-robin" ? "fill-first" : "round-robin")}
-                disabled={loading}
-              />
-            </div>
-
-            {/* Sticky Round Robin Limit */}
-            {settings.fallbackStrategy === "round-robin" && (
-              <div className="flex items-start sm:items-center justify-between gap-4 pt-2 border-t border-border/50">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm sm:text-base">Sticky Limit</p>
-                  <p className="text-xs sm:text-sm text-text-muted">
-                    Calls per account before switching
-                  </p>
-                </div>
-                <Input
-                  type="number"
-                  min="1"
-                  max="10"
-                  value={settings.stickyRoundRobinLimit || 3}
-                  onChange={(e) => updateStickyLimit(e.target.value)}
-                  disabled={loading}
-                  className="w-16 sm:w-20 text-center shrink-0"
-                />
-              </div>
-            )}
-
-            {/* Combo Round Robin */}
-            <div className="flex items-start sm:items-center justify-between gap-4 pt-4 border-t border-border/50">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm sm:text-base">Combo Round Robin</p>
-                <p className="text-xs sm:text-sm text-text-muted">
-                  Cycle through providers in combos instead of always starting with first
-                </p>
-              </div>
-              <Toggle
-                checked={settings.comboStrategy === "round-robin"}
-                onChange={() => updateComboStrategy(settings.comboStrategy === "round-robin" ? "fallback" : "round-robin")}
-                disabled={loading}
-              />
-            </div>
-
-            {/* Combo Sticky Round Robin Limit */}
-            {settings.comboStrategy === "round-robin" && (
-              <div className="flex items-center justify-between pt-2 border-t border-border/50">
-                <div>
-                  <p className="font-medium">Combo Sticky Limit</p>
-                  <p className="text-sm text-text-muted">
-                    Calls per combo model before switching
-                  </p>
-                </div>
-                <Input
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={settings.comboStickyRoundRobinLimit || 1}
-                  onChange={(e) => updateComboStickyLimit(e.target.value)}
-                  disabled={loading}
-                  className="w-20 text-center"
-                />
-              </div>
-            )}
-
-            <p className="text-xs text-text-muted italic pt-2 border-t border-border/50">
-              {settings.fallbackStrategy === "round-robin"
-                ? `Currently distributing requests across all available accounts with ${settings.stickyRoundRobinLimit || 3} calls per account.`
-                : "Currently using accounts in priority order (Fill First)."}
-              {settings.comboStrategy === "round-robin"
-                ? ` Combos rotate after ${settings.comboStickyRoundRobinLimit || 1} call${(settings.comboStickyRoundRobinLimit || 1) === 1 ? "" : "s"} per model.`
-                : " Combos always start with their first model."}
-            </p>
-          </div>
-        </Card>
-
-        {/* Network */}
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 shrink-0">
-              <span className="material-symbols-outlined text-[20px]">wifi</span>
-            </div>
-            <h3 className="text-base sm:text-lg font-semibold">Network</h3>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <div className="flex items-start sm:items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm sm:text-base">Outbound Proxy</p>
-                <p className="text-xs sm:text-sm text-text-muted">Enable proxy for OAuth + provider outbound requests.</p>
-              </div>
-              <Toggle
-                checked={settings.outboundProxyEnabled === true}
-                onChange={() => updateOutboundProxyEnabled(!(settings.outboundProxyEnabled === true))}
-                disabled={loading || proxyLoading}
-              />
-            </div>
-
-            {settings.outboundProxyEnabled === true && (
-              <form onSubmit={updateOutboundProxy} className="flex flex-col gap-4 pt-2 border-t border-border/50">
-                <div className="flex flex-col gap-2">
-                  <label className="font-medium text-sm sm:text-base">Proxy URL</label>
-                  <Input
-                    placeholder="http://127.0.0.1:7897"
-                    value={proxyForm.outboundProxyUrl}
-                    onChange={(e) => setProxyForm((prev) => ({ ...prev, outboundProxyUrl: e.target.value }))}
-                    disabled={loading || proxyLoading}
-                  />
-                  <p className="text-xs sm:text-sm text-text-muted">Leave empty to inherit existing env proxy (if any).</p>
-                </div>
-
-                <div className="flex flex-col gap-2 pt-2 border-t border-border/50">
-                  <label className="font-medium text-sm sm:text-base">No Proxy</label>
-                  <Input
-                    placeholder="localhost,127.0.0.1"
-                    value={proxyForm.outboundNoProxy}
-                    onChange={(e) => setProxyForm((prev) => ({ ...prev, outboundNoProxy: e.target.value }))}
-                    disabled={loading || proxyLoading}
-                  />
-                  <p className="text-xs sm:text-sm text-text-muted">Comma-separated hostnames/domains to bypass the proxy.</p>
-                </div>
-
-                <div className="pt-2 border-t border-border/50 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    loading={proxyTestLoading}
-                    disabled={loading || proxyLoading}
-                    onClick={testOutboundProxy}
-                    className="w-full sm:w-auto"
-                  >
-                    Test proxy URL
-                  </Button>
-                  <Button type="submit" variant="primary" loading={proxyLoading} className="w-full sm:w-auto">
-                    Apply
-                  </Button>
-                </div>
-              </form>
-            )}
-
-            {proxyStatus.message && (
-              <p className={`text-xs sm:text-sm ${proxyStatus.type === "error" ? "text-red-500" : "text-green-500"} pt-2 border-t border-border/50`}>
-                {proxyStatus.message}
-              </p>
-            )}
-          </div>
-        </Card>
-
-        {/* Observability Settings */}
-        <Card>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500 shrink-0">
-              <span className="material-symbols-outlined text-[20px]">monitoring</span>
-            </div>
-            <h3 className="text-base sm:text-lg font-semibold">Observability</h3>
-          </div>
-          <div className="flex items-start sm:items-center justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm sm:text-base">Enable Observability</p>
-              <p className="text-xs sm:text-sm text-text-muted">
-                Record request details for inspection in the logs view
-              </p>
-            </div>
-            <Toggle
-              checked={observabilityEnabled}
-              onChange={updateObservabilityEnabled}
-              disabled={loading}
-            />
-          </div>
-        </Card>
-
-        {/* Account actions */}
-        <div className="flex flex-col sm:flex-row gap-2">
+      {/* Session */}
+      <Card title="Session" icon="power_settings_new" subtitle="Control the local server process and the dashboard session.">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button
             variant="outline"
-            fullWidth
             icon="power_settings_new"
             onClick={() => setShutdownOpen(true)}
-            className="text-red-500 border-red-200 hover:bg-red-50 hover:border-red-300"
+            className="text-danger border-danger/35 hover:bg-danger/10"
           >
-            Shutdown
+            Shut down router
           </Button>
-          <Button
-            variant="outline"
-            fullWidth
-            icon="logout"
-            onClick={handleLogout}
-          >
-            Logout
+          <Button variant="outline" icon="logout" onClick={handleLogout}>
+            Log out
           </Button>
         </div>
-
-        {/* App Info */}
-        <div className="text-center text-xs sm:text-sm text-text-muted py-4">
-          <p>{APP_CONFIG.name} v{APP_CONFIG.version}</p>
-          <p className="mt-1">Local Mode - All data stored on your machine</p>
-        </div>
-      </div>
+        <p className="mt-3 text-xs text-text-muted">
+          Shutting down stops the routing process on this machine; the dashboard becomes
+          unreachable until it is started again.
+        </p>
+      </Card>
 
       <LanguageSwitcher
         hideTrigger
@@ -1144,7 +1143,7 @@ export default function ProfilePage() {
         isOpen={shutdownOpen}
         onClose={() => setShutdownOpen(false)}
         onConfirm={handleShutdown}
-        title="Close Proxy"
+        title="Close proxy"
         message="Are you sure you want to close the proxy server?"
         confirmText="Close"
         cancelText="Cancel"
@@ -1155,7 +1154,7 @@ export default function ProfilePage() {
       <Modal
         isOpen={dbAuth.open}
         onClose={() => setDbAuth({ open: false, mode: "", password: "" })}
-        title="Confirm Password"
+        title="Confirm password"
         size="sm"
         footer={
           <>
@@ -1168,7 +1167,7 @@ export default function ProfilePage() {
           </>
         }
       >
-        <p className="text-text-muted mb-3 text-sm">
+        <p className="mb-3 text-[13px] text-text-muted">
           Enter your current password to {dbAuth.mode === "export" ? "export" : "import"} the database.
         </p>
         <Input

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LOCALE_COOKIE, normalizeLocale } from "@/i18n/config";
-import { LOCALE_FLAGS } from "@/shared/constants/locales";
+import { normalizeLocale, LOCALE_COOKIE } from "@/i18n/config";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { Icon } from "@/shared/components/Icon";
 
 function getLocaleFromCookie() {
   if (typeof document === "undefined") return "en";
@@ -26,11 +26,13 @@ export default function HeaderLanguage() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center justify-center p-2 rounded-lg text-text-muted hover:text-text-main hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+        className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md px-2 text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main"
         title="Language"
+        aria-label={`Language: ${locale}`}
         data-i18n-skip="true"
       >
-        <span className="text-lg leading-none">{LOCALE_FLAGS[locale] || "🌐"}</span>
+        <Icon name="language" className="text-[18px]" />
+        <span className="text-xs font-medium uppercase">{locale}</span>
       </button>
 
       <LanguageSwitcher

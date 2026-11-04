@@ -4,6 +4,40 @@ import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Modal, Button, Input } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
+const METHODS = [
+  {
+    id: "builder-id",
+    icon: "shield",
+    title: "AWS Builder ID",
+    description: "Device-code login. Recommended for most users; a free AWS account is enough.",
+  },
+  {
+    id: "idc",
+    icon: "business",
+    title: "AWS IAM Identity Center",
+    description: "For organizations that run their own AWS Identity Center start URL.",
+  },
+  {
+    id: "api-key",
+    icon: "key",
+    title: "API key",
+    description: "Headless: paste a long-lived Kiro/CodeWhisperer key and a region.",
+  },
+  {
+    id: "import",
+    icon: "file_upload",
+    title: "Import refresh token",
+    description: "Read the token from the local Kiro IDE cache, or paste it by hand.",
+  },
+  {
+    id: "import-cli-proxy",
+    icon: "data_object",
+    title: "Import CLIProxyAPI JSON",
+    description: "Paste an external_idp auth JSON produced by CLIProxyAPI or Kiro's Microsoft login.",
+  },
+];
+
 /**
  * Kiro Auth Method Selection Modal
  * Auto-detects token from AWS SSO cache or allows manual import
@@ -20,6 +54,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
   const [importing, setImporting] = useState(false);
   const [autoDetecting, setAutoDetecting] = useState(false);
   const [autoDetected, setAutoDetected] = useState(false);
+  const [detectError, setDetectError] = useState(null);
   const [idcCredentials, setIdcCredentials] = useState(null);
 
   // Auto-detect token when import method is selected
@@ -29,6 +64,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
     const autoDetect = async () => {
       setAutoDetecting(true);
       setError(null);
+      setDetectError(null);
       setAutoDetected(false);
       setIdcCredentials(null);
 
@@ -50,10 +86,10 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
             });
           }
         } else {
-          setError(data.error || "Could not auto-detect token");
+          setDetectError(data.error || "Could not auto-detect token");
         }
       } catch (err) {
-        setError("Failed to auto-detect token");
+        setDetectError("Failed to auto-detect token");
       } finally {
         setAutoDetecting(false);
       }
@@ -74,7 +110,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
   const handleImportToken = async () => {
     if (!refreshToken.trim()) {
-      setError("Please enter a refresh token");
+      setError("No refresh token. Open the Kiro IDE once so the cache exists, or paste a token below.");
       return;
     }
 
@@ -94,7 +130,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Import failed");
+        throw new Error(data.error || `Import failed (HTTP ${res.status}).`);
       }
 
       // Success - notify parent to refresh connections
@@ -108,7 +144,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
   const handleImportCliProxyJson = async () => {
     if (!cliProxyJson.trim()) {
-      setError("Please paste CLIProxyAPI auth JSON");
+      setError("No JSON pasted. Paste the CLIProxyAPI auth object containing auth_method=external_idp.");
       return;
     }
 
@@ -125,7 +161,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "CLIProxyAPI import failed");
+        throw new Error(data.error || `CLIProxyAPI import failed (HTTP ${res.status}).`);
       }
 
       onMethodSelect("import-cli-proxy");
@@ -138,7 +174,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
   const handleIdcContinue = () => {
     if (!idcStartUrl.trim()) {
-      setError("Please enter your IDC start URL");
+      setError("No start URL. Copy it from your AWS IAM Identity Center access portal settings.");
       return;
     }
     onMethodSelect("idc", { startUrl: idcStartUrl.trim(), region: idcRegion });
@@ -146,7 +182,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
   const handleApiKeyImport = async () => {
     if (!apiKey.trim()) {
-      setError("Please enter an API key");
+      setError("No API key. Paste a long-lived Kiro/CodeWhisperer key, or pick another method.");
       return;
     }
 
@@ -166,7 +202,7 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Import failed");
+        throw new Error(data.error || `Import failed (HTTP ${res.status}).`);
       }
 
       // Success - notify parent to refresh connections
@@ -182,166 +218,82 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
     onMethodSelect("social", { provider });
   };
 
+  const errorBlock = (title) =>
+    error && (
+      <div className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger/10 p-3">
+        <Icon name="error" className="mt-0.5 text-[18px] text-danger shrink-0" />
+        <div className="text-sm">
+          <p className="font-medium text-text-main">{title}</p>
+          <p className="mt-1 text-text-muted">{error}</p>
+        </div>
+      </div>
+    );
+
   return (
     <Modal isOpen={isOpen} title="Connect Kiro" onClose={onClose} size="lg">
       <div className="flex flex-col gap-4">
         {/* Method Selection */}
         {!selectedMethod && (
-          <div className="space-y-3">
-            <p className="text-sm text-text-muted mb-4">
-              Choose your authentication method:
+          <div className="flex flex-col gap-2">
+            <p className="text-[13px] text-text-muted">
+              Pick how this account authenticates. Device-code and API-key methods list Kiro models right
+              after the connection is saved.
             </p>
 
-            {/* AWS Builder ID */}
-            <button
-              onClick={() => onMethodSelect("builder-id")}
-              className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-0.5">shield</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">AWS Builder ID</h3>
-                  <p className="text-sm text-text-muted">
-                    Recommended for most users. Free AWS account required.
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {/* AWS IAM Identity Center (IDC) */}
-            <button
-              onClick={() => handleMethodSelect("idc")}
-              className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-0.5">business</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">AWS IAM Identity Center</h3>
-                  <p className="text-sm text-text-muted">
-                    For enterprise users with custom AWS IAM Identity Center.
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {/* AWS API Key */}
-            <button
-              onClick={() => handleMethodSelect("api-key")}
-              className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-0.5">key</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">API Key</h3>
-                  <p className="text-sm text-text-muted">
-                    Use a long-lived Kiro/CodeWhisperer API key (headless auth).
-                  </p>
-                </div>
-              </div>
-            </button>
+            {METHODS.map((method) => (
+              <button
+                key={method.id}
+                type="button"
+                onClick={() => handleMethodSelect(method.id)}
+                className="flex w-full items-start gap-3 rounded-md border border-border bg-surface px-3.5 py-3 text-left transition-colors duration-150 hover:border-primary/40 hover:bg-surface-2"
+              >
+                <Icon name={method.icon} weight="duotone" className="mt-0.5 text-[20px] text-primary shrink-0" />
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold text-text-main">{method.title}</span>
+                  <span className="text-[13px] leading-relaxed text-text-muted">{method.description}</span>
+                </span>
+              </button>
+            ))}
 
             {/* Google Social Login - HIDDEN */}
-            <button
-              onClick={() => handleMethodSelect("social-google")}
-              className="hidden w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-0.5">account_circle</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Google Account</h3>
-                  <p className="text-sm text-text-muted">
-                    Login with your Google account (manual callback).
-                  </p>
-                </div>
-              </div>
+            <button onClick={() => handleMethodSelect("social-google")} className="hidden">
+              Google account
             </button>
 
             {/* GitHub Social Login - HIDDEN */}
-            <button
-              onClick={() => handleMethodSelect("social-github")}
-              className="hidden w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-0.5">code</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">GitHub Account</h3>
-                  <p className="text-sm text-text-muted">
-                    Login with your GitHub account (manual callback).
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {/* Import Token */}
-            <button
-              onClick={() => handleMethodSelect("import")}
-              className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-0.5">file_upload</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Import Token</h3>
-                  <p className="text-sm text-text-muted">
-                    Paste refresh token from Kiro IDE.
-                  </p>
-                </div>
-              </div>
-            </button>
-
-            {/* Import CLIProxyAPI JSON */}
-            <button
-              onClick={() => handleMethodSelect("import-cli-proxy")}
-              className="w-full p-4 text-left border border-border rounded-lg hover:bg-sidebar transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-0.5">data_object</span>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-1">Import CLIProxyAPI JSON</h3>
-                  <p className="text-sm text-text-muted">
-                    Paste external_idp auth JSON from CLIProxyAPI/Kiro Microsoft login.
-                  </p>
-                </div>
-              </div>
+            <button onClick={() => handleMethodSelect("social-github")} className="hidden">
+              GitHub account
             </button>
           </div>
         )}
 
         {/* IDC Configuration */}
         {selectedMethod === "idc" && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                IDC Start URL <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={idcStartUrl}
-                onChange={(e) => setIdcStartUrl(e.target.value)}
-                placeholder="https://your-org.awsapps.com/start"
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-text-muted mt-1">
-                Your organization&apos;s AWS IAM Identity Center URL
-              </p>
-            </div>
+          <div className="flex flex-col gap-4">
+            <p className="text-[13px] text-text-muted">
+              The device-code flow needs your Identity Center start URL, not your account ID.
+            </p>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                AWS Region
-              </label>
-              <Input
-                value={idcRegion}
-                onChange={(e) => setIdcRegion(e.target.value)}
-                placeholder="us-east-1"
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-text-muted mt-1">
-                AWS region for your Identity Center (default: us-east-1)
-              </p>
-            </div>
+            <Input
+              label="IDC start URL"
+              required
+              value={idcStartUrl}
+              onChange={(e) => setIdcStartUrl(e.target.value)}
+              placeholder="https://your-org.awsapps.com/start"
+              inputClassName="font-mono text-[13px]"
+              hint="The access portal URL of your AWS IAM Identity Center."
+            />
 
-            {error && (
-              <p className="text-sm text-red-600">{error}</p>
-            )}
+            <Input
+              label="AWS region"
+              value={idcRegion}
+              onChange={(e) => setIdcRegion(e.target.value)}
+              placeholder="us-east-1"
+              inputClassName="font-mono text-[13px]"
+              hint="Region that hosts your Identity Center. Default us-east-1."
+            />
+
+            {errorBlock("Start URL required")}
 
             <div className="flex gap-2">
               <Button onClick={handleIdcContinue} fullWidth>
@@ -356,53 +308,39 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
         {/* API Key */}
         {selectedMethod === "api-key" && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex gap-2">
-                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Paste a long-lived Kiro/CodeWhisperer API key. It is validated
-                  against AWS and stored directly as a bearer credential (no refresh).
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                API Key <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Paste your Kiro API key..."
-                className="font-mono text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                AWS Region
-              </label>
-              <Input
-                value={apiKeyRegion}
-                onChange={(e) => setApiKeyRegion(e.target.value)}
-                placeholder="us-east-1"
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-text-muted mt-1">
-                AWS region for the key (default: us-east-1)
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-border bg-surface-2 p-3">
+              <Icon name="info" className="mt-0.5 text-[18px] text-text-muted shrink-0" />
+              <p className="text-sm text-text-muted">
+                The key is validated against AWS and stored as a bearer credential — there is no refresh, so
+                a revoked key has to be replaced here.
               </p>
             </div>
 
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-              </div>
-            )}
+            <Input
+              label="API key"
+              required
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Paste your Kiro API key"
+              type="password"
+              inputClassName="font-mono text-[13px]"
+            />
+
+            <Input
+              label="AWS region"
+              value={apiKeyRegion}
+              onChange={(e) => setApiKeyRegion(e.target.value)}
+              placeholder="us-east-1"
+              inputClassName="font-mono text-[13px]"
+              hint="Region the key was issued for. Default us-east-1."
+            />
+
+            {errorBlock("The API key was rejected")}
 
             <div className="flex gap-2">
-              <Button onClick={handleApiKeyImport} fullWidth disabled={importing || !apiKey.trim()}>
-                {importing ? "Validating..." : "Add API Key"}
+              <Button onClick={handleApiKeyImport} fullWidth disabled={importing || !apiKey.trim()} loading={importing}>
+                Add API key
               </Button>
               <Button onClick={handleBack} variant="ghost" fullWidth>
                 Back
@@ -413,19 +351,13 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
         {/* Social Login Info (Google) */}
         {selectedMethod === "social-google" && (
-          <div className="space-y-4">
-            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-              <div className="flex gap-2">
-                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">info</span>
-                <div className="flex-1 text-sm">
-                  <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                    Manual Callback Required
-                  </p>
-                  <p className="text-amber-800 dark:text-amber-200">
-                    After login, you&apos;ll need to copy the callback URL from your browser and paste it back here.
-                  </p>
-                </div>
-              </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-warning/20 bg-warning/10 p-3">
+              <Icon name="warning" weight="fill" className="mt-0.5 text-[18px] text-warning shrink-0" />
+              <p className="text-sm text-text-muted">
+                Google sign-in returns its code on a callback URL. After the login you copy that URL out of
+                the address bar and paste it back into the next screen.
+              </p>
             </div>
 
             <div className="flex gap-2">
@@ -441,19 +373,13 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
         {/* Social Login Info (GitHub) */}
         {selectedMethod === "social-github" && (
-          <div className="space-y-4">
-            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-              <div className="flex gap-2">
-                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400">info</span>
-                <div className="flex-1 text-sm">
-                  <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                    Manual Callback Required
-                  </p>
-                  <p className="text-amber-800 dark:text-amber-200">
-                    After login, you&apos;ll need to copy the callback URL from your browser and paste it back here.
-                  </p>
-                </div>
-              </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-warning/20 bg-warning/10 p-3">
+              <Icon name="warning" weight="fill" className="mt-0.5 text-[18px] text-warning shrink-0" />
+              <p className="text-sm text-text-muted">
+                GitHub sign-in returns its code on a callback URL. After the login you copy that URL out of
+                the address bar and paste it back into the next screen.
+              </p>
             </div>
 
             <div className="flex gap-2">
@@ -469,70 +395,66 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
         {/* Import Token */}
         {selectedMethod === "import" && (
-          <div className="space-y-4">
-            {/* Auto-detecting state */}
+          <div className="flex flex-col gap-4">
             {autoDetecting && (
-              <div className="text-center py-6">
-                <div className="size-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-3xl text-primary animate-spin">
-                    progress_activity
-                  </span>
-                </div>
-                <h3 className="text-lg font-semibold mb-2">Auto-detecting token...</h3>
-                <p className="text-sm text-text-muted">
-                  Reading from AWS SSO cache
-                </p>
+              <div className="flex items-center gap-2.5 py-4 text-sm text-text-muted">
+                <Icon name="progress_activity" className="animate-spin text-[18px] text-primary" />
+                Reading the refresh token from the local AWS SSO cache…
               </div>
             )}
 
-            {/* Form (shown after auto-detect completes) */}
             {!autoDetecting && (
               <>
-                {/* Success message if auto-detected */}
                 {autoDetected && (
-                  <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex gap-2">
-                      <span className="material-symbols-outlined text-green-600 dark:text-green-400">check_circle</span>
-                      <p className="text-sm text-green-800 dark:text-green-200">
-                        Token auto-detected from Kiro IDE successfully!
+                  <div className="flex items-start gap-2.5 rounded-[10px] border border-success/20 bg-success/10 p-3">
+                    <Icon name="check_circle" weight="fill" className="mt-0.5 text-[18px] text-success shrink-0" />
+                    <p className="text-sm text-text-main">
+                      Refresh token found in the local Kiro IDE cache. Import to store it.
+                    </p>
+                  </div>
+                )}
+
+                {!autoDetected && (detectError ? (
+                  <div className="flex items-start gap-2.5 rounded-[10px] border border-warning/20 bg-warning/10 p-3">
+                    <Icon name="warning" weight="fill" className="mt-0.5 text-[18px] text-warning shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-medium text-text-main">No cached refresh token found</p>
+                      <p className="mt-1 text-text-muted">{detectError}</p>
+                      <p className="mt-1 text-text-muted">
+                        Open the Kiro IDE once, go Back and pick this method again — or paste a token below.
                       </p>
                     </div>
                   </div>
-                )}
-
-                {/* Info message if not auto-detected */}
-                {!autoDetected && !error && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <div className="flex gap-2">
-                      <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
-                      <p className="text-sm text-blue-800 dark:text-blue-200">
-                        Kiro IDE not detected. Please paste your refresh token manually.
-                      </p>
-                    </div>
+                ) : (
+                  <div className="flex items-start gap-2.5 rounded-[10px] border border-border bg-surface-2 p-3">
+                    <Icon name="info" className="mt-0.5 text-[18px] text-text-muted shrink-0" />
+                    <p className="text-sm text-text-muted">
+                      No Kiro IDE cache was found. Paste a refresh token manually, or go Back and pick this
+                      method again after opening the IDE once.
+                    </p>
                   </div>
-                )}
+                ))}
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Refresh Token <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={refreshToken}
-                    onChange={(e) => setRefreshToken(e.target.value)}
-                    placeholder="Token will be auto-filled..."
-                    className="font-mono text-sm"
-                  />
-                </div>
+                <Input
+                  label="Refresh token"
+                  required
+                  value={refreshToken}
+                  onChange={(e) => setRefreshToken(e.target.value)}
+                  placeholder="Token will be auto-filled when detected"
+                  type="password"
+                  inputClassName="font-mono text-[13px]"
+                />
 
-                {error && (
-                  <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                  </div>
-                )}
+                {errorBlock("The import failed")}
 
                 <div className="flex gap-2">
-                  <Button onClick={handleImportToken} fullWidth disabled={importing || !refreshToken.trim()}>
-                    {importing ? "Importing..." : "Import Token"}
+                  <Button
+                    onClick={handleImportToken}
+                    fullWidth
+                    disabled={importing || !refreshToken.trim()}
+                    loading={importing}
+                  >
+                    Import token
                   </Button>
                   <Button onClick={handleBack} variant="ghost" fullWidth>
                     Back
@@ -545,37 +467,40 @@ export default function KiroAuthModal({ isOpen, onMethodSelect, onClose }) {
 
         {/* Import CLIProxyAPI JSON */}
         {selectedMethod === "import-cli-proxy" && (
-          <div className="space-y-4">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex gap-2">
-                <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">info</span>
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  Paste the Kiro CLIProxyAPI auth JSON containing auth_method=external_idp. Only Microsoft login token endpoints are accepted.
-                </p>
-              </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-border bg-surface-2 p-3">
+              <Icon name="info" className="mt-0.5 text-[18px] text-text-muted shrink-0" />
+              <p className="text-sm text-text-muted">
+                Paste the Kiro auth JSON whose <span className="font-mono text-xs">auth_method</span> is{" "}
+                <span className="font-mono text-xs">external_idp</span>. Only Microsoft login token endpoints
+                are accepted.
+              </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                CLIProxyAPI Auth JSON <span className="text-red-500">*</span>
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="kiro-cli-proxy-json" className="text-sm font-medium text-text-main">
+                CLIProxyAPI auth JSON
+                <span className="ml-1 text-danger">*</span>
               </label>
               <textarea
+                id="kiro-cli-proxy-json"
                 value={cliProxyJson}
                 onChange={(e) => setCliProxyJson(e.target.value)}
                 placeholder={'{"auth_method":"external_idp","access_token":"...","refresh_token":"...","client_id":"...","token_endpoint":"https://login.microsoftonline.com/.../oauth2/v2.0/token","profile_arn":"...","scopes":"..."}'}
-                className="min-h-40 w-full rounded-md border border-border bg-background p-3 font-mono text-sm outline-none focus:border-primary"
+                className="min-h-40 w-full resize-y rounded-md border border-border bg-surface-2 p-3 font-mono text-xs text-text-main placeholder:text-text-subtle focus:outline-none focus:border-primary"
               />
             </div>
 
-            {error && (
-              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
-                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-              </div>
-            )}
+            {errorBlock("The JSON was rejected")}
 
             <div className="flex gap-2">
-              <Button onClick={handleImportCliProxyJson} fullWidth disabled={importing || !cliProxyJson.trim()}>
-                {importing ? "Importing..." : "Import CLIProxyAPI JSON"}
+              <Button
+                onClick={handleImportCliProxyJson}
+                fullWidth
+                disabled={importing || !cliProxyJson.trim()}
+                loading={importing}
+              >
+                Import CLIProxyAPI JSON
               </Button>
               <Button onClick={handleBack} variant="ghost" fullWidth>
                 Back

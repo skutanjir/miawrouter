@@ -24,6 +24,7 @@ export default {
     authType: "cookie",
   },
   models: [
+    { id: "deepseek-flash", name: "DeepSeek V4.1 Flash" },
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro" },
     { id: "deepseek-v4-pro-think", name: "DeepSeek V4 Pro Think" },
     { id: "deepseek-v4-pro-search", name: "DeepSeek V4 Pro Search", toolCalling: false },

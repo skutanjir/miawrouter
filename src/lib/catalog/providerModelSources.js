@@ -11,7 +11,9 @@ export function buildRegistryModelSources(registry = REGISTRY) {
     const fallbackUrl = typeof validationUrl === "string" && /\/(?:models|tags)\/?(?:\?|$)/.test(validationUrl) ? validationUrl : null;
     const url = declared?.url || fallbackUrl;
     if (typeof url !== "string" || !url.startsWith("https://")) return [];
-    const auth = entry.transport?.auth?.apiKey || entry.transport?.auth || {};
+    const authRoot = entry.transport?.auth || {};
+    const auth = authRoot.apiKey || authRoot;
+    const oauth = authRoot.oauth || {};
     const raw = auth.scheme === "raw" || entry.transport?.format === "claude" || entry.transport?.format === "gemini";
     return [{
       ...declared, providerId: entry.id, url,
@@ -19,6 +21,8 @@ export function buildRegistryModelSources(registry = REGISTRY) {
       headers: { ...entry.transport?.headers, ...declared?.headers },
       authHeader: declared?.authHeader || auth.header || (entry.transport?.format === "claude" ? "x-api-key" : entry.transport?.format === "gemini" ? "x-goog-api-key" : "Authorization"),
       authPrefix: declared?.authPrefix ?? (raw ? "" : "Bearer "),
+      oauthHeader: oauth.header || "Authorization",
+      oauthPrefix: oauth.scheme === "raw" ? "" : "Bearer ",
     }];
   });
 }
@@ -42,10 +46,13 @@ export function parseRegistryModels(payload) {
 }
 
 export async function fetchRegistryModels(source, connection = {}, { fetchImpl = fetch } = {}) {
-  const token = connection.authType === "oauth" ? connection.accessToken : connection.apiKey || connection.accessToken;
+  const isOAuth = connection.authType === "oauth";
+  const token = isOAuth ? connection.accessToken : connection.apiKey || connection.accessToken;
+  const authHeader = isOAuth ? (source.oauthHeader || "Authorization") : source.authHeader;
+  const authPrefix = isOAuth ? (source.oauthPrefix ?? "Bearer ") : source.authPrefix;
   const response = await fetchImpl(source.url, {
     method: "GET", redirect: "error", signal: AbortSignal.timeout(MODEL_FETCH_TIMEOUT_MS),
-    headers: { Accept: "application/json", ...source.headers, ...(token ? { [source.authHeader]: `${source.authPrefix}${token}` } : {}) },
+    headers: { Accept: "application/json", ...source.headers, ...(token ? { [authHeader]: `${authPrefix}${token}` } : {}) },
   });
   if (!response.ok) return { models: [], status: response.status, authRequired: [401, 403].includes(response.status), warning: `Upstream model catalog returned HTTP ${response.status}.` };
   const payload = await response.json();

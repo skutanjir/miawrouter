@@ -6,16 +6,20 @@ const COLORS = {
   dim: "\x1b[2m",
   underline: "\x1b[4m",
   reverse: "\x1b[7m",
-  cyan: "\x1b[36m",
-  green: "\x1b[32m",
-  yellow: "\x1b[33m",
-  blue: "\x1b[34m",
-  white: "\x1b[37m",
+  cyan: "\x1b[38;2;217;119;87m", // warm terracotta accent replacing bright cyan
+  green: "\x1b[38;2;52;211;153m",
+  yellow: "\x1b[38;2;245;158;11m",
+  blue: "\x1b[38;2;217;119;87m",
+  white: "\x1b[38;2;244;244;245m",
   bgGreen: "\x1b[42m",
   bgBlue: "\x1b[44m",
   black: "\x1b[30m",
   terracotta: "\x1b[38;2;217;119;87m",
-  bgTerracotta: "\x1b[48;2;217;119;87m"
+  bgTerracotta: "\x1b[48;2;217;119;87m",
+  platinum: "\x1b[38;2;244;244;245m",
+  muted: "\x1b[38;2;161;161;170m",
+  subtle: "\x1b[38;2;113;113;122m",
+  border: "\x1b[38;2;63;63;70m"
 };
 
 // Prime stdin once globally. Toggling raw mode between menus adds latency on
@@ -99,23 +103,30 @@ async function selectMenu(title, items, defaultIndex = 0, subtitle = "", headerC
       if (!isActive) return;
       process.stdout.write("\x1b[2J\x1b[H");
       const width = Math.max(1, Math.min((process.stdout.columns || 64) - 4, 60));
-      console.log(`\n  ${COLORS.cyan}${COLORS.bright} /\\_/\\   MiawRouter${COLORS.reset}`);
-      console.log(`  ${COLORS.cyan}( o.o )${COLORS.reset}  Your AI, one cozy home.`);
-      console.log(`  ${COLORS.cyan} > ^ <${COLORS.reset}`);
-      console.log(`\n  ${COLORS.bright}${title}${COLORS.reset}`);
+      const divider = "─".repeat(width);
+
+      console.log(`\n  ${COLORS.terracotta}${COLORS.bright} /\\_/\\   ${COLORS.bright}${COLORS.platinum}MiawRouter${COLORS.reset}  ${COLORS.subtle}• local proxy${COLORS.reset}`);
+      console.log(`  ${COLORS.terracotta}( o.o )${COLORS.reset}  ${COLORS.muted}Your AI, one cozy home.${COLORS.reset}`);
+      console.log(`  ${COLORS.terracotta} > ^ <${COLORS.reset}`);
+      console.log(`\n  ${COLORS.bright}${COLORS.platinum}${title}${COLORS.reset}`);
       if (subtitle) console.log(`  ${subtitle}`);
-      console.log(`  ${COLORS.cyan}${"-".repeat(width)}${COLORS.reset}`);
+      console.log(`  ${COLORS.border}${divider}${COLORS.reset}`);
       if (breadcrumb.length > 0) console.log(`  ${COLORS.dim}${breadcrumb.join(" > ")}${COLORS.reset}`);
       console.log();
       if (headerContent) { console.log(headerContent); console.log(); }
 
       items.forEach((item, index) => {
-        if (index === selectedIndex) console.log(`  ${COLORS.cyan}${COLORS.bright}> ${COLORS.reverse} ${item.label} ${COLORS.reset}`);
-        else console.log(`    ${item.label}`);
+        if (index === selectedIndex) {
+          console.log(`  ${COLORS.terracotta}${COLORS.bright}> ${COLORS.reverse} ${item.label} ${COLORS.reset}`);
+        } else {
+          console.log(`    ${COLORS.muted}${item.label}${COLORS.reset}`);
+        }
       });
-      if (items[selectedIndex]?.description) console.log(`\n  ${items[selectedIndex].description}`);
-      console.log(`\n  ${COLORS.cyan}${"-".repeat(width)}${COLORS.reset}`);
-      console.log("  Up/Down: move   Enter: select   Esc: back");
+      if (items[selectedIndex]?.description) {
+        console.log(`\n  ${COLORS.terracotta}│${COLORS.reset}  ${COLORS.platinum}${items[selectedIndex].description}${COLORS.reset}`);
+      }
+      console.log(`\n  ${COLORS.border}${divider}${COLORS.reset}`);
+      console.log(`  ${COLORS.subtle}Up/Down: move   Enter: select   Esc: back${COLORS.reset}`);
     };
 
     const cleanup = () => {

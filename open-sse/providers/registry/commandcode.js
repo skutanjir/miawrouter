@@ -40,8 +40,10 @@ export default {
     { id: "claude-opus-5", name: "Claude Opus 5", contextLength: 1000000 },
     { id: "claude-opus-4-8", name: "Claude Opus 4.8", contextLength: 1000000 },
     { id: "claude-opus-4-7", name: "Claude Opus 4.7", contextLength: 1000000 },
+    { id: "claude-haiku-5-5", name: "Claude Haiku 5.5", contextLength: 1000000, maxOutputTokens: 128000 },
     { id: "claude-haiku-4-5-20251001", name: "Claude Haiku 4.5", contextLength: 200000 },
     // OpenAI / Codex Models
+    { id: "gpt-6.1-sol", name: "GPT-6.1 Sol", contextLength: 1050000 },
     { id: "gpt-6-astra", name: "GPT-6 Astra", contextLength: 1050000 },
     { id: "gpt-6-sol", name: "GPT-6 Sol", contextLength: 1050000 },
     { id: "gpt-6-luna", name: "GPT-6 Luna", contextLength: 1050000 },
@@ -98,6 +100,7 @@ export default {
     { id: "tencent/hy3-paid", name: "Tencent Hy3", contextLength: 262144 },
     { id: "tencent/hy4-preview", name: "Tencent Hy4 Preview", contextLength: 1048576 },
     // Gemini Models
+    { id: "google/gemini-4-argon", name: "Gemini 4 Argon", contextLength: 1000000 },
     { id: "google/gemini-3.8-flash", name: "Gemini 3.8 Flash", contextLength: 1000000 },
     { id: "google/gemini-3.7-flash", name: "Gemini 3.7 Flash", contextLength: 1048576 },
     { id: "google/gemini-3.6-flash", name: "Gemini 3.6 Flash", contextLength: 1000000 },
@@ -122,7 +125,6 @@ export default {
     { id: "xai/grok-4.6", name: "Grok 4.6", contextLength: 500000 },
     // Added from the live catalog on 2026-09-30.
     {"id":"claude-sonnet-5-5","name":"Claude Sonnet 5.5","contextLength":1000000},
-    {"id":"gpt-6.1-sol","name":"GPT-6.1 Sol","contextLength":1050000},
     {"id":"deepseek/deepseek-v4.1-flash-fast","name":"DeepSeek V4.1 Flash Fast","contextLength":1000000},
     {"id":"z-ai/glm-5.3-flashx","name":"GLM-5.3 FlashX","contextLength":1000000},
     {"id":"Qwen/Qwen3.8-Omni-Flash","name":"Qwen 3.8 Omni Flash","contextLength":1000000},

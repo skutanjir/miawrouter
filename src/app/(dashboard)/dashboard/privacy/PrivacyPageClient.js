@@ -1,10 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { Card, Button, Toggle, Badge, ConfirmModal, CardSkeleton } from "@/shared/components";
 import SegmentedControl from "@/shared/components/SegmentedControl";
 import { useNotificationStore } from "@/store/notificationStore";
 import { PRIVACY_MODES } from "@/lib/privacy/privacyMode";
+import { ConfigSection, ConfigRow } from "../components/ConfigSection";
+
+import { Icon } from "@/shared/components/Icon";
 
 // Mode ids + permission matrix come from the runtime (src/lib/privacy/privacyMode.js);
 // only labels/icons/descriptions and the presets below are UI-owned.
@@ -188,10 +192,12 @@ export default function PrivacyPageClient() {
 
   const blockedCount = blockedProviders.length;
   const blockedConnections = connections.filter((c) => blockedProviders.includes(c.provider));
+  const providerIds = [...new Set(connections.map((c) => c.provider))];
+  const currentMode = MODE_OPTIONS.find((m) => m.id === privacyMode);
 
   if (loading) {
     return (
-      <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
+      <div className="flex flex-col gap-6">
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -199,68 +205,65 @@ export default function PrivacyPageClient() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6 px-1 sm:px-0">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-lg sm:text-xl font-semibold flex items-center gap-2 leading-tight">
-          <span className="material-symbols-outlined text-primary">privacy_tip</span>
-          Privacy
-        </h1>
-        <p className="text-sm text-text-muted">
-          Control what MiawRouter retains locally and which providers it routes to. MiawRouter never
-          sends your data anywhere except the providers you connect — nothing leaves your machine otherwise.
-        </p>
+    <div className="flex flex-col gap-6">
+      <div className="workspace-heading">
+        <div>
+          <h1>Privacy</h1>
+          <p>
+            What this router keeps on your machine, and which providers it is allowed to route to.
+            Data only leaves your machine when a request goes to a provider you connected.
+          </p>
+        </div>
       </div>
 
       {/* Privacy mode */}
-      <Card
+      <ConfigSection
         title="Privacy mode"
-        subtitle="Choose the posture you want; the mode applies the cache settings below."
         icon="tune"
+        subtitle="Pick a posture; it acts as a permission gate over the cache and routing controls below."
       >
-        <SegmentedControl
-          ariaLabel="Privacy mode"
-          options={MODE_OPTIONS.map((m) => ({ value: m.id, label: m.label, icon: m.icon }))}
-          value={privacyMode}
-          onChange={handleModeChange}
-        />
-        <p className="text-sm text-text-muted mt-3">
-          {MODE_OPTIONS.find((m) => m.id === privacyMode)?.desc}
-        </p>
-        <p className="text-xs text-text-muted mt-1">
-          Your preference is stored in settings (<code className="font-mono">privacyMode</code>).
-          Modes act as permission gates over the toggles below: behaviors a mode forbids stay off
-          at runtime regardless of the toggle setting.
-        </p>
-      </Card>
+        <ConfigRow
+          label="Mode"
+          help={currentMode?.desc}
+          control={
+            <SegmentedControl
+              ariaLabel="Privacy mode"
+              options={MODE_OPTIONS.map((m) => ({ value: m.id, label: m.label, icon: m.icon }))}
+              value={privacyMode}
+              onChange={handleModeChange}
+            />
+          }
+        >
+          <p className="mt-1.5 text-xs text-text-muted">
+            Stored in settings as <code className="font-mono">privacyMode</code>. Behaviors a mode
+            forbids stay off at runtime regardless of the toggle value below.
+          </p>
+        </ConfigRow>
+      </ConfigSection>
 
       {/* Effective behavior matrix */}
       <Card
         title="Effective behavior"
-        subtitle="What each mode does across the router's privacy-relevant behaviors."
         icon="table_rows"
+        subtitle="What each mode does across the router's privacy-relevant behaviors."
       >
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm" aria-label="Privacy mode behavior matrix">
+        <div className="overflow-x-auto rounded-[10px] border border-border-subtle">
+          <table className="w-full border-collapse text-left text-[13px]" aria-label="Privacy mode behavior matrix">
             <thead>
               <tr className="border-b border-border">
-                <th scope="col" className="text-left font-medium text-text-muted py-2 pr-4">
+                <th scope="col" className="px-3 py-2 font-medium text-text-muted">
                   Behavior
                 </th>
                 {MODE_OPTIONS.map((m) => (
                   <th
                     key={m.id}
                     scope="col"
-                    className={`text-left font-medium py-2 px-3 whitespace-nowrap rounded-t ${
-                      privacyMode === m.id
-                        ? "bg-primary/10 text-primary"
-                        : "text-text-muted"
+                    className={`whitespace-nowrap px-3 py-2 font-medium ${
+                      privacyMode === m.id ? "bg-primary/10 text-primary" : "text-text-muted"
                     }`}
                   >
                     {m.label}
-                    {privacyMode === m.id && (
-                      <span className="ml-1.5 text-[10px] uppercase tracking-wide">· current</span>
-                    )}
+                    {privacyMode === m.id && <span className="ml-1.5 text-xs">current</span>}
                   </th>
                 ))}
               </tr>
@@ -268,12 +271,12 @@ export default function PrivacyPageClient() {
             <tbody>
               {MATRIX_ROWS.map((row) => (
                 <tr key={row.behavior} className="border-b border-border-subtle last:border-b-0">
-                  <td className="py-2.5 pr-4 text-text-main">{row.behavior}</td>
+                  <td className="px-3 py-2.5 text-text-main">{row.behavior}</td>
                   {MODE_OPTIONS.map((m) => (
                     <td
                       key={m.id}
-                      className={`py-2.5 px-3 whitespace-nowrap ${
-                        privacyMode === m.id ? "text-primary font-medium" : "text-text-muted"
+                      className={`whitespace-nowrap px-3 py-2.5 ${
+                        privacyMode === m.id ? "font-medium text-primary" : "text-text-muted"
                       }`}
                     >
                       {row.cells[m.id]}
@@ -284,18 +287,18 @@ export default function PrivacyPageClient() {
             </tbody>
           </table>
         </div>
-        <p className="text-xs text-text-muted mt-3">
+        <p className="mt-3 text-xs leading-relaxed text-text-muted">
           Provider-side prompt caching (L0) is controlled by the upstream provider and its pricing —
-          MiawRouter cannot force it off. The blocked-providers list is enforced at routing time in
+          this router cannot force it off. The blocked-providers list is enforced at routing time in
           strict and local-only modes; local-only additionally routes only to self-hosted connections.
         </p>
       </Card>
 
       {/* Cache & data retention */}
-      <Card
+      <ConfigSection
         title="Cache & data retention"
-        subtitle="Local response caches keep identical or similar responses so repeat requests never reach a provider."
         icon="database"
+        subtitle="Local response caches answer repeat requests without reaching a provider."
         action={
           <Button
             size="sm"
@@ -303,124 +306,123 @@ export default function PrivacyPageClient() {
             icon="delete_sweep"
             onClick={() => setShowClearConfirm(true)}
             disabled={clearing}
+            loading={clearing}
           >
-            {clearing ? "Clearing…" : "Clear cache"}
+            Clear cache
           </Button>
         }
       >
-        <div className="flex items-center justify-between gap-4 flex-wrap border-b border-border pb-4">
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">Exact-match cache (L1)</p>
-            <p className="text-sm text-text-muted">
-              Stores exact responses locally (in memory, TTL-bounded) for deterministic, non-streaming
-              requests. Disabling means repeat identical requests are sent to the provider again.
-            </p>
-          </div>
-          <Toggle
-            checked={cacheL1}
-            disabled={saving}
-            onChange={() => handleCacheToggle("cacheL1Enabled", !cacheL1, "Exact-match cache")}
-            ariaLabel="Exact-match cache"
-          />
-        </div>
-        <div className="flex items-center justify-between gap-4 flex-wrap py-4 border-b border-border">
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">Semantic cache (L2)</p>
-            <p className="text-sm text-text-muted">
-              Reuses responses for semantically similar requests via local embeddings. Off by default —
-              it retains more data and needs a configured embedding model.
-            </p>
-          </div>
-          <Toggle
-            checked={cacheL2}
-            disabled={saving}
-            onChange={() => handleCacheToggle("cacheL2Enabled", !cacheL2, "Semantic cache")}
-            ariaLabel="Semantic cache"
-          />
-        </div>
-        <div className="flex items-center justify-between gap-4 flex-wrap py-4 border-b border-border">
-          <div className="min-w-0 flex-1">
-            <p className="font-medium">Content dedup (L3)</p>
-            <p className="text-sm text-text-muted">
-              Rewrites repeated large blocks in the last message with compact references. Off by default
-              because it modifies the request body.
-            </p>
-          </div>
-          <Toggle
-            checked={cacheL3}
-            disabled={saving}
-            onChange={() => handleCacheToggle("cacheL3Enabled", !cacheL3, "Content dedup")}
-            ariaLabel="Content dedup"
-          />
-        </div>
-        <p className="text-xs text-text-muted pt-4">
-          Caches are in-memory and bounded (entries expire automatically).{" "}
-          <strong>Clear cache</strong> empties L1/L2/L3 immediately. Disabling every layer means the
-          router retains nothing between requests. Modes that force caching off (private-no-cache,
-          strict, local-only) override these toggles at runtime.
+        <ConfigRow
+          label="Exact-match cache (L1)"
+          help="Stores exact responses locally in memory, TTL-bounded, for deterministic non-streaming requests. Off means every identical request goes to the provider again."
+          control={
+            <Toggle
+              checked={cacheL1}
+              disabled={saving}
+              onChange={() => handleCacheToggle("cacheL1Enabled", !cacheL1, "Exact-match cache")}
+              ariaLabel="Exact-match cache"
+            />
+          }
+        />
+        <ConfigRow
+          label="Semantic cache (L2)"
+          help="Reuses responses for semantically similar requests through local embeddings. Off by default: it retains more data and needs a configured embedding model."
+          control={
+            <Toggle
+              checked={cacheL2}
+              disabled={saving}
+              onChange={() => handleCacheToggle("cacheL2Enabled", !cacheL2, "Semantic cache")}
+              ariaLabel="Semantic cache"
+            />
+          }
+        />
+        <ConfigRow
+          label="Content dedup (L3)"
+          help="Rewrites repeated large blocks in the last message as compact references. Off by default because it modifies the request body."
+          control={
+            <Toggle
+              checked={cacheL3}
+              disabled={saving}
+              onChange={() => handleCacheToggle("cacheL3Enabled", !cacheL3, "Content dedup")}
+              ariaLabel="Content dedup"
+            />
+          }
+        />
+        <p className="pt-4 text-xs leading-relaxed text-text-muted">
+          Caches are in-memory and bounded — entries expire automatically.{" "}
+          <strong className="font-medium text-text-main">Clear cache</strong> empties L1/L2/L3
+          immediately. With every layer off, the router retains nothing between requests. Modes that
+          force caching off override these toggles at runtime.
         </p>
-      </Card>
+      </ConfigSection>
 
       {/* Blocked providers */}
-      <Card
+      <ConfigSection
         title="Blocked providers"
-        subtitle="Providers listed here are never routed to in strict and local-only modes. Blocking only stops routing — your connections stay configured and active."
         icon="block"
-      >
-        {connections.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 py-4 border border-dashed border-border rounded-xl text-text-muted text-sm">
-            <span className="material-symbols-outlined text-[18px]">link_off</span>
-            <span>No provider connections configured yet.</span>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 flex-wrap mb-3">
+        subtitle="Blocked providers are never routed to in strict and local-only modes. Blocking only stops routing — connections stay configured and active."
+        action={
+          providerIds.length > 0 ? (
+            <div className="flex items-center gap-2">
               <Badge variant={blockedCount > 0 ? "error" : "default"} size="sm">
                 {blockedCount} blocked
               </Badge>
               {blockedCount > 0 && (
-                <button
-                  type="button"
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => {
-                    [...new Set(connections.map((c) => c.provider))].forEach((p) => {
+                    providerIds.forEach((p) => {
                       if (blockedProviders.includes(p)) toggleBlockProvider(p);
                     });
                   }}
-                  className="text-xs text-primary underline hover:opacity-80"
                 >
                   Unblock all
-                </button>
+                </Button>
               )}
             </div>
-            {[...new Set(connections.map((c) => c.provider))].map((providerId) => {
+          ) : null
+        }
+      >
+        {connections.length === 0 ? (
+          <div className="flex flex-col items-center gap-1.5 py-8 text-center">
+            <Icon name="link_off" className="text-[22px] text-text-muted" />
+            <p className="text-[13px] text-text-muted">
+              No provider connections configured yet, so there is nothing to block.
+            </p>
+            <Link href="/dashboard/providers" className="text-[13px] text-primary hover:underline">
+              Add a provider connection
+            </Link>
+          </div>
+        ) : (
+          <>
+            {providerIds.map((providerId) => {
               const conns = connections.filter((c) => c.provider === providerId);
               const isBlocked = blockedProviders.includes(providerId);
               return (
-                <Card.Row key={providerId}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium truncate">{conns[0]?.name || providerId}</p>
-                        <code className="text-[10px] font-mono text-text-muted">{providerId}</code>
-                        {conns.length > 1 && (
-                          <span className="text-[10px] text-text-muted">{conns.length} connections</span>
-                        )}
-                        {isBlocked && (
-                          <Badge variant="error" size="sm">
-                            <span className="flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[12px]">block</span>
-                              Blocked
-                            </span>
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-text-muted mt-0.5">
-                        {conns
-                          .map((c) => AUTH_LABELS[c.authType] || c.authType)
-                          .filter((v, i, arr) => arr.indexOf(v) === i)
-                          .join(", ") || "No auth type"}
-                      </p>
-                    </div>
+                <ConfigRow
+                  key={providerId}
+                  label={conns[0]?.name || providerId}
+                  badge={
+                    <>
+                      <code className="font-mono text-[11px] text-text-muted">{providerId}</code>
+                      {conns.length > 1 && (
+                        <span className="text-xs text-text-muted">{conns.length} connections</span>
+                      )}
+                      {isBlocked && (
+                        <Badge variant="error" size="sm" icon="block">
+                          Blocked
+                        </Badge>
+                      )}
+                    </>
+                  }
+                  help={
+                    conns
+                      .map((c) => AUTH_LABELS[c.authType] || c.authType)
+                      .filter((v, i, arr) => arr.indexOf(v) === i)
+                      .join(", ") || "No auth type"
+                  }
+                  control={
                     <Toggle
                       size="sm"
                       checked={!isBlocked}
@@ -429,44 +431,45 @@ export default function PrivacyPageClient() {
                       ariaLabel={`${providerId} routing`}
                       title={isBlocked ? "Unblock provider" : "Block provider"}
                     />
-                  </div>
-                </Card.Row>
+                  }
+                />
               );
             })}
             {blockedConnections.length > 0 && (
-              <p className="text-xs text-text-muted pt-3">
-                Blocking stops the router from sending requests to that provider in strict and
-                local-only modes; connections remain configured and active. Your blocked list is
-                stored in settings (<code className="font-mono">privacyBlockedProviders</code>).
+              <p className="pt-3 text-xs leading-relaxed text-text-muted">
+                Blocking stops the router sending requests to that provider in strict and local-only
+                modes; connections remain configured and active. The list is stored in settings as{" "}
+                <code className="font-mono">privacyBlockedProviders</code>.
               </p>
             )}
           </>
         )}
-      </Card>
+      </ConfigSection>
 
       {/* Training disclosure */}
       <Card title="Training & your data" icon="school">
-        <div className="flex flex-col gap-3 text-sm text-text-muted">
+        <div className="flex flex-col gap-3 text-[13px] leading-relaxed text-text-muted">
           <p>
-            MiawRouter cannot force an external provider to exclude your data from training. Once a
-            request reaches a provider, its use of that data (including model training) is governed by
-            that provider&apos;s terms — not by this router.
+            This router cannot force an external provider to exclude your data from training. Once a
+            request reaches a provider, that provider&apos;s terms govern what it does with the data —
+            not this router.
           </p>
-          <p>What you can control:</p>
-          <ul className="list-disc list-inside flex flex-col gap-1">
+          <p className="font-medium text-text-main">What you can control</p>
+          <ul className="list-disc space-y-1 pl-5">
             <li>
-              <strong className="text-text-main">Don&apos;t send data</strong> — block providers above
-              (enforced in strict and local-only modes) or remove their connections. This is the only
-              guarantee that a provider never sees the data.
+              <strong className="font-medium text-text-main">Don&apos;t send it</strong> — block
+              providers above (enforced in strict and local-only modes) or remove their connections.
+              This is the only guarantee that a provider never sees the data.
             </li>
             <li>
-              <strong className="text-text-main">Don&apos;t retain locally</strong> — disable all cache
-              layers and clear the cache above; the router then keeps nothing between requests.
+              <strong className="font-medium text-text-main">Don&apos;t retain it locally</strong> —
+              disable every cache layer and clear the cache above; the router then keeps nothing
+              between requests.
             </li>
             <li>
-              <strong className="text-text-main">Keep it local</strong> — self-hosted providers
-              (whisper.cpp, llama.cpp, vLLM, Kokoro) never leave your machine, and the local-only
-              mode restricts routing to them. Nothing is sent to any provider you haven&apos;t connected.
+              <strong className="font-medium text-text-main">Keep it local</strong> — self-hosted
+              providers (whisper.cpp, llama.cpp, vLLM, Kokoro) never leave your machine, and
+              local-only mode restricts routing to them.
             </li>
           </ul>
         </div>

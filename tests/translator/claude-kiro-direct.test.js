@@ -151,19 +151,24 @@ describe("Claude → Kiro (direct route)", () => {
     }
   );
 
-  it.each(["none", "off", "disabled"])(
-    "keeps GPT-5.6 reasoning intentionally disabled for effort %s",
-    (effort) => {
-      const out = C2K({
-        output_config: { effort },
-        messages: [{ role: "user", content: "Do not reason" }],
-      }, null, "gpt-5.6-sol");
+  it.each([
+    ["none", { reasoning: { effort: "none" } }],
+    ["off", undefined],
+    ["disabled", undefined],
+  ])("translates GPT-5.6 effort %s according to Kiro's native schema", (effort, expected) => {
+    const out = C2K({
+      output_config: { effort },
+      messages: [{ role: "user", content: "Do not reason" }],
+    }, null, "gpt-5.6-sol");
 
+    if (expected) {
+      expect(out.additionalModelRequestFields).toEqual(expected);
+    } else {
       expect(out.additionalModelRequestFields).toBeUndefined();
-      expect(out.systemPrompt || "").not.toContain("<thinking_mode>");
-      expect(out.systemPrompt || "").not.toContain("<max_thinking_length>");
     }
-  );
+    expect(out.systemPrompt || "").not.toContain("<thinking_mode>");
+    expect(out.systemPrompt || "").not.toContain("<max_thinking_length>");
+  });
 
   it("keeps explicit Claude effort ahead of an injected OpenAI effort", () => {
     const out = C2K({

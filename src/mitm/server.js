@@ -6,18 +6,15 @@ const path = require("path");
 const dns = require("dns");
 const { promisify } = require("util");
 const { execSync } = require("child_process");
-const { log, err, dumpRequest, createResponseDumper, clearDumpDir, createCursorCapture } = require("./logger");
-const { IS_DEV, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, getToolForHost, extractModel } = require("./config");
+const { log, err, dumpRequest, createResponseDumper, createCursorCapture } = require("./logger");
+const { ENABLE_FILE_LOG, LSOF_BIN, TARGET_HOSTS, URL_PATTERNS, MODEL_SYNONYMS, MODEL_PATTERNS, MODEL_NO_MAP, getToolForHost, extractModel } = require("./config");
 const { DATA_DIR, MITM_DIR } = require("./paths");
 const { generateCert, getCertForDomain } = require("./cert/generate");
 const { getMitmAlias } = require("./dbReader");
 const { applyAntigravityIdeVersionOverride } = require("./antigravityIdeVersion");
 const LOCAL_PORT = 443;
 const IS_WIN = process.platform === "win32";
-const ENABLE_FILE_LOG = IS_DEV;
 
-// Clear stale dump files on every MITM start (prevents unbounded disk usage)
-clearDumpDir();
 const INTERNAL_REQUEST_HEADER = { name: "x-request-source", value: "local" };
 
 // Host rewrite for upstream forward: PROD cloudcode-pa is rate-limited (429),
@@ -118,6 +115,8 @@ function getMappedModel(tool, model) {
     const normalizedModel = String(model).replace(/^models\//, "");
     const lookup = MODEL_SYNONYMS?.[tool]?.[normalizedModel] || normalizedModel;
     if (aliases?.[lookup]) return aliases[lookup];
+    // Never map an unconfigured Argon tier to a different tier by prefix.
+    if (tool === "antigravity" && /^gemini-4-argon(?:-|$)/i.test(lookup)) return null;
     // Prefix match fallback
     const prefixKey = Object.keys(aliases || {}).find(k => k && aliases[k] && (lookup.startsWith(k) || k.startsWith(lookup)));
     if (prefixKey) return aliases[prefixKey];
@@ -181,7 +180,7 @@ async function negotiateAlpn(host) {
   return new Promise((resolve, reject) => {
     const socket = tls.connect({
       host: ip, port: 443, servername: host,
-      ALPNProtocols: ["h2", "http/1.1"], rejectUnauthorized: false,
+      ALPNProtocols: ["h2", "http/1.1"],
     }, () => {
       const proto = socket.alpnProtocol || "http/1.1";
       alpnCache.set(host, proto);
@@ -214,7 +213,7 @@ async function passthroughHttp2(req, res, bodyBuffer, headers, targetHost, onRes
     const client = http2.connect(`https://${targetHost}`, {
       createConnection: () => tls.connect({
         host: targetIP, port: 443, servername: targetHost,
-        ALPNProtocols: ["h2"], rejectUnauthorized: false,
+        ALPNProtocols: ["h2"],
       }),
     });
     client.once("error", (e) => {
@@ -299,7 +298,7 @@ async function relayAgentService(req, res, host, initialData = null) {
   const client = http2.connect(`https://${targetHost}`, {
     createConnection: () => tls.connect({
       host: targetIP, port: 443, servername: targetHost,
-      ALPNProtocols: ["h2"], rejectUnauthorized: false,
+      ALPNProtocols: ["h2"],
     }),
   });
 
@@ -394,7 +393,6 @@ async function passthroughHttps(req, res, bodyBuffer, headers, targetHost, onRes
     method: req.method,
     headers,
     servername: targetHost,
-    rejectUnauthorized: false
   }, (forwardRes) => {
     res.writeHead(forwardRes.statusCode, forwardRes.headers);
     if (dumper) dumper.writeHeader(forwardRes.statusCode, forwardRes.headers);

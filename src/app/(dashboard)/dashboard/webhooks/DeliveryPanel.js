@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { Modal, Badge, Button, Skeleton } from "@/shared/components";
 import { cn } from "@/shared/utils/cn";
+
+import { Icon } from "@/shared/components/Icon";
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
 
@@ -19,11 +21,15 @@ function timeAgo(ts) {
 function formatTimestamp(ts) {
   if (!ts) return "—";
   try {
-    const d = typeof ts === "string" ? new Date(ts) : new Date(ts);
-    return d.toLocaleString();
+    return new Date(ts).toLocaleString();
   } catch {
     return String(ts);
   }
+}
+
+function toMillis(ts) {
+  if (!ts) return null;
+  return typeof ts === "string" ? new Date(ts).getTime() : ts;
 }
 
 function statusBadge(status) {
@@ -67,7 +73,7 @@ function statusBadge(status) {
     case "queue_full":
       return (
         <Badge variant="error" size="sm">
-          Queue Full
+          Queue full
         </Badge>
       );
     default:
@@ -75,56 +81,40 @@ function statusBadge(status) {
   }
 }
 
-/* ── Delivery Detail ──────────────────────────────────────────────── */
+/* ── Delivery detail ──────────────────────────────────────────────── */
 
 function DeliveryDetail({ delivery }) {
-  if (!delivery) return null;
+  const facts = [
+    { label: "Event", value: delivery.event, mono: true },
+    { label: "Created", value: formatTimestamp(delivery.createdAt) },
+    delivery.responseStatus > 0
+      ? { label: "Response", value: `HTTP ${delivery.responseStatus}`, mono: true }
+      : null,
+    delivery.attempts > 0 ? { label: "Attempts", value: String(delivery.attempts), mono: true } : null,
+    delivery.error ? { label: "Error", value: delivery.error, danger: true } : null,
+  ].filter(Boolean);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3 flex-wrap">
-        {statusBadge(delivery.status)}
-        {delivery.attempts > 0 && (
-          <span className="text-xs text-text-muted">
-            attempt {delivery.attempts}
-          </span>
-        )}
-        {delivery.responseStatus > 0 && (
-          <span className="text-xs font-mono text-text-muted">
-            HTTP {delivery.responseStatus}
-          </span>
-        )}
-        {delivery.error && (
-          <span className="text-xs text-red-500">{delivery.error}</span>
-        )}
-      </div>
-
-      {delivery.event && (
-        <div>
-          <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
-            Event
-          </h4>
-          <code className="text-xs font-mono text-text-main bg-surface-2 px-2 py-1 rounded inline-block">
-            {delivery.event}
-          </code>
+    <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
+      {facts.map((fact) => (
+        <div key={fact.label} className="min-w-0">
+          <dt className="text-xs text-text-muted">{fact.label}</dt>
+          <dd
+            className={cn(
+              "mt-0.5 break-all text-[13px]",
+              fact.mono && "font-mono",
+              fact.danger ? "text-danger" : "text-text-main"
+            )}
+          >
+            {fact.value}
+          </dd>
         </div>
-      )}
-
-      {delivery.createdAt && (
-        <div>
-          <h4 className="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1">
-            Created
-          </h4>
-          <p className="text-xs text-text-muted">
-            {formatTimestamp(delivery.createdAt)}
-          </p>
-        </div>
-      )}
-    </div>
+      ))}
+    </dl>
   );
 }
 
-/* ── Main Delivery Panel ──────────────────────────────────────────── */
+/* ── Main delivery panel ──────────────────────────────────────────── */
 
 export default function DeliveryPanel({ webhook, onClose }) {
   const [deliveries, setDeliveries] = useState([]);
@@ -165,131 +155,109 @@ export default function DeliveryPanel({ webhook, onClose }) {
       size="full"
     >
       <div className="flex flex-col gap-4">
-        {/* Top bar */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-text-muted">
-            {loading ? "Loading…" : `${deliveries.length} deliveries`}
-          </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={load}
-            disabled={loading}
-            icon="refresh"
-          >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate font-mono text-xs text-text-muted">{webhook.url}</p>
+            <p className="text-[13px] text-text-muted tabular-nums">
+              {loading ? "Loading delivery log…" : `${deliveries.length} delivery record${deliveries.length === 1 ? "" : "s"}`}
+            </p>
+          </div>
+          <Button variant="secondary" size="sm" onClick={load} disabled={loading} icon="refresh">
             Refresh
           </Button>
         </div>
 
         {error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
-            {error}
+          <div className="flex items-start justify-between gap-4 rounded-md border border-danger/30 bg-danger/10 px-3 py-2">
+            <p className="text-[13px] text-danger">
+              Could not load deliveries — {error}
+            </p>
+            <Button variant="secondary" size="sm" onClick={load}>
+              Retry
+            </Button>
           </div>
         )}
 
         {loading ? (
-          <div className="space-y-2">
+          <div className="flex flex-col gap-2">
             {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-14 rounded-lg" />
+              <Skeleton key={i} className="h-12 rounded-md" />
             ))}
           </div>
         ) : deliveries.length === 0 ? (
-          <div className="text-center py-8">
-            <span className="material-symbols-outlined text-[40px] text-text-muted/40 mb-3 block">
-              send
-            </span>
-            <p className="text-sm text-text-muted">No deliveries yet</p>
-            <p className="text-xs text-text-muted mt-1">
-              Deliveries appear here once events are triggered for this webhook.
+          <div className="flex flex-col items-center gap-1.5 rounded-md border border-border-subtle bg-surface-2/40 px-4 py-10 text-center">
+            <Icon name="send" className="text-[24px] text-text-muted" />
+            <p className="text-sm font-medium text-text-main">No deliveries recorded</p>
+            <p className="max-w-sm text-[13px] text-text-muted">
+              Records appear here once this webhook&apos;s events fire and a delivery is attempted.
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto custom-scrollbar -mx-1 px-1">
-            {deliveries.map((dlv, idx) => {
-              const id = dlv.id || `dlv-${idx}`;
-              const isExpanded = selected === id;
-              return (
-                <div key={id}>
-                  <button
-                    onClick={() => setSelected(isExpanded ? null : id)}
-                    className={cn(
-                      "w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left cursor-pointer",
-                      isExpanded
-                        ? "bg-surface-2 border border-border"
-                        : "bg-surface-2/50 border border-transparent hover:bg-surface-2 hover:border-border-subtle"
-                    )}
-                  >
-                    {/* Status dot */}
-                    <div
-                      className={cn(
-                        "size-2 rounded-full shrink-0",
-                        dlv.status === "delivered" && "bg-green-500",
-                        dlv.status === "failed" && "bg-red-500",
-                        dlv.status === "retrying" && "bg-yellow-500",
-                        dlv.status === "delivering" && "bg-blue-500",
-                        dlv.status === "pending" && "bg-gray-400",
-                        dlv.status === "duplicate" && "bg-gray-300"
+          <div className="max-h-[60vh] overflow-y-auto rounded-md border border-border-subtle">
+            <table className="w-full border-collapse text-left" aria-label="Webhook deliveries">
+              <thead className="sticky top-0 bg-surface">
+                <tr className="border-b border-border text-[13px] text-text-muted">
+                  <th scope="col" className="px-3 py-2 font-medium">Time</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Event</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Status</th>
+                  <th scope="col" className="px-3 py-2 font-medium">HTTP</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Attempts</th>
+                  <th scope="col" className="w-8 px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {deliveries.map((dlv, idx) => {
+                  const id = dlv.id || `dlv-${idx}`;
+                  const isExpanded = selected === id;
+                  return (
+                    <Fragment key={id}>
+                      <tr
+                        className={cn(
+                          "border-b border-border-subtle transition-colors",
+                          isExpanded ? "bg-surface-2" : "hover:bg-surface-2/50"
+                        )}
+                      >
+                        <td className="px-3 py-2.5 text-[13px] text-text-muted tabular-nums">
+                          {dlv.createdAt ? timeAgo(toMillis(dlv.createdAt)) : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <code className="font-mono text-xs text-text-main">{dlv.event || "—"}</code>
+                        </td>
+                        <td className="px-3 py-2.5">{statusBadge(dlv.status)}</td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-text-muted">
+                          {dlv.responseStatus > 0 ? dlv.responseStatus : "—"}
+                        </td>
+                        <td className="px-3 py-2.5 font-mono text-xs text-text-muted">
+                          {dlv.attempts > 0 ? dlv.attempts : "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelected(isExpanded ? null : id)}
+                            aria-expanded={isExpanded}
+                            aria-label={isExpanded ? "Hide delivery details" : "Show delivery details"}
+                            className="rounded-md p-1 text-text-muted transition-colors hover:bg-surface-2 hover:text-text-main"
+                          >
+                            <Icon
+                              name="expand_more"
+                              className="text-[16px] transition-transform duration-150"
+                              style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0)" }}
+                            />
+                          </button>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-border-subtle bg-surface-2/60">
+                          <td colSpan={6} className="px-3 py-3">
+                            <DeliveryDetail delivery={dlv} />
+                          </td>
+                        </tr>
                       )}
-                    />
-
-                    {/* Event name */}
-                    <code className="text-xs font-mono text-text-main shrink-0">
-                      {dlv.event || "—"}
-                    </code>
-
-                    {/* Spacer */}
-                    <span className="flex-1" />
-
-                    {/* Status badge */}
-                    {statusBadge(dlv.status)}
-
-                    {/* HTTP status */}
-                    {dlv.responseStatus > 0 && (
-                      <span className="text-[11px] font-mono text-text-muted shrink-0">
-                        {dlv.responseStatus}
-                      </span>
-                    )}
-
-                    {/* Attempts */}
-                    {dlv.attempts > 1 && (
-                      <span className="text-[10px] text-text-muted shrink-0">
-                        ×{dlv.attempts}
-                      </span>
-                    )}
-
-                    {/* Timestamp */}
-                    <span className="text-[11px] text-text-muted shrink-0">
-                      {dlv.createdAt
-                        ? timeAgo(
-                            typeof dlv.createdAt === "string"
-                              ? new Date(dlv.createdAt).getTime()
-                              : dlv.createdAt
-                          )
-                        : "—"}
-                    </span>
-
-                    {/* Expand indicator */}
-                    <span
-                      className="material-symbols-outlined text-[16px] text-text-muted transition-transform shrink-0"
-                      style={{
-                        transform: isExpanded
-                          ? "rotate(180deg)"
-                          : "rotate(0)",
-                      }}
-                    >
-                      expand_more
-                    </span>
-                  </button>
-
-                  {/* Expanded detail */}
-                  {isExpanded && (
-                    <div className="mt-1 ml-5 mr-1 mb-2 p-3 rounded-lg bg-surface border border-border-subtle">
-                      <DeliveryDetail delivery={dlv} />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

@@ -256,6 +256,39 @@ describe("concurrencyLimiter unit tests", () => {
 });
 
 describe("BaseExecutor streaming concurrency regression test", () => {
+  it("stops a scheduled retry promptly after the client aborts", async () => {
+    fetchMock.mockResolvedValueOnce({ status: 503, ok: false, headers: { get: () => null } });
+    const executor = new BaseExecutor("abort-retry-test", { baseUrl: "https://api.test/v1", retry: { 503: { attempts: 1, delayMs: 10000 } } });
+    const controller = new AbortController();
+    const pending = executor.execute({ model: "test", body: {}, stream: false, credentials: { apiKey: "test-key" }, signal: controller.signal });
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(getConcurrencyStats().active).toBe(0);
+  });
+  it("releases its slot while waiting to retry", async () => {
+    fetchMock.mockResolvedValueOnce({ status: 503, ok: false, headers: { get: () => null } });
+    fetchMock.mockResolvedValueOnce({ status: 200, ok: true, headers: { get: () => null }, body: null });
+    const executor = new BaseExecutor("retry-test", { baseUrl: "https://api.test/v1", retry: { 503: { attempts: 1, delayMs: 100 } } });
+    const pending = executor.execute({ model: "test", body: {}, stream: false, credentials: { apiKey: "test-key" } });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(getConcurrencyStats().active).toBe(0);
+    expect((await pending).response.status).toBe(200);
+  });
+
+  it("releases the slot when the upstream stream errors", async () => {
+    const stream = new ReadableStream({
+      pull(controller) { controller.error(new Error("upstream disconnected")); },
+    });
+    fetchMock.mockResolvedValueOnce({ status: 200, ok: true, headers: { get: () => "text/event-stream" }, body: stream });
+    const executor = new BaseExecutor("test-prov", { baseUrl: "https://api.test/v1" });
+    const result = await executor.execute({ model: "test", body: {}, stream: true, credentials: { apiKey: "test-key" } });
+
+    await expect(result.response.body.getReader().read()).rejects.toThrow("upstream disconnected");
+    expect(getConcurrencyStats().active).toBe(0);
+  });
+
   it("releases the slot after the streaming body is consumed", async () => {
     const origGlobal = CONCURRENCY_CONFIG.globalMax;
 

@@ -2,6 +2,7 @@
 
 import Card from "./Card";
 
+import { Icon } from "@/shared/components/Icon";
 // Only show fields user actually cares about
 const FIELD_SCHEMA = {
   mode:             { label: "Mode",       format: (v) => v },
@@ -10,7 +11,7 @@ const FIELD_SCHEMA = {
   costPerQuery:     { label: "Cost / call", format: (v) => v === 0 ? "Free" : `$${v.toFixed(4)}` },
   pricingUrl:       { label: "Pricing",    format: () => "View pricing", isLink: true },
   freeTier:         { label: "Free tier",  format: (v) => v },
-  freeMonthlyQuota: { label: "Free quota",  format: (v) => v === 0 ? "—" : v >= 999999 ? "Unlimited" : `${v.toLocaleString()} / mo` },
+  freeMonthlyQuota: { label: "Free quota",  format: (v) => v === 0 ? "-" : v >= 999999 ? "Unlimited" : `${v.toLocaleString()} / mo` },
   searchTypes:      { label: "Types",      format: (v) => v.join(", ") },
   formats:          { label: "Formats",    format: (v) => v.join(", ") },
   maxMaxResults:    { label: "Max results", format: (v) => v },
@@ -36,8 +37,8 @@ export default function ProviderInfoCard({ config, provider, title = "Provider I
 
   return (
     <Card>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[15px] font-semibold text-text-main">{title}</h2>
         {signupUrl && (
           <a
             href={signupUrl}
@@ -45,7 +46,7 @@ export default function ProviderInfoCard({ config, provider, title = "Provider I
             rel="noopener noreferrer"
             className="text-xs text-primary hover:underline inline-flex items-center gap-1"
           >
-            <span className="material-symbols-outlined text-sm">open_in_new</span>
+            <Icon name={"open_in_new"} className=" text-sm" />
             Get API Key
           </a>
         )}

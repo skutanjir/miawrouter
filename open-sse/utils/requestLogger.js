@@ -69,25 +69,31 @@ function writeJsonFile(sessionPath, filename, data) {
   }
 }
 
-// Mask sensitive data in headers (DISABLED - keep full token for testing)
-function maskSensitiveHeaders(headers) {
+// Request logging must not persist credentials, even when explicitly enabled.
+export function maskSensitiveHeaders(headers) {
   if (!headers) return {};
-  return { ...headers };
-  
-  // Old masking code (disabled):
-  // const masked = { ...headers };
-  // const sensitiveKeys = ["authorization", "x-api-key", "cookie", "token"];
-  // 
-  // for (const key of Object.keys(masked)) {
-  //   const lowerKey = key.toLowerCase();
-  //   if (sensitiveKeys.some(sk => lowerKey.includes(sk))) {
-  //     const value = masked[key];
-  //     if (value && value.length > 20) {
-  //       masked[key] = value.slice(0, 10) + "..." + value.slice(-5);
-  //     }
-  //   }
-  // }
-  // return masked;
+  const entries = Array.isArray(headers) ? headers : typeof headers.entries === "function" ? headers.entries() : Object.entries(headers);
+  return Object.fromEntries(Array.from(entries, ([key, value]) => [
+    key,
+    /authorization|cookie|api[-_]?key|token|secret/i.test(key) ? "[redacted]" : value,
+  ]));
+}
+
+export function maskSensitiveUrl(value) {
+  if (typeof value !== "string") return value;
+  try {
+    const relative = value.startsWith("/") && !value.startsWith("//");
+    const url = relative ? new URL(value, "http://localhost") : new URL(value);
+    if (url.username) url.username = "redacted";
+    if (url.password) url.password = "redacted";
+    url.hash = "";
+    for (const key of Array.from(url.searchParams.keys())) {
+      if (/authorization|api[-_]?key|token|secret|password|^key$/i.test(key)) url.searchParams.set(key, "[redacted]");
+    }
+    return relative ? `${url.pathname}${url.search}${url.hash}` : url.toString();
+  } catch {
+    return "[invalid URL]";
+  }
 }
 
 // No-op logger when logging is disabled
@@ -132,7 +138,7 @@ export async function createRequestLogger(sourceFormat, targetFormat, model, opt
     logClientRawRequest(endpoint, body, headers = {}) {
       writeJsonFile(sessionPath, "1_req_client.json", {
         timestamp: new Date().toISOString(),
-        endpoint,
+        endpoint: maskSensitiveUrl(endpoint),
         headers: maskSensitiveHeaders(headers),
         body
       });
@@ -159,7 +165,7 @@ export async function createRequestLogger(sourceFormat, targetFormat, model, opt
     logTargetRequest(url, headers, body) {
       writeJsonFile(sessionPath, "4_req_target.json", {
         timestamp: new Date().toISOString(),
-        url,
+        url: maskSensitiveUrl(url),
         headers: maskSensitiveHeaders(headers),
         body
       });
@@ -172,7 +178,7 @@ export async function createRequestLogger(sourceFormat, targetFormat, model, opt
         timestamp: new Date().toISOString(),
         status,
         statusText,
-        headers: headers ? (typeof headers.entries === "function" ? Object.fromEntries(headers.entries()) : headers) : {},
+        headers: maskSensitiveHeaders(headers),
         body
       });
     },
@@ -249,7 +255,7 @@ export function logError(provider, { error, url, model, requestBody }) {
       type: "error",
       provider,
       model,
-      url,
+      url: maskSensitiveUrl(url),
       error: error?.message || String(error),
       stack: error?.stack,
       requestBody

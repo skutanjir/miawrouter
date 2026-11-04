@@ -1,17 +1,18 @@
 # Security Policy
 
-Security policy for the MiawRouter local AI routing gateway and dashboard. This document covers the current production state of the project (version 1.1.x). Claims here are backed by project audits, static analysis gates, and real-time security guards in the current source.
+Security policy for the MiawRouter local AI routing gateway and dashboard. Version 1.2.4 is the latest published release; 1.2.5 is under development. Security controls and verification limits for the 1.2.5 work are recorded in `docs/release-1.2.5-audit.md`.
 
 ## Supported version
 
 | Version | Supported |
 | --- | --- |
-| 1.1.x (current release, root and `cli/` packages) | Yes |
+| 1.2.4 (published release) | Yes |
+| 1.2.5 (development) | Not yet released |
 | < 1.1.1 | No |
 
 ## Reporting a vulnerability
 
-Report through the private reporting mechanism of the repository or distribution you obtained this build from. This project is a private fork; if the place you got it offers GitHub private vulnerability reporting, use that. Otherwise, contact your operator privately, or report privately to whoever maintains your distribution.
+Report through the private reporting mechanism of the repository or distribution you obtained this build from. If the repository offers GitHub private vulnerability reporting, use that. Otherwise, contact the maintainer or your operator privately.
 
 The upstream project's tracker is only for issues that reproduce on unmodified upstream software. Do not report vulnerabilities that are specific to this modified fork there, because upstream does not own this fork's changes.
 
@@ -37,7 +38,7 @@ What we do not protect against by design:
 
 The audit fixes of 2026-08-08 and 2026-08-09 are in place in this tree:
 
-- **Generated, persisted 0600 secrets.** `JWT_SECRET`, `API_KEY_SECRET`, and `MACHINE_ID_SALT` default to 32-byte random values generated on first boot and persisted to `$DATA_DIR/jwt-secret`, `$DATA_DIR/api-key-secret`, and `$DATA_DIR/machine-id-salt`, all mode 0600. A strong user-supplied value is honored; known weak values are rejected at startup (`secret-policy.cjs`), before the listener binds.
+- **Generated, persisted secrets.** `JWT_SECRET`, `API_KEY_SECRET`, and `MACHINE_ID_SALT` default to 32-byte random values generated on first boot and persisted to `$DATA_DIR/jwt-secret`, `$DATA_DIR/api-key-secret`, and `$DATA_DIR/machine-id-salt`. On Unix, files are set to mode 0600. Windows uses filesystem ACLs rather than POSIX mode bits; explicit ACL hardening and validation remain outstanding. A strong user-supplied value is honored; known weak values are rejected at startup (`secret-policy.cjs`), before the listener binds.
 - **`REQUIRE_API_KEY` defaults on.** Fresh installs require a valid API key on `/v1/*` and `/v1beta/*`, including the model catalogs. `true` forces enforcement on, `false` explicitly opts out, and any other value falls back to the persisted setting. This closed the previously public model catalog.
 - **No default password.** The shared `123456` fallback was removed. With no saved hash, every bootstrap path is local-only: an explicit `INITIAL_PASSWORD` is bcrypt-persisted on first successful local login, or the dashboard presents a localhost-only create-password form with an 8-character minimum. Remote no-hash requests return 403. Password reset clears the hash back to setup-required.
 - **Localhost-only setup posture.** First-run password creation and `INITIAL_PASSWORD` bootstrap both require loopback access.
@@ -59,6 +60,7 @@ Follow-up fixes landed and are reflected here:
 The following capabilities carry real security exposure and are intentionally preserved for this phase. They are inventory-only per the audit; they are not removed, disabled, or planned for removal unless the owner reverses that decision. Using any of them means accepting its risk:
 
 - **MITM proxy (`src/mitm/`).** Terminates TLS via a generated local root CA to intercept IDE traffic. It can read plaintext prompts and responses between your tools and the gateway.
+- Raw development MITM dumps are disabled unless `NODE_ENV=development` and `MITM_DEBUG_CAPTURE=1`. They may contain prompts, responses, or tool data even though credential headers and URL query strings are redacted. Treat capture files as sensitive.
 - **Subscription OAuth session extraction, import, and proxying.** OAuth tokens are extracted from CLI/IDE login sessions and proxied or refreshed (`/api/oauth/*/start-proxy`, Kiro CLI proxy import). Imported credentials are stored locally.
 - **Codex bulk import.** Accepts one or more Codex OAuth account objects including access tokens.
 - **Cursor/Kiro auto-import.** Reads IDE config files and imports stored credentials automatically.
@@ -85,11 +87,11 @@ from the general request dumps and is completely inactive unless
   sanitized prompt for the test turn, disable the capture immediately
   afterward, and delete captures under `$DATA_DIR/logs/mitm/cursor-capture/`
   after analysis.
-- **Local and restrictive.** Files live under
-  `$DATA_DIR/logs/mitm/cursor-capture/` with directory mode 0700 and file mode
-  0600, capped at 4 MiB request / 16 MiB response per stream. Capture errors
-  fail open and never affect relay flow or backpressure. `clearDumpDir()`
-  removes this subdirectory on every MITM start.
+- **Local capture files.** Files live under `$DATA_DIR/logs/mitm/cursor-capture/`,
+  with directory mode 0700 and file mode 0600 on Unix, capped at 4 MiB request /
+  16 MiB response per stream. Windows ACLs require separate verification.
+  Capture errors fail open and never affect relay flow or backpressure. Captures
+  are retained across MITM restarts; manage their retention explicitly.
 
 ## Operator guidance
 
@@ -97,7 +99,7 @@ Safe deployment requires at least the following:
 
 - Set a strong `INITIAL_PASSWORD` and complete the first login over localhost, or create the dashboard password through the localhost-only form. Never skip this on a shared machine.
 - Leave `REQUIRE_API_KEY` on `true` unless you have a specific reason to expose the API anonymously.
-- Do not set `JWT_SECRET`, `API_KEY_SECRET`, or `MACHINE_ID_SALT` unless you have strong random values ready. Unset, they generate and persist their own 0600 secrets. Never copy placeholder values from documentation, including the gitbook and i18n examples, which still carry weak literals and are rejected at boot.
+- Do not set `JWT_SECRET`, `API_KEY_SECRET`, or `MACHINE_ID_SALT` unless you have strong random values ready. Unset, they generate and persist their own secrets. Never copy placeholder values from documentation, including the gitbook and i18n examples, which still carry weak literals and are rejected at boot.
 - Back up `$DATA_DIR`. The secrets and the SQLite database live there; losing the directory loses both your config and the secrets needed to validate your API keys and sessions.
 - Keep the service bound to localhost unless you are deliberately exposing it. The Docker default is `HOSTNAME=0.0.0.0`, which widens the attack surface to the network; put the gateway behind an authenticated reverse proxy and set `AUTH_COOKIE_SECURE=true` when serving over HTTPS.
 - Treat the retained MITM, OAuth-import, spoofing, and quota-ping features as sensitive. Do not enable the MITM root CA or auto-import on machines you do not fully control.

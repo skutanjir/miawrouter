@@ -260,19 +260,14 @@ export async function buildModelsList(kindFilter, options = {}) {
   // MiawRouter instance's fetchCompatibleModelIds — skip dynamic fetch to break
   // cross-instance recursive loops.
   const skipDynamicFetch = options.skipDynamicFetch === true;
-  let connections = [];
-  try {
-    connections = await getProviderConnections();
-    connections = connections.filter(c =>
-      c.isActive !== false && [c.apiKey, c.accessToken, c.refreshToken, c.idToken]
-        .some(value => typeof value === "string" && value.trim() !== "")
-    );
-    const storedProviders = new Set(connections.map((connection) => connection.provider));
-    connections.push(...buildNoAuthConnections(AI_PROVIDERS)
-      .filter((connection) => !storedProviders.has(connection.provider)));
-  } catch (e) {
-    console.log("Could not fetch providers, returning no models");
-  }
+  let connections = await getProviderConnections();
+  connections = connections.filter(c =>
+    c.isActive !== false && [c.apiKey, c.accessToken, c.refreshToken, c.idToken]
+      .some(value => typeof value === "string" && value.trim() !== "")
+  );
+  const storedProviders = new Set(connections.map((connection) => connection.provider));
+  connections.push(...buildNoAuthConnections(AI_PROVIDERS)
+    .filter((connection) => !storedProviders.has(connection.provider)));
 
   if (connections.length === 0) return [];
 

@@ -13,6 +13,7 @@ import { ConfirmModal } from "./Modal";
 import BrandAsset from "./BrandAsset";
 
 
+import { Icon } from "@/shared/components/Icon";
 // const VISIBLE_MEDIA_KINDS = ["embedding", "image", "imageToText", "tts", "stt", "webSearch", "webFetch", "video", "music"];
 const VISIBLE_MEDIA_KINDS = ["embedding", "image", "video", "tts", "stt"];
 // Combined entry: webSearch + webFetch share one page at /dashboard/media-providers/web
@@ -23,7 +24,8 @@ const COMBINED_WEB_ITEM = { id: "web", label: "Web Fetch & Search", icon: "trave
 // comingSoon items render as disabled with a "Soon" badge.
 
 const coreItems = [
-  { href: "/dashboard/endpoint", label: "Endpoint & Key", icon: "api" },
+  { href: "/dashboard", label: "Overview", icon: "dashboard" },
+  { href: "/dashboard/endpoint", label: "Endpoint & Key", icon: "vpn_key" },
   { href: "/dashboard/providers", label: "Providers", icon: "dns" },
   { href: "/dashboard/health", label: "Health", icon: "ecg_heart" },
   { href: "/dashboard/runtime", label: "Runtime", icon: "memory" },
@@ -77,7 +79,7 @@ const agentItems = [
 ];
 
 const debugItems = [
-  { href: "/dashboard/console-log", label: "Console Log", icon: "terminal" },
+  { href: "/dashboard/console-log", label: "Console Log", icon: "monitor" },
   { href: "/dashboard/translator", label: "Translator", icon: "translate" },
 ];
 
@@ -86,26 +88,34 @@ const systemItems = [
 ];
 
 // ── Nav item renderer ────────────────────────────────────────────────
-function NavItem({ item, active, onClick, indented }) {
+function NavItem({ item, active, onClick, indented, compact = false }) {
   const base = cn(
     "nav-item group",
-    indented && "pl-7",
+    indented && "pl-6 py-1.5 min-h-[32px]",
+    compact && "py-1.5 min-h-[33px]",
     active && "nav-item-active",
     item.comingSoon && "opacity-50 cursor-not-allowed pointer-events-none"
   );
 
-  const iconClass = cn(
-    "material-symbols-outlined shrink-0",
-    indented ? "text-[15px]" : "text-[17px]",
-    active ? "text-primary fill-1" : !item.comingSoon && "text-text-muted group-hover:text-text-main transition-colors"
-  );
-
   const content = (
     <>
-      <span className={iconClass}>{item.icon}</span>
-      <span className={cn("truncate", indented ? "text-xs" : "text-[13px]", "flex-1")}>{item.label}</span>
+      <Icon
+        name={item.icon}
+        weight="duotone"
+        className={cn(
+          "shrink-0 transition-transform duration-150 group-hover:scale-105",
+          indented || compact ? "text-[15px]" : "text-[17px]",
+          active
+            ? "text-primary"
+            : !item.comingSoon && "text-text-muted group-hover:text-primary transition-colors"
+        )}
+      />
+      <span className={cn("truncate", indented || compact ? "text-[12.5px]" : "text-[13px]", "flex-1")}>{item.label}</span>
+      {active && (
+        <span className="size-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
+      )}
       {item.comingSoon && (
-        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-bg-hover text-text-muted border border-border-subtle select-none">
+        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-bg-hover text-text-muted border border-border-subtle select-none">
           Soon
         </span>
       )}
@@ -113,7 +123,7 @@ function NavItem({ item, active, onClick, indented }) {
   );
 
   if (item.comingSoon) {
-    return <div className={base}>{content}</div>;
+    return <div className={base} title={item.label}>{content}</div>;
   }
 
   return (
@@ -122,59 +132,115 @@ function NavItem({ item, active, onClick, indented }) {
       onClick={onClick}
       className={base}
       aria-current={active ? "page" : undefined}
+      title={item.label}
     >
       {content}
     </Link>
   );
 }
 
-function NavSection({ title, items, onClose, isActive, open: defaultOpen = true }) {
-  const [expanded, setExpanded] = useState(defaultOpen);
+function NavSection({
+  title,
+  icon = "folder",
+  items,
+  onClose,
+  isActive,
+  expanded,
+  onToggle,
+  children,
+  extraCount = 0,
+}) {
+  const hasActiveChild = items.some((item) => !item.comingSoon && isActive(item.href));
+  const totalCount = items.length + extraCount;
 
   return (
-    <div className="nav-section-gap">
-        <button
-          type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="label px-2.5 py-1 mb-1 flex items-center justify-between w-full hover:text-text-main transition-colors cursor-pointer"
+    <div className="rounded-lg transition-colors">
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-all cursor-pointer group",
+          expanded
+            ? "bg-surface-2 text-text-main font-semibold shadow-2xs border border-border"
+            : hasActiveChild
+              ? "bg-surface-2/60 text-text-main font-semibold border border-border-subtle"
+              : "text-text-muted hover:bg-surface-2/60 hover:text-text-main border border-transparent"
+        )}
         aria-expanded={expanded}
+        title={title}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">{title}</span>
         <span
-          className="material-symbols-outlined text-[13px] text-text-muted/70 transition-transform"
-          style={{ transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+          className={cn(
+            "inline-flex size-6 shrink-0 items-center justify-center rounded-md border transition-colors",
+            expanded || hasActiveChild
+              ? "border-primary/30 bg-primary/10 text-primary"
+              : "border-border-subtle bg-surface text-text-muted group-hover:text-text-main"
+          )}
         >
-          expand_more
+          <Icon name={icon} className="text-[14px]" />
         </span>
+        <span className="text-[13px] tracking-tight flex-1 truncate">{title}</span>
+        {hasActiveChild && !expanded && (
+          <span className="size-1.5 rounded-full bg-primary shrink-0" title="Active page in section" />
+        )}
+        <span className="nav-section-count">{totalCount}</span>
+        <Icon
+          name="expand_more"
+          className="text-[13px] text-text-muted/80 transition-transform duration-150 shrink-0"
+          style={{ transform: expanded ? "rotate(0deg)" : "rotate(-90deg)" }}
+        />
       </button>
       {expanded && (
-        <div className="space-y-0.5">
+        <div className="mt-1 ml-3.5 pl-2.5 border-l border-border space-y-0.5 py-0.5">
           {items.map((item) => (
             <NavItem
               key={item.href}
               item={item}
+              compact
               active={!item.comingSoon && isActive(item.href)}
               onClick={onClose}
             />
           ))}
+          {children}
         </div>
       )}
     </div>
   );
 }
 
-export default function Sidebar({ onClose }) {
+export default function Sidebar({ onClose, forceExpanded = false }) {
   const pathname = usePathname();
+  const [navQuery, setNavQuery] = useState("");
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [localEndpoint, setLocalEndpoint] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
   const [isDisconnected, setIsDisconnected] = useState(false);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [shutdownCountdown, setShutdownCountdown] = useState(0);
   const [enableTranslator, setEnableTranslator] = useState(false);
+  const [openSection, setOpenSection] = useState("core");
   const { copied, copy } = useCopyToClipboard(2000);
+  const { copied: endpointCopied, copy: copyEndpoint } = useCopyToClipboard(2000);
 
   const INSTALL_CMD = UPDATER_CONFIG.installCmdLatest;
+
+  useEffect(() => {
+    const frameId = requestAnimationFrame(() => {
+      setCollapsed(localStorage.getItem("miawrouter-sidebar-collapsed") === "true");
+      setLocalEndpoint(new URL("/v1", window.location.origin).toString());
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((current) => {
+      const next = !current;
+      localStorage.setItem("miawrouter-sidebar-collapsed", String(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     fetch("/api/settings")
@@ -211,14 +277,48 @@ export default function Sidebar({ onClose }) {
     };
   }, []);
 
+
   const isActive = (href) => {
+    if (href === "/dashboard") return pathname === "/dashboard";
     if (href === "/dashboard/endpoint") {
-      return pathname === "/dashboard" || pathname.startsWith("/dashboard/endpoint");
+      return pathname.startsWith("/dashboard/endpoint");
     }
     if (href === "/dashboard/free-tiers") {
       return pathname.startsWith("/dashboard/free-tiers") || pathname.startsWith("/dashboard/free-provider-rankings");
     }
     return pathname.startsWith(href);
+  };
+
+  // Automatically sync the single active menu folder when route changes
+  useEffect(() => {
+    if (pathname.startsWith("/dashboard/media-providers")) {
+      setOpenSection("system");
+      setMediaOpen(true);
+      return;
+    }
+    if (analyticsItems.some((i) => isActive(i.href))) {
+      setOpenSection("analytics");
+    } else if (configItems.some((i) => isActive(i.href))) {
+      setOpenSection("config");
+    } else if (toolItems.some((i) => isActive(i.href))) {
+      setOpenSection("tools");
+    } else if (integrationItems.some((i) => isActive(i.href))) {
+      setOpenSection("integrations");
+    } else if (agentItems.some((i) => isActive(i.href))) {
+      setOpenSection("agents");
+    } else if (
+      systemItems.some((i) => isActive(i.href)) ||
+      debugItems.some((i) => isActive(i.href)) ||
+      isActive("/dashboard/profile")
+    ) {
+      setOpenSection("system");
+    } else if (coreItems.some((i) => isActive(i.href))) {
+      setOpenSection("core");
+    }
+  }, [pathname]);
+
+  const toggleSection = (key) => {
+    setOpenSection((prev) => (prev === key ? "" : key));
   };
 
   // Open manual update panel (no countdown yet — user must click Copy to trigger shutdown)
@@ -249,47 +349,61 @@ export default function Sidebar({ onClose }) {
     setShutdownCountdown(0);
   };
 
-  // Note: legacy updater poll removed. New flow: copy install cmd + shutdown server,
-  // user runs the command manually in another terminal.
+  const visibleDebugItems = debugItems.filter(
+    (item) => item.href !== "/dashboard/translator" || enableTranslator
+  );
 
+  // Quick-access pinned shortcuts so the user can jump anywhere with 1 click
+  const quickHubLinks = [
+    { href: "/dashboard", label: "Overview", icon: "dashboard" },
+    { href: "/dashboard/usage", label: "Usage & Routing", icon: "bar_chart" },
+    { href: "/dashboard/providers", label: "Providers", icon: "dns" },
+    { href: "/dashboard/endpoint", label: "Endpoint", icon: "vpn_key" },
+  ];
 
   return (
     <>
-      <aside className="sidebar-shell flex w-64 flex-col transition-colors duration-300 min-h-full">
-        {/* Logo — Signal Panel brand */}
-        <div className="sidebar-brand px-4 py-3.5 flex flex-col gap-2">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="flex items-center justify-center size-8 overflow-hidden rounded-[var(--radius-brand)] border border-border-subtle bg-surface shadow-soft">
-              <BrandAsset kind="icon" className="size-full object-contain p-0.5" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-sm font-semibold tracking-tight text-text-main truncate">
-                {APP_CONFIG.name}
-              </h1>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
-                Signal Panel · {SIDEBAR_VERSION}
-              </span>
-            </div>
-          </Link>
+      <aside className={`sidebar-shell flex ${collapsed && !forceExpanded ? "sidebar-collapsed w-[68px]" : "w-[256px]"} h-full flex-col transition-[width] duration-150`}>
+        <div className="sidebar-brand flex flex-col gap-2 px-3.5 py-3">
+          <div className="flex items-center gap-2.5">
+            <Link href="/dashboard" className="flex min-w-0 flex-1 items-center gap-2.5" title="MiawRouter dashboard">
+              <div className="sidebar-brand-icon flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-surface shadow-xs">
+                <BrandAsset kind="icon" className="size-full object-contain p-0.5" />
+              </div>
+              <div className="sidebar-brand-copy flex min-w-0 flex-col">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="truncate text-[14.5px] font-bold tracking-tight text-text-main">{APP_CONFIG.name}</h1>
+                  <span className="status-dot status-dot-live" title="Gateway Active" />
+                </div>
+                <span className="text-[10.5px] font-mono font-medium text-text-muted">{SIDEBAR_VERSION} · AI Router</span>
+              </div>
+            </Link>
+            <button type="button" onClick={toggleCollapsed} className="sidebar-collapse-toggle inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-text-muted hover:bg-surface-2 hover:text-text-main" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+              <Icon name={collapsed ? "chevron_right" : "chevron_left"} className="text-[15px]" />
+            </button>
+          </div>
           {updateInfo && (
-            <div className="flex flex-col gap-1.5 rounded p-1 -m-1">
-              <span className="text-xs font-semibold text-green-600 dark:text-amber-500">
-                ↑ New version available: v{updateInfo.latestVersion}
-              </span>
+            <div className="flex flex-col gap-1.5 rounded-lg border border-primary/25 bg-primary/5 p-2 mt-1">
+              <div className="flex items-center gap-1.5">
+                <Icon name="rocket_launch" className="text-[14px] text-primary" />
+                <span className="text-xs font-semibold text-primary">
+                  Update available: v{updateInfo.latestVersion}
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowUpdateModal(true)}
-                  className="px-2 py-1 rounded bg-green-600 hover:bg-green-700 dark:bg-amber-500 dark:hover:bg-amber-600 text-white text-[11px] font-semibold transition-colors cursor-pointer"
+                  className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-bg transition-colors hover:bg-primary-hover"
                 >
                   Update now
                 </button>
                 <button
                   onClick={() => copy(INSTALL_CMD)}
                   title="Copy install command"
-                  className="flex-1 text-left hover:opacity-80 transition-opacity cursor-pointer min-w-0"
+                  className="min-w-0 flex-1 cursor-pointer text-left transition-opacity hover:opacity-80"
                 >
-                  <code className="block text-[10px] text-green-600/80 dark:text-amber-400/70 font-mono truncate">
-                    {copied ? "✓ copied!" : INSTALL_CMD}
+                  <code className="block truncate font-mono text-[10px] text-text-muted">
+                    {copied ? "Copied" : INSTALL_CMD}
                   </code>
                 </button>
               </div>
@@ -297,149 +411,249 @@ export default function Sidebar({ onClose }) {
           )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto custom-scrollbar">
-          {/* Core — always visible */}
-          <div className="space-y-0.5 px-0.5">
-            <p className="label px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">
-              Core
-            </p>
-            {coreItems.map((item) => (
-              <NavItem
-                key={item.href}
-                item={item}
-                active={!item.comingSoon && isActive(item.href)}
-                onClick={onClose}
-              />
-            ))}
-          </div>
-
-          <NavSection
-            title="Analytics"
-            items={analyticsItems}
-            isActive={isActive}
-            onClose={onClose}
-            open={analyticsItems.some((item) => isActive(item.href))}
+        <label className="sidebar-search">
+          <Icon name={"search"} className="text-[15px] text-text-muted shrink-0" aria-hidden="true" />
+          <input
+            aria-label="Search navigation"
+            placeholder="Jump to menu…"
+            value={navQuery}
+            onChange={(event) => setNavQuery(event.target.value)}
           />
-
-          <NavSection
-            title="Configuration"
-            items={configItems}
-            isActive={isActive}
-            onClose={onClose}
-            open={configItems.some((item) => isActive(item.href))}
-          />
-
-          <NavSection
-            title="Tools"
-            items={toolItems}
-            isActive={isActive}
-            onClose={onClose}
-            open={toolItems.some((item) => isActive(item.href))}
-          />
-
-          <NavSection
-            title="Integrations"
-            items={integrationItems}
-            isActive={isActive}
-            onClose={onClose}
-            open={integrationItems.some((item) => isActive(item.href))}
-          />
-
-          <NavSection
-            title="Agents"
-            items={agentItems}
-            isActive={isActive}
-            onClose={onClose}
-            open={agentItems.some((item) => isActive(item.href))}
-          />
-
-          {/* System section */}
-          <div className="nav-section-gap">
-            <p className="label px-2.5 py-1 mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted/80">
-              System
-            </p>
-
-            {/* Media Providers accordion */}
-            <button
-              type="button"
-              onClick={() => setMediaOpen((v) => !v)}
-              aria-expanded={mediaOpen}
-              aria-controls="sidebar-media-provider-links"
-              aria-label="Toggle media provider navigation"
-              className={cn(
-                "nav-item group w-full",
-                pathname.startsWith("/dashboard/media-providers") && "nav-item-active"
-              )}
-            >
-              <span className="material-symbols-outlined text-[17px] text-text-muted group-hover:text-text-main shrink-0">perm_media</span>
-              <span className="text-[13px] font-medium flex-1 text-left truncate">Media Providers</span>
-              <span className="material-symbols-outlined text-[13px] text-text-muted/70 transition-transform" style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }}>
-                expand_more
-              </span>
+          {navQuery && (
+            <button type="button" aria-label="Clear navigation search" onClick={() => setNavQuery("")} className="text-text-muted hover:text-text-main">
+              <Icon name={"close"} className="text-[14px]" />
             </button>
-            {mediaOpen && (
-              <div id="sidebar-media-provider-links" className="space-y-0.5 mt-0.5">
-                {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
-                  <Link
-                    key={kind.id}
-                    href={`/dashboard/media-providers/${kind.id}`}
-                    onClick={onClose}
-                    className={cn(
-                      "nav-item pl-7 group",
-                      pathname.startsWith(`/dashboard/media-providers/${kind.id}`) && "nav-item-active"
-                    )}
-                  >
-                    <span className="material-symbols-outlined text-[15px] shrink-0">{kind.icon}</span>
-                    <span className="text-xs truncate">{kind.label}</span>
-                  </Link>
-                ))}
-                <Link
-                  key={COMBINED_WEB_ITEM.id}
-                  href={COMBINED_WEB_ITEM.href}
-                  onClick={onClose}
-                  className={cn(
-                    "nav-item pl-7 group",
-                    pathname.startsWith(COMBINED_WEB_ITEM.href) && "nav-item-active"
-                  )}
-                >
-                  <span className="material-symbols-outlined text-[15px] shrink-0">{COMBINED_WEB_ITEM.icon}</span>
-                  <span className="text-xs truncate">{COMBINED_WEB_ITEM.label}</span>
-                </Link>
+          )}
+        </label>
+        <div className="sidebar-endpoint-row">
+          <Icon name="hub" weight="duotone" className="text-[14px] text-primary shrink-0" />
+          <span className="sr-only">Local endpoint</span>
+          <code className="min-w-0 flex-1 truncate font-mono text-[11px] font-medium text-text-main" title={localEndpoint}>
+            {localEndpoint}
+          </code>
+          <button
+            type="button"
+            onClick={() => copyEndpoint(localEndpoint)}
+            disabled={!localEndpoint}
+            className="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-surface hover:text-primary disabled:opacity-50"
+            aria-label="Copy local endpoint"
+            title="Copy local endpoint"
+          >
+            <Icon name={endpointCopied ? "check" : "content_copy"} className={cn("text-[13px]", endpointCopied && "text-success")} />
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-2.5 py-2 space-y-1.5 overflow-y-auto custom-scrollbar">
+          {navQuery.trim() ? (() => {
+            const items = [
+              ...coreItems, ...analyticsItems, ...configItems, ...toolItems,
+              ...integrationItems, ...agentItems, ...systemItems,
+              ...debugItems.filter((item) => item.href !== "/dashboard/translator" || enableTranslator),
+              ...MEDIA_PROVIDER_KINDS.filter((kind) => VISIBLE_MEDIA_KINDS.includes(kind.id)).map((kind) => ({ ...kind, href: `/dashboard/media-providers/${kind.id}` })),
+              COMBINED_WEB_ITEM,
+              { href: "/dashboard/profile", label: "Settings", icon: "settings" },
+            ].filter((item) => item.label.toLowerCase().includes(navQuery.trim().toLowerCase()));
+            return items.length ? items.map((item) => <NavItem key={item.href} item={item} active={isActive(item.href)} onClick={onClose} />) : <p className="p-3 text-xs text-text-muted" role="status">No features found. Try CLI, MITM, or providers.</p>;
+          })() : <>
+          {/* Compact 2x2 Quick Hub Grid (when not collapsed) */}
+          {(!collapsed || forceExpanded) && (
+            <div className="mb-2 rounded-xl border border-border bg-surface/70 p-1.5">
+              <div className="flex items-center justify-between px-1.5 pb-1">
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-text-muted">
+                  Quick Access
+                </span>
+                <span className="text-[10px] font-mono text-text-subtle">1-Click Hub</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                {quickHubLinks.map((q) => {
+                  const active = isActive(q.href);
+                  return (
+                    <Link
+                      key={q.href}
+                      href={q.href}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11.5px] font-medium transition-all truncate",
+                        active
+                          ? "bg-surface-2 text-text-main font-semibold border border-border shadow-2xs"
+                          : "text-text-muted hover:bg-surface-2/70 hover:text-text-main border border-transparent"
+                      )}
+                      title={q.label}
+                    >
+                      <Icon name={q.icon} className={cn("text-[13px] shrink-0", active ? "text-primary" : "text-text-muted")} />
+                      <span className="truncate">{q.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Unified Single-Open Menu Hub ("Satu Menu Rapi Kemana-Mana") */}
+          <div className="space-y-1">
+            {(!collapsed || forceExpanded) && (
+              <div className="flex items-center justify-between px-2 py-0.5">
+                <span className="sidebar-section-caption text-text-muted">Console Menu</span>
+                <span className="text-[10px] font-mono text-text-subtle">Accordion</span>
               </div>
             )}
 
-            {systemItems.map((item) => (
-              <NavItem
-                key={item.href}
-                item={item}
-                active={isActive(item.href)}
-                onClick={onClose}
-              />
-            ))}
-
-            {/* Debug items (inside System section, before Settings) */}
-            {debugItems.map((item) => {
-              const show = item.href !== "/dashboard/translator" || enableTranslator;
-              return show ? (
-                <NavItem
-                  key={item.href}
-                  item={item}
-                  active={isActive(item.href)}
-                  onClick={onClose}
-                />
-              ) : null;
-            })}
-
-            {/* Settings */}
-            <NavItem
-              item={{ href: "/dashboard/profile", label: "Settings", icon: "settings" }}
-              active={isActive("/dashboard/profile")}
-              onClick={onClose}
+            <NavSection
+              title="Core & Gateway"
+              icon="dashboard"
+              items={coreItems}
+              isActive={isActive}
+              onClose={onClose}
+              expanded={openSection === "core"}
+              onToggle={() => toggleSection("core")}
             />
+
+            <NavSection
+              title="Usage & Analytics"
+              icon="bar_chart"
+              items={analyticsItems}
+              isActive={isActive}
+              onClose={onClose}
+              expanded={openSection === "analytics"}
+              onToggle={() => toggleSection("analytics")}
+            />
+
+            <NavSection
+              title="Routing & Config"
+              icon="tune"
+              items={configItems}
+              isActive={isActive}
+              onClose={onClose}
+              expanded={openSection === "config"}
+              onToggle={() => toggleSection("config")}
+            />
+
+            <NavSection
+              title="Workspace Tools"
+              icon="terminal"
+              items={toolItems}
+              isActive={isActive}
+              onClose={onClose}
+              expanded={openSection === "tools"}
+              onToggle={() => toggleSection("tools")}
+            />
+
+            <NavSection
+              title="Integrations & API"
+              icon="cable"
+              items={integrationItems}
+              isActive={isActive}
+              onClose={onClose}
+              expanded={openSection === "integrations"}
+              onToggle={() => toggleSection("integrations")}
+            />
+
+            <NavSection
+              title="Agents & Skills"
+              icon="smart_toy"
+              items={agentItems}
+              isActive={isActive}
+              onClose={onClose}
+              expanded={openSection === "agents"}
+              onToggle={() => toggleSection("agents")}
+            />
+
+            <NavSection
+              title="System & Media"
+              icon="settings"
+              items={[
+                ...systemItems,
+                ...visibleDebugItems,
+                { href: "/dashboard/profile", label: "Settings", icon: "settings" },
+              ]}
+              extraCount={1}
+              isActive={(href) => isActive(href) || pathname.startsWith("/dashboard/media-providers")}
+              onClose={onClose}
+              expanded={openSection === "system"}
+              onToggle={() => toggleSection("system")}
+            >
+              {/* Media Providers nested submenu */}
+              <button
+                type="button"
+                onClick={() => setMediaOpen((v) => !v)}
+                aria-expanded={mediaOpen}
+                aria-controls="sidebar-media-provider-links"
+                aria-label="Toggle media provider navigation"
+                title="Media Providers"
+                className={cn(
+                  "nav-item py-1.5 min-h-[33px] group w-full",
+                  pathname.startsWith("/dashboard/media-providers") && "nav-item-active"
+                )}
+              >
+                <Icon name="perm_media" weight="duotone" className="text-[15px] text-text-muted group-hover:text-primary shrink-0" />
+                <span className="text-[12.5px] font-medium flex-1 text-left truncate">Media Providers</span>
+                <Icon name="expand_more" className="text-[12px] text-text-muted/70 transition-transform duration-150" style={{ transform: mediaOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+              </button>
+              {mediaOpen && (
+                <div id="sidebar-media-provider-links" className="space-y-0.5 mt-0.5 ml-3 pl-2 border-l border-border-subtle">
+                  {MEDIA_PROVIDER_KINDS.filter((k) => VISIBLE_MEDIA_KINDS.includes(k.id)).map((kind) => (
+                    <Link
+                      key={kind.id}
+                      href={`/dashboard/media-providers/${kind.id}`}
+                      title={kind.label}
+                      onClick={onClose}
+                      className={cn(
+                        "nav-item py-1 min-h-[30px] pl-3 group",
+                        pathname.startsWith(`/dashboard/media-providers/${kind.id}`) && "nav-item-active"
+                      )}
+                    >
+                      <Icon name={kind.icon} weight="duotone" className="text-[14px] shrink-0" />
+                      <span className="text-xs truncate">{kind.label}</span>
+                    </Link>
+                  ))}
+                  <Link
+                    key={COMBINED_WEB_ITEM.id}
+                    href={COMBINED_WEB_ITEM.href}
+                    title={COMBINED_WEB_ITEM.label}
+                    onClick={onClose}
+                    className={cn(
+                      "nav-item py-1 min-h-[30px] pl-3 group",
+                      pathname.startsWith(COMBINED_WEB_ITEM.href) && "nav-item-active"
+                    )}
+                  >
+                    <Icon name={COMBINED_WEB_ITEM.icon} weight="duotone" className="text-[14px] shrink-0" />
+                    <span className="text-xs truncate">{COMBINED_WEB_ITEM.label}</span>
+                  </Link>
+                </div>
+              )}
+            </NavSection>
           </div>
+          </>}
         </nav>
 
+        {/* Pinned Footer Bar */}
+        {(!collapsed || forceExpanded) && (
+          <div className="border-t border-border-subtle px-3 py-2.5 flex items-center justify-between gap-2 bg-surface/40 mt-auto shrink-0">
+            <Link
+              href="/dashboard/profile"
+              onClick={onClose}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors flex-1",
+                isActive("/dashboard/profile")
+                  ? "bg-surface-2 text-text-main font-semibold border border-border"
+                  : "text-text-muted hover:bg-surface-2 hover:text-text-main"
+              )}
+            >
+              <Icon name="settings" className="text-[14px]" />
+              <span>Settings</span>
+            </Link>
+            <Link
+              href="/dashboard/health"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-2.5 py-1.5 text-[11px] font-mono text-text-muted hover:text-text-main transition-colors"
+              title="System Health"
+            >
+              <span className="status-dot status-dot-live" />
+              <span>Online</span>
+            </Link>
+          </div>
+        )}
       </aside>
 
       {/* Update Confirmation Modal */}
@@ -456,7 +670,7 @@ export default function Sidebar({ onClose }) {
 
       {/* Disconnected / Updating Overlay */}
       {(isDisconnected || isUpdating) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6">
           {isUpdating ? (
             <ManualUpdatePanel
               latestVersion={updateInfo?.latestVersion}
@@ -469,10 +683,10 @@ export default function Sidebar({ onClose }) {
             />
           ) : (
             <div className="text-center p-8">
-              <div className="flex items-center justify-center size-16 rounded-full bg-red-500/20 text-red-500 mx-auto mb-4">
-                <span className="material-symbols-outlined text-[32px]">power_off</span>
+              <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-danger/10 text-danger">
+                <Icon name="power_off" className="text-[32px]" />
               </div>
-              <h2 className="text-xl font-semibold text-white mb-2">Server Disconnected</h2>
+              <h2 className="mb-2 text-xl font-semibold text-text-main">Server Disconnected</h2>
               <p className="text-text-muted mb-6">The proxy server has been stopped.</p>
               <Button variant="secondary" onClick={() => globalThis.location.reload()}>
                 Reload Page
@@ -485,21 +699,19 @@ export default function Sidebar({ onClose }) {
   );
 }
 
-Sidebar.propTypes = {
-  onClose: PropTypes.func,
-};
+
 
 function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdown, onCancel, countdown, isDisconnected }) {
   const isCountingDown = countdown > 0;
   return (
-    <div className="w-full max-w-lg rounded-xl bg-neutral-900/95 border border-white/10 p-6 text-white">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex items-center justify-center size-11 rounded-full bg-amber-500/20 text-amber-400">
-          <span className="material-symbols-outlined text-[24px]">content_copy</span>
+    <div className="w-full max-w-lg rounded-[14px] border border-border bg-surface p-6 text-text-main shadow-elevated">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex size-11 items-center justify-center rounded-full bg-warning/10 text-warning">
+          <Icon name="content_copy" className="text-[20px]" />
         </div>
         <div>
           <h2 className="text-lg font-semibold">Update MiawRouter{latestVersion ? ` to v${latestVersion}` : ""}</h2>
-          <p className="text-xs text-white/60">
+          <p className="text-xs text-text-muted">
             {isDisconnected
               ? "Server stopped. Paste the command into a terminal to install."
               : isCountingDown
@@ -509,15 +721,15 @@ function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdow
         </div>
       </div>
 
-      <p className="text-sm text-white/80 mb-2">Install command:</p>
-      <div className="w-full px-3 py-2 rounded bg-white/5 mb-4">
-        <code className="text-xs font-mono text-amber-400 break-all">{installCmd}</code>
+      <p className="mb-2 text-sm">Install command:</p>
+      <div className="mb-4 w-full rounded-md bg-surface-2 px-3 py-2">
+        <code className="break-all font-mono text-xs text-warning">{installCmd}</code>
       </div>
 
-      <ol className="text-xs text-white/70 space-y-1 list-decimal list-inside mb-4">
-        <li>Click <strong>Copy & Shutdown</strong> below.</li>
+      <ol className="mb-4 list-inside list-decimal space-y-1 text-xs text-text-muted">
+        <li>Click <strong>Copy &amp; Shutdown</strong> below.</li>
         <li>Paste the command into your terminal and press Enter.</li>
-        <li>Run <code className="px-1 rounded bg-white/10 text-green-400">miawrouter</code> again after install.</li>
+        <li>Run <code className="rounded bg-surface-2 px-1 text-success">miawrouter</code> again after install.</li>
       </ol>
 
       {isDisconnected ? (
@@ -530,7 +742,7 @@ function ManualUpdatePanel({ latestVersion, installCmd, copied, onCopyAndShutdow
             Cancel
           </Button>
           <Button variant="primary" fullWidth onClick={onCopyAndShutdown} disabled={isCountingDown}>
-            {copied ? "✓ Copied — shutting down..." : isCountingDown ? `Shutting down in ${countdown}s` : "Copy & Shutdown"}
+            {copied ? "Copied. Shutting down..." : isCountingDown ? `Shutting down in ${countdown}s` : "Copy & Shutdown"}
           </Button>
         </div>
       )}
@@ -546,4 +758,8 @@ ManualUpdatePanel.propTypes = {
   onCancel: PropTypes.func.isRequired,
   countdown: PropTypes.number,
   isDisconnected: PropTypes.bool,
+};
+Sidebar.propTypes = {
+  onClose: PropTypes.func,
+  forceExpanded: PropTypes.bool,
 };

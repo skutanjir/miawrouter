@@ -1,112 +1,57 @@
-"use client";
+
+import { Icon } from "@/shared/components/Icon";
 
 const FEATURES = [
-  { 
-    icon: "link", 
-    title: "Unified Endpoint", 
-    desc: "Access all providers via a single standard API URL.", 
-    colors: {
-      border: "hover:border-blue-500/50",
-      bg: "hover:bg-blue-500/5",
-      iconBg: "bg-blue-500/10",
-      iconText: "text-blue-500",
-      titleHover: "group-hover:text-blue-400"
-    }
+  {
+    icon: "link",
+    title: "Unified endpoint",
+    desc: "Route requests through a single endpoint for your configured providers.",
   },
-  { 
-    icon: "bolt", 
-    title: "Easy Setup", 
-    desc: "Get up and running in minutes with npx command.", 
-    colors: {
-      border: "hover:border-[#168BFF]/50",
-      bg: "hover:bg-[#168BFF]/5",
-      iconBg: "bg-[#168BFF]/10",
-      iconText: "text-[#168BFF]",
-      titleHover: "group-hover:text-[#6EB2FF]"
-    }
+  {
+    icon: "terminal",
+    title: "Local setup",
+    desc: "Install MiawRouter with the npm package and configure it in the dashboard.",
   },
-  { 
-    icon: "shield_with_heart", 
-    title: "Model Fallback", 
-    desc: "Automatically switch providers on failure or high latency.", 
-    colors: {
-      border: "hover:border-rose-500/50",
-      bg: "hover:bg-rose-500/5",
-      iconBg: "bg-rose-500/10",
-      iconText: "text-rose-500",
-      titleHover: "group-hover:text-rose-400"
-    }
+  {
+    icon: "route",
+    title: "Fallback routing",
+    desc: "Configure fallback providers for requests that fail.",
   },
-  { 
-    icon: "monitoring", 
-    title: "Usage Tracking", 
-    desc: "Detailed analytics and cost monitoring across all models.", 
-    colors: {
-      border: "hover:border-purple-500/50",
-      bg: "hover:bg-purple-500/5",
-      iconBg: "bg-purple-500/10",
-      iconText: "text-purple-500",
-      titleHover: "group-hover:text-purple-400"
-    }
+  {
+    icon: "monitoring",
+    title: "Usage tracking",
+    desc: "Review request usage, cache activity, and provider statistics.",
   },
-  { 
-    icon: "key", 
-    title: "OAuth & API Keys", 
-    desc: "Securely manage credentials in one vault.", 
-    colors: {
-      border: "hover:border-amber-500/50",
-      bg: "hover:bg-amber-500/5",
-      iconBg: "bg-amber-500/10",
-      iconText: "text-amber-500",
-      titleHover: "group-hover:text-amber-400"
-    }
+  {
+    icon: "key",
+    title: "Provider credentials",
+    desc: "Manage API keys and OAuth connections in the dashboard.",
   },
-  { 
-    icon: "cloud_sync", 
-    title: "Cloud Sync", 
-    desc: "Sync your configurations across devices instantly.", 
-    colors: {
-      border: "hover:border-sky-500/50",
-      bg: "hover:bg-sky-500/5",
-      iconBg: "bg-sky-500/10",
-      iconText: "text-sky-500",
-      titleHover: "group-hover:text-sky-400"
-    }
+  {
+    icon: "image",
+    title: "Media providers",
+    desc: "Configure image, audio, video, and web search providers.",
   },
-  { 
-    icon: "terminal", 
-    title: "CLI Support", 
-    desc: "Works with Claude Code, Codex, Cline, Cursor, and more.", 
-    colors: {
-      border: "hover:border-emerald-500/50",
-      bg: "hover:bg-emerald-500/5",
-      iconBg: "bg-emerald-500/10",
-      iconText: "text-emerald-500",
-      titleHover: "group-hover:text-emerald-400"
-    }
+  {
+    icon: "terminal",
+    title: "CLI tools",
+    desc: "Connect supported clients such as Claude Code, Codex, and Cline.",
   },
-  { 
-    icon: "dashboard", 
-    title: "Dashboard", 
-    desc: "Visual dashboard for real-time traffic analysis.", 
-    colors: {
-      border: "hover:border-fuchsia-500/50",
-      bg: "hover:bg-fuchsia-500/5",
-      iconBg: "bg-fuchsia-500/10",
-      iconText: "text-fuchsia-500",
-      titleHover: "group-hover:text-fuchsia-400"
-    }
+  {
+    icon: "dashboard",
+    title: "Dashboard",
+    desc: "Configure providers and inspect request activity.",
   },
 ];
 
 export default function Features() {
   return (
-    <section className="py-24 px-6" id="features">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Powerful Features</h2>
-          <p className="text-gray-400 max-w-xl text-lg">
-            Everything you need to manage your AI infrastructure in one place, built for scale.
+    <section className="px-6 py-20" id="features">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-12">
+          <h2 className="mb-4 text-3xl font-semibold tracking-tight md:text-4xl">Routing features</h2>
+          <p className="max-w-xl text-base text-text-muted">
+            Configurable providers, credentials, fallbacks, and request usage in one dashboard.
           </p>
         </div>
         
@@ -114,15 +59,15 @@ export default function Features() {
           {FEATURES.map((feature) => (
             <div 
               key={feature.title}
-              className={`p-6 rounded-xl bg-[#122239] border border-[#294563] ${feature.colors.border} ${feature.colors.bg} transition-all duration-300 group`}
+              className="group rounded-[10px] border border-border-subtle bg-surface p-5 transition-colors duration-150 hover:border-primary/40 hover:bg-primary/5"
             >
-              <div className={`w-10 h-10 rounded-lg ${feature.colors.iconBg} flex items-center justify-center mb-4 ${feature.colors.iconText} group-hover:scale-110 transition-transform duration-300`}>
-                <span className="material-symbols-outlined">{feature.icon}</span>
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Icon name={feature.icon} className="text-[18px]" />
               </div>
-              <h3 className={`text-lg font-bold mb-2 ${feature.colors.titleHover} transition-colors`}>
+              <h3 className="mb-2 text-base font-semibold transition-colors group-hover:text-primary">
                 {feature.title}
               </h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{feature.desc}</p>
+              <p className="text-sm leading-relaxed text-text-muted">{feature.desc}</p>
             </div>
           ))}
         </div>

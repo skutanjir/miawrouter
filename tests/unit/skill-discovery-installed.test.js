@@ -5,11 +5,13 @@ function makeFs(tree) {
   // tree: { [rootDir]: [{ name, hasSkill }] }
   return {
     async readdir(dir) {
+      dir = dir.replace(/\\/g, "/");
       const list = tree[dir];
       if (!list) throw Object.assign(new Error("ENOENT"), { code: "ENOENT" });
       return list.map((e) => ({ name: e.name, isDirectory: () => true }));
     },
     async stat(p) {
+      p = p.replace(/\\/g, "/");
       const parts = p.split("/");
       const root = parts.slice(0, -2).join("/");
       const name = parts[parts.length - 2];
@@ -24,7 +26,7 @@ function makeFs(tree) {
 describe("installed skill detection", () => {
   it("scans known skill directories across platforms", () => {
     const roots = skillRoots("/home/u");
-    expect(roots.map((r) => r.dir)).toEqual([
+    expect(roots.map((r) => r.dir.replace(/\\/g, "/"))).toEqual([
       "/home/u/.agents/skills",
       "/home/u/.claude/skills",
       "/home/u/.codex/skills",

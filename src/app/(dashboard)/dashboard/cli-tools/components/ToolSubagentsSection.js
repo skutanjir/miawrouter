@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { ModelSelectModal, Button } from "@/shared/components";
 
+import { Icon } from "@/shared/components/Icon";
+import { ActionsBar } from "./ToolCardSections";
 export default function ToolSubagentsSection({
   toolName,
   toolId,
@@ -185,7 +187,7 @@ export default function ToolSubagentsSection({
         className="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer hover:bg-surface/50 transition-colors select-none"
       >
         <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[16px] text-primary">smart_toy</span>
+          <Icon name={"smart_toy"} className=" text-[16px] text-primary" />
           <span className="text-base font-semibold text-text-main">Subagent team</span>
           {activeCount > 0 && (
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-medium bg-primary/10 text-primary">
@@ -202,19 +204,11 @@ export default function ToolSubagentsSection({
             className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium bg-surface border border-border text-text-muted hover:text-text-main hover:border-primary transition-colors cursor-pointer"
             title="Auto-select optimal models from active providers"
           >
-            <span className={`material-symbols-outlined text-[13px] ${autoDetecting ? "animate-spin" : ""}`}>
-              {autoDetecting ? "progress_activity" : "tune"}
-            </span>
+            <Icon name={autoDetecting ? "progress_activity" : "tune"} className={` text-[13px] ${autoDetecting ? "animate-spin" : ""}`} />
             <span>Auto-Detect</span>
           </button>
 
-          <span
-            className={`material-symbols-outlined text-text-muted text-[18px] transition-transform ${
-              isOpen ? "rotate-180" : ""
-            }`}
-          >
-            expand_more
-          </span>
+          <Icon name={"expand_more"} className={` text-text-muted text-[18px] transition-transform ${ isOpen ? "rotate-180" : "" }`} />
         </div>
       </div>
 
@@ -229,10 +223,10 @@ export default function ToolSubagentsSection({
             {rolesConfig.map((role) => {
               const currentVal = subagents[role.id] || "";
               return (
-                <div key={role.id} className="subagent-role flex flex-col gap-3 p-4 rounded-xl border border-border bg-surface">
+                <div key={role.id} className="subagent-role flex flex-col gap-3 rounded-[10px] border border-border bg-surface p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-[14px] text-primary">{role.icon}</span>
+                      <Icon name={role.icon} className=" text-[14px] text-primary" />
                       <span className="text-sm font-semibold text-text-main">{role.label}</span>
                     </div>
                     <span className={`text-[11px] ${currentVal ? "text-primary" : "text-text-muted"}`}>{currentVal ? "Assigned" : "Unassigned"}</span>
@@ -253,10 +247,10 @@ export default function ToolSubagentsSection({
                         <button
                           type="button"
                           onClick={() => handleRoleChange(role.id, "")}
-                          className="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-500 transition-colors p-0.5"
+                          className="absolute right-1 top-1/2 -translate-y-1/2 text-text-muted transition-colors hover:text-danger p-0.5"
                           title="Clear"
                         >
-                          <span className="material-symbols-outlined text-[13px]">close</span>
+                          <Icon name={"close"} className=" text-[13px]" />
                         </button>
                       )}
                     </div>
@@ -283,23 +277,21 @@ export default function ToolSubagentsSection({
             <div
               className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-xs ${
                 feedbackMessage.type === "success"
-                  ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                  : "bg-red-500/10 text-red-600"
+                  ? "bg-success/10 text-success"
+                  : "bg-danger/10 text-danger"
               }`}
             >
-              <span className="material-symbols-outlined text-[14px]">
-                {feedbackMessage.type === "success" ? "check_circle" : "error"}
-              </span>
+              <Icon name={feedbackMessage.type === "success" ? "check_circle" : "error"} className=" text-[14px]" />
               <span>{feedbackMessage.text}</span>
             </div>
           )}
 
-          <div className="flex justify-end pt-1">
+          <ActionsBar className="justify-end pt-1">
             <Button variant="primary" size="sm" onClick={handleSaveSubagents} loading={isSaving}>
-              <span className="material-symbols-outlined text-[14px] mr-1">save</span>
+              <Icon name={"save"} className=" text-[14px] mr-1" />
               Save Subagents
             </Button>
-          </div>
+</ActionsBar>
         </div>
       )}
 

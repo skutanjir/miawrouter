@@ -15,6 +15,7 @@ const { afterEach, describe, it } = testApi;
 
 const require = createRequire(import.meta.url);
 const {
+  assertSafeOutputForCleanup,
   assertRequiredApiArtifacts,
   copyStandaloneBuild,
   mergeServerArtifacts,
@@ -51,6 +52,16 @@ afterEach(() => {
 });
 
 describe("CLI build server artifacts", () => {
+  it("refuses to clean an existing custom directory while preserving its contents", () => {
+    const root = createTempDir();
+    const custom = path.join(root, "existing");
+    const marker = writeFixture(custom, "user-data.txt", "keep");
+    assert.throws(() => assertSafeOutputForCleanup(custom, root), /Refusing to delete/);
+    assert.equal(fs.readFileSync(marker, "utf8"), "keep");
+    assert.doesNotThrow(() => assertSafeOutputForCleanup(path.join(root, "new-output"), root));
+    fs.mkdirSync(path.join(root, "app"));
+    assert.doesNotThrow(() => assertSafeOutputForCleanup(path.join(root, "app"), root));
+  });
   for (const { name, standalonePath } of [
     {
       name: "legacy nested app",

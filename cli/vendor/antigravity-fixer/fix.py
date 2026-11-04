@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Antigravity Fixer — resolves 'not eligible' errors for Google Antigravity & 9router.
+"""Antigravity Fixer — resolves 'not eligible' errors for Google Antigravity and MiawRouter.
 
 Interactive mode:
     python fix.py
@@ -41,7 +41,7 @@ BANNER = r"""
 
 STRINGS = {
     "id": {
-        "subtitle": "Tool otomatis perbaiki error 403 / Not Eligible Google Antigravity & 9router",
+        "subtitle": "Tool otomatis perbaiki error 403 / Not Eligible Google Antigravity dan MiawRouter",
         "email_title": "Email Akun Google",
         "email_hint": "Gunakan akun personal @gmail.com (bukan Google Workspace / kampus)",
         "email_label": "Email",
@@ -75,7 +75,7 @@ STRINGS = {
         "clean_only_done": "[bold green]Selesai![/bold green] Cache lokal dan kredensial lama berhasil dibersihkan.",
     },
     "en": {
-        "subtitle": "Automated fix for Google Antigravity & 9router 403 / Not Eligible errors",
+        "subtitle": "Automated fix for Google Antigravity and MiawRouter 403 / Not Eligible errors",
         "email_title": "Google Account Email",
         "email_hint": "Must be a personal @gmail.com account (not Google Workspace)",
         "email_label": "Email",
@@ -233,7 +233,7 @@ def run_pipeline(email, password, s):
 # ─── ENTRY POINT ────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="Fix 403 / Not Eligible errors for Google Antigravity & 9router")
+    parser = argparse.ArgumentParser(description="Fix 403 / Not Eligible errors for Google Antigravity and MiawRouter")
     parser.add_argument("--clean-only", action="store_true", help="Only clean local cache and processes")
     parser.add_argument("--uninstall", action="store_true", help="Uninstall all dependencies and clean up")
     parser.add_argument("--lang", choices=["id", "en"], default="en", help="Language (default: English)")

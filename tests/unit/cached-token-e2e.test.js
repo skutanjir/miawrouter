@@ -20,6 +20,8 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
+  global._dbAdapter?.instance?.close?.();
+  delete global._dbAdapter;
   if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
   if (originalDataDir === undefined) delete process.env.DATA_DIR;
   else process.env.DATA_DIR = originalDataDir;

@@ -1,12 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getDefaultPricing, formatCost } from "open-sse/providers/pricing.js";
+import { getDefaultPricing } from "open-sse/providers/pricing.js";
+import Modal, { ConfirmModal } from "./Modal";
+import Button from "./Button";
+
+import { Icon } from "@/shared/components/Icon";
+const PRICING_FIELDS = ["input", "output", "cached", "reasoning", "cache_creation"];
 
 export default function PricingModal({ isOpen, onClose, onSave }) {
   const [pricingData, setPricingData] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -16,6 +23,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
 
   const loadPricing = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/pricing");
       if (response.ok) {
@@ -26,8 +34,8 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
         const defaults = getDefaultPricing();
         setPricingData(defaults);
       }
-    } catch (error) {
-      console.error("Failed to load pricing:", error);
+    } catch (err) {
+      console.error("Failed to load pricing:", err);
       const defaults = getDefaultPricing();
       setPricingData(defaults);
     } finally {
@@ -39,7 +47,7 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
     const numValue = parseFloat(value);
     if (isNaN(numValue) || numValue < 0) return;
 
-    setPricingData(prev => {
+    setPricingData((prev) => {
       const newData = { ...prev };
       if (!newData[provider]) newData[provider] = {};
       if (!newData[provider][model]) newData[provider][model] = {};
@@ -50,159 +58,182 @@ export default function PricingModal({ isOpen, onClose, onSave }) {
 
   const handleSave = async () => {
     setSaving(true);
+    setError(null);
     try {
       const response = await fetch("/api/pricing", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pricingData)
+        body: JSON.stringify(pricingData),
       });
 
       if (response.ok) {
         onSave?.();
         onClose();
       } else {
-        const error = await response.json();
-        alert(`Failed to save pricing: ${error.error}`);
+        const payload = await response.json().catch(() => ({}));
+        setError({
+          message: `Saving the rates failed (HTTP ${response.status}${payload.error ? `: ${payload.error}` : ""}).`,
+          action: "Fix the highlighted rates or reload the page to fetch the stored values, then save again.",
+        });
       }
-    } catch (error) {
-      console.error("Failed to save pricing:", error);
-      alert("Failed to save pricing");
+    } catch (err) {
+      console.error("Failed to save pricing:", err);
+      setError({
+        message: "Saving the rates failed: the request could not reach the server.",
+        action: "Check that MiawRouter is still running, then save again.",
+      });
     } finally {
       setSaving(false);
     }
   };
 
   const handleReset = async () => {
-    if (!confirm("Reset all pricing to defaults? This cannot be undone.")) return;
-
+    setConfirmReset(false);
+    setError(null);
     try {
       const response = await fetch("/api/pricing", { method: "DELETE" });
       if (response.ok) {
         const defaults = getDefaultPricing();
         setPricingData(defaults);
+      } else {
+        setError({
+          message: `Resetting the rates failed (HTTP ${response.status}).`,
+          action: "Check that MiawRouter is still running, then reset again.",
+        });
       }
-    } catch (error) {
-      console.error("Failed to reset pricing:", error);
-      alert("Failed to reset pricing");
+    } catch (err) {
+      console.error("Failed to reset pricing:", err);
+      setError({
+        message: "Resetting the rates failed: the request could not reach the server.",
+        action: "Check that MiawRouter is still running, then reset again.",
+      });
     }
   };
 
   if (!isOpen) return null;
 
-  // Get all unique providers and models for display
   const allProviders = Object.keys(pricingData).sort();
-  const pricingFields = ["input", "output", "cached", "reasoning", "cache_creation"];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-bg-base border border-border rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="p-4 border-b border-border flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Pricing Configuration</h2>
-          <button
-            onClick={onClose}
-            className="text-text-muted hover:text-text text-2xl leading-none"
-          >
-            ×
-          </button>
-        </div>
+    <>
+      <Modal
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Pricing Configuration"
+        size="full"
+        className="max-w-6xl!"
+        footer={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              icon="restore"
+              onClick={() => setConfirmReset(true)}
+              disabled={saving || loading}
+              className="mr-auto"
+            >
+              Reset to defaults
+            </Button>
+            <Button variant="ghost" onClick={onClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} loading={saving} disabled={loading}>
+              Save changes
+            </Button>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-5">
+          <p className="text-[13px] leading-relaxed text-text-muted">
+            All rates are in US dollars per million tokens. An input rate of{" "}
+            <span className="font-mono tabular-nums text-text-main">2.50</span> means $2.50 per 1,000,000
+            input tokens.
+          </p>
 
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-4">
-          {loading ? (
-            <div className="text-center py-8 text-text-muted">Loading pricing data...</div>
-          ) : (
-            <div className="space-y-6">
-              {/* Instructions */}
-              <div className="bg-bg-subtle border border-border rounded-lg p-3 text-sm">
-                <p className="font-medium mb-1">Pricing Rates Format</p>
-                <p className="text-text-muted">
-                  All rates are in <strong>dollars per million tokens</strong> ($/1M tokens).
-                  Example: Input rate of 2.50 means $2.50 per 1,000,000 input tokens.
-                </p>
+          {error && (
+            <div className="flex items-start gap-2.5 rounded-[10px] border border-danger/20 bg-danger/10 p-3">
+              <Icon name="error" className="mt-0.5 text-[18px] text-danger shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-text-main">{error.message}</p>
+                <p className="mt-1 text-text-muted">{error.action}</p>
               </div>
-
-              {/* Pricing Tables */}
-              {allProviders.map(provider => {
-                const models = Object.keys(pricingData[provider]).sort();
-                return (
-                  <div key={provider} className="border border-border rounded-lg overflow-hidden">
-                    <div className="bg-bg-subtle px-4 py-2 font-semibold text-sm">
-                      {provider.toUpperCase()}
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-bg-hover text-text-muted uppercase text-xs">
-                          <tr>
-                            <th className="px-3 py-2 text-left">Model</th>
-                            <th className="px-3 py-2 text-right">Input</th>
-                            <th className="px-3 py-2 text-right">Output</th>
-                            <th className="px-3 py-2 text-right">Cached</th>
-                            <th className="px-3 py-2 text-right">Reasoning</th>
-                            <th className="px-3 py-2 text-right">Cache Creation</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {models.map(model => (
-                            <tr key={model} className="hover:bg-bg-subtle/50">
-                              <td className="px-3 py-2 font-medium">{model}</td>
-                              {pricingFields.map(field => (
-                                <td key={field} className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={pricingData[provider][model][field] || 0}
-                                    onChange={(e) => handlePricingChange(provider, model, field, e.target.value)}
-                                    className="w-20 px-2 py-1 text-right bg-bg-base border border-border rounded focus:outline-none focus:border-primary"
-                                  />
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {allProviders.length === 0 && (
-                <div className="text-center py-8 text-text-muted">
-                  No pricing data available
-                </div>
-              )}
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-border flex items-center justify-between gap-2">
-          <button
-            onClick={handleReset}
-            className="px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded border border-red-500/20 transition-colors"
-            disabled={saving}
-          >
-            Reset to Defaults
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-text-muted hover:text-text border border-border rounded transition-colors"
-              disabled={saving}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 text-sm bg-primary text-white rounded hover:bg-primary/90 transition-colors disabled:opacity-50"
-              disabled={saving}
-            >
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
+          {loading ? (
+            <div className="flex items-center gap-2 py-8 text-sm text-text-muted">
+              <Icon name="progress_activity" className="animate-spin text-[18px]" />
+              Loading billing rates from the router…
+            </div>
+          ) : allProviders.length === 0 ? (
+            <div className="flex flex-col items-start gap-2 rounded-[10px] border border-border bg-surface-2 p-4 text-sm">
+              <p className="font-medium text-text-main">No providers have configured rates</p>
+              <p className="text-text-muted">
+                Cost tracking stays empty until at least one provider is connected. Add a connection, then
+                reopen this dialog.
+              </p>
+            </div>
+          ) : (
+            allProviders.map((provider) => {
+              const models = Object.keys(pricingData[provider]).sort();
+              return (
+                <section key={provider} className="overflow-hidden rounded-[10px] border border-border">
+                  <header className="flex items-center justify-between gap-3 border-b border-border bg-surface-2 px-4 py-2.5">
+                    <h3 className="text-[15px] font-semibold text-text-main">{provider}</h3>
+                    <span className="text-xs text-text-muted">
+                      {models.length} {models.length === 1 ? "model" : "models"}
+                    </span>
+                  </header>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[13px]">
+                      <thead className="bg-surface-2 text-text-muted">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-medium">Model</th>
+                          <th className="px-3 py-2 text-right font-medium">Input</th>
+                          <th className="px-3 py-2 text-right font-medium">Output</th>
+                          <th className="px-3 py-2 text-right font-medium">Cached</th>
+                          <th className="px-3 py-2 text-right font-medium">Reasoning</th>
+                          <th className="px-3 py-2 text-right font-medium">Cache creation</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {models.map((model) => (
+                          <tr key={model} className="border-t border-border-subtle hover:bg-surface-2/60">
+                            <td className="px-3 py-1.5 font-mono text-text-main">{model}</td>
+                            {PRICING_FIELDS.map((field) => (
+                              <td key={field} className="px-3 py-1.5 text-right">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  aria-label={`${provider} ${model} ${field} rate`}
+                                  value={pricingData[provider][model][field] || 0}
+                                  onChange={(e) => handlePricingChange(provider, model, field, e.target.value)}
+                                  className="w-20 rounded-md border border-border bg-surface px-2 py-1 text-right font-mono text-[13px] tabular-nums text-text-main transition-colors duration-150 focus:outline-none focus:border-primary"
+                                />
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            })
+          )}
         </div>
-      </div>
-    </div>
+      </Modal>
+
+      <ConfirmModal
+        isOpen={confirmReset}
+        onClose={() => setConfirmReset(false)}
+        onConfirm={handleReset}
+        title="Reset pricing to defaults"
+        message="Every provider rate returns to the MiawRouter default table and your edits are discarded. This cannot be undone."
+        confirmText="Reset rates"
+        cancelText="Keep my rates"
+      />
+    </>
   );
 }

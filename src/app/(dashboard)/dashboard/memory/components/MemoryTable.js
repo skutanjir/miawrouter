@@ -1,71 +1,7 @@
-/**
- * MemoryTable — renders the list of memory entries with actions.
- *
- * Uses Card.ListItem pattern from the project's Card component.
- * Memory entries use `content` (not `text`) to match the backend.
- */
-
 "use client";
 
 import { Badge, Button, Card } from "@/shared/components";
-
-function MemoryRow({ memory, onDelete, isDeleting }) {
-  const createdDate = memory.createdAt
-    ? new Date(memory.createdAt).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : "—";
-
-  const tags = memory.metadata?.tags || [];
-  const sessionId = memory.sessionId || memory.metadata?.sessionId;
-
-  return (
-    <div className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0 group">
-      <div className="flex flex-col gap-1.5 min-w-0 flex-1">
-        <p className="text-xs sm:text-sm text-text-main leading-relaxed select-text break-words">
-          {memory.content}
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          {sessionId && (
-            <span
-              className="inline-flex items-center gap-1 font-mono text-[10px] text-primary px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20"
-              title={`Session ID: ${sessionId}`}
-            >
-              <span className="material-symbols-outlined text-[12px]">terminal</span>
-              <span className="truncate max-w-[140px]">{sessionId}</span>
-            </span>
-          )}
-          {tags.map((tag) => (
-            <Badge key={tag} variant="default" size="sm">
-              {tag}
-            </Badge>
-          ))}
-          {memory.score !== undefined && (
-            <Badge variant="info" size="sm" icon="search">
-              Score: {Math.abs(memory.score).toFixed(1)}
-            </Badge>
-          )}
-          <span className="text-[11px] font-mono text-text-muted">{createdDate}</span>
-        </div>
-      </div>
-      <div className="shrink-0 flex items-center pt-0.5">
-        <Button
-          variant="ghost"
-          size="sm"
-          icon="delete"
-          onClick={() => onDelete(memory.id)}
-          loading={isDeleting}
-          disabled={isDeleting}
-          className="text-text-muted hover:text-red-500 hover:bg-red-500/10"
-          aria-label={`Delete memory ${memory.id}`}
-        />
-      </div>
-    </div>
-  );
-}
+import { Icon } from "@/shared/components/Icon";
 
 export default function MemoryTable({
   memories,
@@ -73,6 +9,7 @@ export default function MemoryTable({
   error,
   deleting,
   onDelete,
+  onSelectMemory,
   total,
   page,
   pageSize,
@@ -80,7 +17,6 @@ export default function MemoryTable({
   onRefresh,
   isSearch,
 }) {
-  // Error state
   if (error && !loading) {
     return (
       <Card
@@ -92,26 +28,28 @@ export default function MemoryTable({
           </Button>
         }
       >
-        <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <div className="flex items-center justify-center size-12 rounded-full bg-red-500/10 text-red-500">
-            <span className="material-symbols-outlined text-[24px]">error</span>
+        <div className="flex flex-col items-center justify-center py-10 gap-3">
+          <div className="flex items-center justify-center size-10 rounded-full bg-danger/10 text-danger">
+            <Icon name="error" className="text-[20px]" />
           </div>
-          <p className="text-sm text-red-500 font-medium">{error}</p>
-          <p className="text-xs text-text-muted">Check that the memory backend is running.</p>
+          <p className="text-xs text-danger font-medium">{error}</p>
+          <p className="text-xs text-text-muted">Ensure the memory store or SQLite backend is reachable.</p>
         </div>
       </Card>
     );
   }
 
-  // Loading state
   if (loading && memories.length === 0) {
     return (
       <Card title="Memories" icon="psychology">
-        <div className="flex flex-col gap-3 py-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex flex-col gap-2 animate-pulse">
-              <div className="h-4 bg-surface-2 rounded w-3/4" />
-              <div className="h-3 bg-surface-2 rounded w-1/3" />
+        <div className="divide-y divide-border-subtle py-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="py-3 flex items-center justify-between gap-4 animate-pulse">
+              <div className="space-y-1.5 flex-1">
+                <div className="h-3.5 bg-surface-2 rounded w-3/4" />
+                <div className="h-2.5 bg-surface-2 rounded w-1/4" />
+              </div>
+              <div className="h-6 w-12 bg-surface-2 rounded" />
             </div>
           ))}
         </div>
@@ -119,66 +57,146 @@ export default function MemoryTable({
     );
   }
 
-  // Empty state
   if (!loading && memories.length === 0) {
     return (
       <Card title="Memories" icon="psychology">
-        <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <div className="flex items-center justify-center size-12 rounded-full bg-bg text-text-muted">
-            <span className="material-symbols-outlined text-[24px]">psychology</span>
+        <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
+          <div className="flex items-center justify-center size-10 rounded-full bg-surface-2 text-text-muted mb-1">
+            <Icon name="psychology" className="text-[20px]" />
           </div>
-          <p className="text-sm text-text-muted font-medium">
-            {isSearch ? "No matching memories" : "No memories found"}
+          <p className="text-sm font-semibold text-text-main">
+            {isSearch ? "No matching memories" : "No memories stored"}
           </p>
-          <p className="text-xs text-text-muted">
-            {isSearch ? "Try a different search query." : "Add your first memory to get started."}
+          <p className="text-xs text-text-muted max-w-sm">
+            {isSearch
+              ? "Try adjusting your search terms or clearing the query filter."
+              : "Store semantic memories or context snippets for agent retrieval."}
           </p>
         </div>
       </Card>
     );
   }
 
-  // Content
   const totalPages = Math.ceil(total / pageSize);
-  const startItem = total > 0 ? (page - 1) * pageSize + 1 : 0;
-  const endItem = Math.min(page * pageSize, total);
 
   return (
-    <Card
-      title="Memories"
-      subtitle={isSearch ? `${memories.length} results` : undefined}
-      icon="psychology"
-      action={
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onRefresh}
-          loading={loading}
-          icon="refresh"
-        >
-          Refresh
-        </Button>
-      }
-    >
-      <div className="divide-y divide-border-subtle">
-        {memories.map((memory) => (
-          <MemoryRow
-            key={memory.id}
-            memory={memory}
-            onDelete={onDelete}
-            isDeleting={deleting.has(memory.id)}
-          />
-        ))}
+    <div className="rounded-[10px] border border-border bg-surface overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-border bg-surface-2/60 text-text-muted font-medium">
+              <th className="py-2.5 px-4 font-semibold text-text-main">Content</th>
+              <th className="py-2.5 px-4 font-semibold text-text-main hidden sm:table-cell">Metadata & Session</th>
+              <th className="py-2.5 px-4 font-semibold text-text-main hidden md:table-cell">Score</th>
+              <th className="py-2.5 px-4 font-semibold text-text-main">Created</th>
+              <th className="py-2.5 px-4 font-semibold text-text-main text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border-subtle font-sans">
+            {memories.map((memory) => {
+              const createdDate = memory.createdAt
+                ? new Date(memory.createdAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "—";
+
+              const tags = memory.metadata?.tags || [];
+              const sessionId = memory.sessionId || memory.metadata?.sessionId;
+              const isDeleting = deleting.has(memory.id);
+
+              return (
+                <tr
+                  key={memory.id}
+                  onClick={() => onSelectMemory?.(memory)}
+                  className="hover:bg-surface-2/60 transition-colors cursor-pointer group"
+                >
+                  <td className="py-2.5 px-4 max-w-[280px] sm:max-w-md">
+                    <p className="truncate text-xs font-medium text-text-main leading-snug">
+                      {memory.content}
+                    </p>
+                    {sessionId && (
+                      <span className="sm:hidden inline-flex items-center gap-1 font-mono text-[10px] text-primary mt-1">
+                        <Icon name="terminal" className="text-[11px]" />
+                        <span className="truncate max-w-[120px]">{sessionId}</span>
+                      </span>
+                    )}
+                  </td>
+
+                  <td className="py-2.5 px-4 hidden sm:table-cell">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {sessionId && (
+                        <span
+                          className="inline-flex items-center gap-1 font-mono text-[10px] text-primary px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20"
+                          title={`Session ID: ${sessionId}`}
+                        >
+                          <Icon name="terminal" className="text-[11px]" />
+                          <span className="truncate max-w-[120px]">{sessionId}</span>
+                        </span>
+                      )}
+                      {tags.map((tag) => (
+                        <Badge key={tag} variant="default" size="sm">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {!sessionId && tags.length === 0 && (
+                        <span className="text-[11px] text-text-muted font-mono">—</span>
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="py-2.5 px-4 hidden md:table-cell font-mono tabular-nums text-text-muted">
+                    {memory.score !== undefined ? (
+                      <Badge variant="info" size="sm">
+                        {Math.abs(memory.score).toFixed(2)}
+                      </Badge>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+
+                  <td className="py-2.5 px-4 font-mono text-[11px] text-text-muted whitespace-nowrap">
+                    {createdDate}
+                  </td>
+
+                  <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon="visibility"
+                        onClick={() => onSelectMemory?.(memory)}
+                        title="View details"
+                        aria-label="View memory details"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon="delete"
+                        onClick={() => onDelete(memory.id)}
+                        loading={isDeleting}
+                        disabled={isDeleting}
+                        className="text-text-muted hover:text-danger hover:bg-danger/10"
+                        title="Delete memory"
+                        aria-label={`Delete memory ${memory.id}`}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
-      {/* Pagination footer — only for list view, not search */}
       {!isSearch && totalPages > 1 && (
-        <div className="flex items-center justify-between pt-4 mt-2 border-t border-border-subtle">
-          <span className="text-xs text-text-muted">
-            Page <span className="font-medium text-text-main">{page}</span>
-            {total > pageSize && (
-              <> of ~<span className="font-medium text-text-main">{totalPages}</span></>
-            )}
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-surface-2/40 text-xs text-text-muted">
+          <span>
+            Page <strong className="text-text-main font-mono">{page}</strong> of{" "}
+            <strong className="text-text-main font-mono">{totalPages}</strong>
+            <span className="ml-2 font-mono tabular-nums text-[11px]">({total} entries)</span>
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -186,23 +204,20 @@ export default function MemoryTable({
               size="sm"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="w-8 px-0"
-            >
-              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
-            </Button>
-            <span className="text-xs text-text-muted px-2">{page}</span>
+              icon="chevron_left"
+              aria-label="Previous page"
+            />
             <Button
               variant="outline"
               size="sm"
               onClick={() => onPageChange(page + 1)}
               disabled={memories.length < pageSize}
-              className="w-8 px-0"
-            >
-              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
-            </Button>
+              icon="chevron_right"
+              aria-label="Next page"
+            />
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
