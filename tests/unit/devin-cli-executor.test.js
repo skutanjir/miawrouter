@@ -416,6 +416,7 @@ describe("DevinCliExecutor ACP session/new", () => {
     spawnMock.mockImplementation((bin, args, opts) => {
       child.args = args;
       child.opts = opts;
+      child.mcpConfig = JSON.parse(fs.readFileSync(path.join(opts.env.XDG_CONFIG_HOME, "devin", "config.json"), "utf8"));
       return child;
     });
     const exec = new DevinCliExecutor();
@@ -435,7 +436,9 @@ describe("DevinCliExecutor ACP session/new", () => {
     // XDG_CONFIG_HOME set so devin loads the generated config.
     expect(child.opts.env.XDG_CONFIG_HOME).toBeTruthy();
     // Static MCP bridge script written to disk.
-    const scriptPath = path.join(os.tmpdir(), "miawrouter-devin-client-tools.mjs");
+    const scriptPath = child.mcpConfig.mcpServers.clientTools.args[0];
+    expect(path.basename(scriptPath)).toBe("client-tools.mjs");
+    expect(path.dirname(path.dirname(scriptPath))).toBe(os.tmpdir());
     expect(fs.existsSync(scriptPath)).toBe(true);
     expect(fs.readFileSync(scriptPath, "utf8")).toContain("clientTools");
     expect(fs.readFileSync(scriptPath, "utf8")).toContain("DEVIN_MCP_TOOLS");
